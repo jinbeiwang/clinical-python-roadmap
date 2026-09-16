@@ -13,14 +13,27 @@ clinic —— 临床数据处理的 Python 工具包
 - ``qc``      : 数据质量检查规则
 - ``agent_tools`` : 暴露给 LLM Agent 的工具集
 
+Agent 开发模块（第 18–24 章）
+-----------------------------
+- ``agent_core``    : 分层架构骨架 —— 工具契约、状态外置、预算闸门、审计追踪
+- ``agent_planner`` : 任务规划与调度 —— DAG、拓扑排序、分层并行、部分失败汇总
+- ``agent_memory``  : 记忆与上下文 —— 三种策略、结构化事实、关键词检索与引用
+- ``agent_role``    : 多 Agent 协作 —— 角色契约、结构化消息、独立性守卫、双编程
+- ``agent_http``    : 外部服务集成 —— 超时、重试退避、限流、幂等、脱敏与合规扫描
+
 设计原则
 --------
 1. **与 SAS 结果对齐优先于"Pythonic"** —— 例如 ``sas_round`` 复刻 SAS 的四舍五入，
    而不是用 Python 内置的银行家舍入。
 2. **边界规则显式化** —— 所有分组/区间判断都写明边界归属，便于 QC 核对。
 3. **失败要响** —— 关键校验失败时抛异常（对应 SAS 的 %abort），而不是默默产出错误结果。
+4. **确定性下沉，不确定性上浮** —— Agent 模块里，业务逻辑全在工具里（纯 Python、
+   可单测），LLM 只负责"下一步做什么"。
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
-__all__ = ["io", "derive", "report", "qc", "agent_tools"]
+__all__ = [
+    "io", "derive", "report", "qc", "agent_tools",
+    "agent_core", "agent_planner", "agent_memory", "agent_role", "agent_http",
+]
