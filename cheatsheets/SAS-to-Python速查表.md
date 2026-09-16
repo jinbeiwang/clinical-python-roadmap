@@ -775,4 +775,5 @@ name = "".join("_" if c in '[]:*?/\\' else c for c in name)
 - [`docs/02-基础语法速通-SAS对照.md`](../docs/02-基础语法速通-SAS对照.md) —— 语法层对照
 - [`docs/08-数据操作对照-DATA步与PROC SQL.md`](../docs/08-数据操作对照-DATA步与PROC%20SQL.md) —— 数据操作对照
 - [`docs/10-日期缺失值格式与数据质量.md`](../docs/10-日期缺失值格式与数据质量.md) —— 日期与缺失值专题
-- [`cases/`](../cases) —— 7 个可运行案例，每个坑都有可复现的代码
+- [`cheatsheets/Agent开发速查表.md`](Agent开发速查表.md) —— ★ 转向 Agent 开发后的高频查阅页
+- [`cases/`](../cases) —— 13 个可运行案例，每个坑都有可复现的代码

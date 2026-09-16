@@ -7,13 +7,14 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![pandas](https://img.shields.io/badge/pandas-2.x%20%7C%203.x-150458?logo=pandas&logoColor=white)
 ![CDISC](https://img.shields.io/badge/CDISC-SDTM%20%7C%20ADaM-005A9C)
-![cases](https://img.shields.io/badge/%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-7%20%E4%B8%AA-brightgreen)
+![cases](https://img.shields.io/badge/%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-13%20%E4%B8%AA-brightgreen)
+![chapters](https://img.shields.io/badge/%E6%95%99%E7%A8%8B-25%20%E7%AB%A0-blue)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
 ### 📖 [在线阅读（GitHub Pages）](https://jinbeiwang.github.io/clinical-python-roadmap/)
 
 带侧边栏导航、全文搜索、代码高亮与深浅色主题的完整文档站，
-比在 GitHub 上逐页点 Markdown 舒服得多 —— 18 章正文、速查表、资料索引、
+比在 GitHub 上逐页点 Markdown 舒服得多 —— 25 章正文、速查表、资料索引、
 以及全部案例与工具包的**源码阅读页**都在里面。
 
 ---
@@ -64,9 +65,15 @@ python scripts/download_data.py --core    # 从 CDISC 公开仓库下载 XPT
 python scripts/make_samples.py            # 重新生成样本 CSV
 ```
 
-> 💡 **Agent 案例也能离线跑**：`python cases/case07_临床数据QC_Agent.py`
-> 默认是 **Mock 模式**，不联网、不需要 API Key，但工具执行的是**真实逻辑**。
-> 设置 `OPENAI_API_KEY` 即自动切换到真实 LLM 模式。
+> 💡 **Agent 案例全部能离线跑**：`case07`–`case12` 与 `case_http_demo`
+> 默认都是 **Mock 模式**，不联网、不需要 API Key，但工具执行的是**真实逻辑**，
+> 结论里的数字也来自真实数据。设置 `OPENAI_API_KEY` 即自动切到真实 LLM 模式。
+>
+> ```bash
+> python cases/case08_分层架构QC_Agent.py     # 分层架构 + 预算 + 断点恢复
+> python cases/case10_TLF生成流水线.py        # DAG 规划 + 并行 + 失败传播
+> python cases/case12_QC_Agent服务化.py       # 起一个真能发请求的 HTTP 服务
+> ```
 
 ---
 
@@ -74,20 +81,27 @@ python scripts/make_samples.py            # 重新生成样本 CSV
 
 ```
 clinical-python-roadmap/
-├── docs/                     # 18 章教程正文（00-17）
+├── docs/                     # 25 章教程正文（00-24）
 │   ├── *.md                  #   教程源文件（Markdown，GitHub 上可直接读）
 │   ├── index.html            #   ★ 在线文档站首页（由 scripts/build_site.py 生成）
 │   ├── guide/  code/         #   生成的章节页与源码阅读页
 │   ├── assets/               #   站点样式、脚本与搜索索引
 │   └── .nojekyll             #   关闭 Jekyll（文档里有 Liquid 会误解析的代码块）
-├── cases/                    # 7 个可运行实战案例 ★ 核心
+├── cases/                    # 13 个可运行实战案例 ★ 核心
 ├── clinic/                   # 可复用的临床数据工具包
 │   ├── io.py                 #   读 XPT/sas7bdat，保留标签，清洗伪缺失
 │   ├── derive.py             #   SAS 语义的舍入、年龄分组、日期处理
 │   ├── report.py             #   TFL 报表构造件（n (%)、Mean (SD)、移位表）
 │   ├── qc.py                 #   数据质量检查、跨域一致性、PROC COMPARE 等价物
-│   └── agent_tools.py        #   暴露给 LLM Agent 的工具集
-├── cheatsheets/              # SAS → Python 速查表 ★ 高频查阅
+│   ├── agent_tools.py        #   暴露给 LLM Agent 的工具集
+│   ├── agent_core.py         #   Agent 主循环、工具契约、预算闸门、观察者、指标
+│   ├── agent_planner.py      #   任务 DAG、拓扑排序、并行调度、续跑
+│   ├── agent_memory.py       #   分层记忆、结构化事实表、检索与引用
+│   ├── agent_role.py         #   多 Agent 拓扑、角色契约、独立性守卫
+│   ├── agent_http.py         #   带重试/退避/限流/脱敏审计的 HTTP 客户端
+│   ├── config.py             #   12-Factor 配置、启动自检、密钥脱敏
+│   └── agent_eval.py         #   确定性评估集（正向 + 否定式安全断言）
+├── cheatsheets/              # 速查表 ★ 高频查阅（SAS→Python / Agent 开发）
 ├── resources/                # 精选资料索引（GitHub / CDISC / PHUSE / 论文）
 ├── ci/                       # GitHub Actions 工作流模板（见 ci/README.md）
 ├── scripts/                  # 数据下载、样本生成、文档站构建
@@ -109,7 +123,7 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 
 `build_site.py` 做三件事：Markdown → HTML（表格、代码块、脚注）、
 仓库内相对链接重写（能指向站内的就指向站内，否则指向 GitHub）、
-以及生成侧边栏与搜索索引（356 条小节级条目，按 `/` 或 `Ctrl+K` 唤起）。
+以及生成侧边栏与搜索索引（497 条小节级条目，按 `/` 或 `Ctrl+K` 唤起）。
 
 > 为什么不直接用 Jekyll：教程正文的代码块里有 `${{ matrix.python-version }}`
 > 这类 GitHub Actions 语法，会被 Jekyll 当 Liquid 标签解析而**构建失败**；
@@ -118,7 +132,7 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 
 ---
 
-## 18 章学习路线
+## 25 章学习路线
 
 **阶段一：打通基础（你已经有编程底子，这部分要快）**
 
@@ -150,7 +164,7 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 | [13](docs/13-ADaM衍生与TFL报表生成.md) | ADaM 衍生与 TFL 报表生成 | ★ **ADSL 派生 + 双编程验证** |
 | [14](docs/14-统计分析与可视化.md) | 统计分析与可视化 | `PROC TTEST/REG/LOGISTIC` 的对应 |
 
-**阶段四：进阶与智能化**
+**阶段四：AI 与工程化**
 
 | 章 | 标题 | 关键收获 |
 |---|---|---|
@@ -158,12 +172,31 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 | [16](docs/16-Agent开发入门.md) | Agent 开发入门 | ★ **LLM + 工具 + 循环**，含离线兜底 |
 | [17](docs/17-工程化与后续进阶.md) | 工程化与后续进阶 | Git、虚拟环境、pytest、CI；合规红线 |
 
+**阶段五：Agent 核心能力（从"能跑"到"可维护"）**
+
+| 章 | 标题 | 关键收获 |
+|---|---|---|
+| [18](docs/18-Agent架构设计.md) | Agent 架构设计 | ★ 分层架构（编排/工具/领域/基础设施）；**副作用分级**；三道预算闸；可序列化状态 → 断点恢复 |
+| [19](docs/19-任务规划与调度.md) | 任务规划与调度 | DAG + 拓扑排序 + 分层并行；**部分失败要显式汇报**；人工确认点；从计划续跑 |
+| [20](docs/20-工具调用进阶.md) | 工具调用进阶：契约、校验与边界 | ★ JSON Schema 契约与自检；路径白名单**用映射不用拼接**；结构化错误让模型自己改对 |
+| [21](docs/21-记忆与上下文管理.md) | 记忆与上下文管理 | 全量/窗口/摘要三种策略；结构化事实表；检索**零命中就说零命中**（红线） |
+
+**阶段六：Agent 工程化（从"我电脑上能跑"到"团队能放心用"）**
+
+| 章 | 标题 | 关键收获 |
+|---|---|---|
+| [22](docs/22-多Agent协作.md) | 多 Agent 协作 | ★ **价值在独立性，不在数量**；三种拓扑；差异四级分级；独立性必须靠架构强制 |
+| [23](docs/23-外部API与服务集成.md) | 与外部 API 及服务集成 | 超时/重试/退避+抖动/限流/幂等键；**401 绝不重试**；水位线要在落盘之后推 |
+| [24](docs/24-部署与监控.md) | 部署与监控 | 启动 **fail fast**；`request_id` 贯穿日志；缓存键**必须含数据版本**；确定性评估集进 CI |
+
 ---
 
-## 7 个实战案例（全部实测可跑通）
+## 13 个实战案例（全部实测可跑通）
 
 每个案例都对应**你工作里真实存在的表或任务**，
 并且**刻意把最容易出错的口径问题摆在明面上**。
+
+### 数据与报表（case01–case06）
 
 | 案例 | 做什么 | 你会学到（以及会踩的坑） |
 |---|---|---|
@@ -173,7 +206,18 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 | [case04 实验室移位表](cases/case04_实验室移位表.py) | 基线 → 基线的分级迁移表 | 分级阈值必须来自 `ANRLO`/`ANRHI` 而不是硬编码；行百分比 vs 列百分比；同一受试者多条记录取最差等级 |
 | [case05 ADSL 衍生](cases/case05_ADSL衍生.py) | ★ 多域合并衍生 ADSL + **双编程验证** | **三种 "治疗结束日" 口径 → 248 / 254 / 127 三个不同答案**；`TRT01A` 抄 `DM.ACTARM` 会错 12 人（滴定期退出的受试者）；BMI 的**精度顺序**会改变结果；`VISNUMEN` 需要的数据不在手上时**怎么办** |
 | [case06 批处理自动化](cases/case06_批处理自动化.py) | 目录清点 + 批量 XPT→CSV + 多 sheet 汇总 | 异常隔离（一个文件坏了不中断整批）；**幂等**（可反复重跑）；Excel sheet 名的 31 字符限制 |
-| [case07 临床数据 QC Agent](cases/case07_临床数据QC_Agent.py) | ★ LLM + 工具 + 循环，8 个临床数据工具 | Agent 与脚本的分水岭；**安全边界必须写在代码里而不是提示词里**；transcript 可审计；★ **Mock 模式离线跑通** |
+
+### Agent 开发（case07–case12 + caseA）
+
+| 案例 | 对应章节 | 你会学到（以及会踩的坑） |
+|---|---|---|
+| [case07 临床数据 QC Agent](cases/case07_临床数据QC_Agent.py) | 16 | ★ LLM + 工具 + 循环，8 个临床数据工具；Agent 与脚本的分水岭；**安全边界必须写在代码里而不是提示词里**；★ Mock 模式离线跑通 |
+| [case08 分层架构 QC Agent](cases/case08_分层架构QC_Agent.py) | 18 / 20 | ★ **"提示词挡不住的东西用代码挡"**：写操作必须人工确认；预算超限要**优雅收尾**（给部分结论）而不是抛异常；参数写错 → 结构化错误 → 模型自己改对；断点恢复不重复已完成步骤 |
+| [case09 SDTM 一致性核查 Agent](cases/case09_SDTM一致性核查Agent.py) | 21 | ★ **检索阈值必须用带标注的探针集标定，不能拍脑袋**（本案例实测 0.40：召回 8/8、误命中 0/7）；工具返回"未找到"时**必须如实说没找到**；代码块里的 `#` 会被误当标题 |
+| [case10 TLF 生成流水线](cases/case10_TLF生成流水线.py) | 19 | ★ 11 个任务的 DAG：分层并行（实测加速比）；失败重试与**传播**；`optional` 语义是"本任务失败不阻塞下游"；部分失败要显式汇报；人工确认点 + **从计划续跑不重复副作用** |
+| [case11 双编程 Agent 对](cases/case11_双编程Agent对.py) | 22 | ★★ **零差异 + 独立性被破坏 = 零价值**。守卫同时记录"谁读了什么/谁产出了什么"，`B'` 真去读 A 的产物会被自动抓住；差异四级分级（critical/major/minor/**explainable**）；审计覆盖率 0 的"通过"等于没查 |
+| [case12 QC Agent 服务化](cases/case12_QC_Agent服务化.py) | 24 | ★★ **用标准库起一个真能发请求的 HTTP 服务**（`/health`、`/qc`、`/qc/async`、422 校验、404）；`request_id` 贯穿日志；缓存键**漏掉数据版本就静默返回旧数据**；评估集**第一次跑就抓出了 Mock 的静默替换数据集缺陷** |
+| [caseA 外部数据源客户端](cases/case_http_demo.py) | 23 | 指数退避 + 抖动（可注入 sleep，所以能断言）；**401 绝不重试**（一次都没重试）；尊重 `Retry-After`；**先落盘再推水位线**；去标识化的双层判据（列名 + 取值形态） |
 
 ### 案例的输出
 
@@ -184,6 +228,11 @@ python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
 - `adsl_derived.csv` + `adsl_validation.html` —— ★ **双编程验证报告**
 - `case06_summary.xlsx` —— 多 sheet 汇总
 - `agent_report.md` + `agent_transcript.json` —— Agent 的报告与可审计对话记录
+- `pair/case11_report.md` —— ★ 双编程比对报告（含差异分级与受影响受试者）
+- `pair/agegr1_copied_independence.md` —— ★ 独立性审计（含违规命中）
+- `service/eval_report.md` —— ★ Agent 评估报告（5/5 通过）
+- `audit/app.log` —— 结构化日志（可按 `request_id` 捞一次请求的完整轨迹）
+- `audit/http.jsonl` —— 外部调用的审计（已脱敏）
 
 ### case05 的验证结果（真实的，不是宣称的）
 
@@ -232,12 +281,27 @@ dm = cio.read_xpt("data/raw/dm.xpt")          # 保留变量标签
 df["BMIBL"] = sas_round_series(df["BMI"], 1)  # 与 SAS 一致的四舍五入
 ```
 
-### 4. Agent 模块能离线跑
+### 4. Agent 案例全部能离线跑
 
-`case07` 默认 Mock 模式：**不联网、不需要 API Key**，
-用确定性决策序列调用工具，但**工具执行的是真实逻辑**。
-这解决了一个很现实的问题 —— 内网/合规环境没法调外部 LLM，
-但你又想先验证流程。
+`case07`–`case12` 默认都是 Mock 模式：**不联网、不需要 API Key**，
+用确定性的决策序列调用工具，但**工具执行的是真实逻辑**，
+结论里的数字也来自真实数据。这解决了一个很现实的问题 ——
+内网 / 合规环境没法调外部 LLM，但你又想先把流程验证通。
+
+外部依赖同样可注入：`agent_http` 的传输层让"对面超时、限流、401、
+返回缺字段的 JSON"都能在离线状态下被复现和断言。
+
+### 5. 每条"经验之谈"都配了一个能跑给你看的证据
+
+这是本项目最不像教程的地方：**它不满足于告诉你结论**。
+
+| 常听到的说法 | 本项目的做法 |
+|---|---|
+| "检索阈值要调好" | case09 用 8 个应命中 + 7 个应落空的探针集实测，选 0.40，并说明 0.43 那条为什么是薄弱边缘 |
+| "独立性很重要" | case11 让 `B'` **真的去读 A 的产物**，由守卫自动抓出违规；再对比"没登记任何来源"的第三种情况 |
+| "缓存要小心数据更新" | case12 打印出 v1 / v2 两个缓存键，让你看见"键相同 → 静默返回旧数据" |
+| "要有评估集" | case12 的评估集**第一次跑就挂了两个用例**，查下去是 Mock 会静默替换数据集 —— 修代码，不是删断言 |
+| "别重试 401" | case_http_demo 里 `max_retries=5`，实际请求次数打印出来是 **1** |
 
 ---
 
@@ -297,6 +361,48 @@ assert len(a) == n0        # ✅ 合并后必查行数
 
 ---
 
+## 只记 3 个 Agent 的坑的话，记这 3 个
+
+写 Agent 的坑和写脚本完全不同 —— 脚本错了会报错，Agent 错了会**安静地给你一个像模像样的答案**。
+
+### 1. "静默替换"比崩溃危险一百倍
+
+```python
+# 用户问 adata，代码认不出来，于是"顺手"换成第一个可用的数据集
+ds = pick_dataset(goal) or "adsl"     # ❌ 结论看起来完全正常，只是分析的是另一个数据集
+```
+
+本项目的评估集**第一次跑就抓出了这个缺陷**（`clinic/agent_core.py`）。
+正确做法是**先枚举、再如实说没有**，而不是猜一个顶上。
+
+→ `clinic/agent_core.py` · `cases/case12`
+
+### 2. 独立性一旦破坏，"零差异"是坏消息
+
+```
+B 抄了 A        → 0 处差异，独立性 ✗  → 零价值（同一份错误被复制了一遍）
+真正独立的 A、B  → 2 处差异，独立性 ✓  → 找到了 2 个真问题
+```
+
+所以独立性**必须靠架构强制**（上下文物理隔离、产物命名空间隔离、
+比对由第三方代码执行），不能靠自觉。而且**审计覆盖率为 0 的"通过"等于没查**。
+
+→ `clinic/agent_role.py` · `cases/case11`
+
+### 3. 缓存键漏掉数据版本 = 静默返回旧数据
+
+```python
+key = f"{tool}|{args}"                    # ❌ 数据更新后仍返回旧结果
+key = f"{data_version}|{tool}|{args}"     # ✅ mtime + size 参与键
+```
+
+这类事故不报错、不崩溃、表看起来完全正常，只是数字是上一版的。
+同理：**水位线必须在落盘成功之后才推进**，顺序反了就是永远补不回来的丢数。
+
+→ `clinic/config.py`（`data_version_of`）· `cases/case12` · `cases/case_http_demo`
+
+---
+
 ## 数据来源与许可
 
 **数据**：来自 [CDISC SDTM/ADaM Pilot Project](https://github.com/cdisc-org/sdtm-adam-pilot-project)
@@ -338,6 +444,14 @@ assert len(a) == n0        # ✅ 合并后必查行数
 | [标准与规范](resources/02-标准与规范-CDisc-PHUSE.md) | SDTMIG / ADaM / 受控术语 / 试点数据集 / PHUSE 工作组 |
 | [论文与技术资料](resources/03-论文与技术资料.md) | 会议论文去哪找、怎么搜、该读哪些主题 |
 | [Python 学习资源与工具链](resources/04-Python学习资源与工具链.md) | 官方文档、开发环境、8 周学习路径 |
+| [Agent 开发与 LLM 资料](resources/05-Agent开发与LLM资料.md) | ★ Agent 工程化、评估与测试、临床 / 受监管场景的 AI 官方材料 |
+
+**速查表（高频查阅）**
+
+| 速查表 | 内容 |
+|---|---|
+| [SAS → Python 速查表](cheatsheets/SAS-to-Python速查表.md) | 14 类语法对照 + 常见坑 Top 20 |
+| [Agent 开发速查表](cheatsheets/Agent开发速查表.md) | ★ 分层 / 契约 / 重试决策表 / 独立性 / 反模式 Top 15 / 上线检查清单 |
 
 **如果只打开 3 个链接：**
 
@@ -376,6 +490,19 @@ assert len(a) == n0        # ✅ 合并后必查行数
 - 搭建自动化的数据体检 / QC 流水线
 - 用元数据驱动的思路替代手写映射
 - 开发辅助性的 Agent（代码审查、文档检索、程序骨架生成）
+- 把 Agent 做成**团队能放心用**的服务：接口、指标、审计、评估集齐全
+
+**Q: 第 18–24 章和前面的 Agent 内容重复吗？**
+不重复。[第 16 章](docs/16-Agent开发入门.md)解决的是"Agent 是什么、
+最小可用长什么样"；18–24 章解决的是"**怎么让它可维护、可上线、
+可审计**" —— 分层架构、任务规划、工具契约、记忆检索、多 Agent 独立性、
+外部集成、部署与监控，每一章都配一个能跑的案例。
+
+**Q: Agent 部分要花钱吗？**
+不需要。13 个案例全部可在 Mock 模式离线跑完，
+包括第 24 章那个真能发请求的 HTTP 服务（它自己用标准库起服务，
+再用标准库发请求，全程在回环地址上）。想验证真实 LLM 行为时，
+设置 `OPENAI_API_KEY` 即可切换。
 
 ---
 
