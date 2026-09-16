@@ -1,0 +1,38 @@
+MIT License
+
+Copyright (c) 2026 clinical-python-roadmap contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---------------------------------------------------------------------------
+关于数据（DATA NOTICE）
+
+本项目附带的数据样本（data/samples/）来自 CDISC 公开的
+SDTM/ADaM Pilot Project（CDISCPILOT01），原始数据的许可条款见：
+https://github.com/cdisc-org/sdtm-adam-pilot-project
+
+本项目的代码（MIT 许可）与上述数据的许可相互独立。
+如果你要再分发本项目的数据样本，请同时遵守原始数据来源的许可条款。
+
+免责声明
+
+本项目是学习资料，不是监管文件，也不构成任何合规建议。
+其中的派生逻辑、口径选择仅用于教学演示，
+实际项目中的口径必须以你所在项目的 SAP、公司 SOP 和适用的监管要求为准。
+作者不对因使用本项目而产生的任何后果承担责任。

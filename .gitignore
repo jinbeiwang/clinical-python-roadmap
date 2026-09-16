@@ -1,0 +1,65 @@
+# ---- 数据（不提交原始数据，样本 CSV 有选择地提交）----
+# 原始 XPT 文件体积大（adlbc 34MB / advs 24MB），且可从 CDISC 公开仓库重新下载。
+# 克隆者运行 scripts/download_data.py + scripts/make_samples.py 即可获得。
+data/raw/
+data/converted/
+data/tmp/
+
+# ---- 输出（每次运行都会重新生成）----
+outputs/
+*.log
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- 虚拟环境 ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- 编辑器 / IDE ----
+.vscode/*
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- 操作系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- ★ 敏感文件：绝对不能提交 ----
+# 临床数据环境里最容易出事故的地方：
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.json
+credentials.json
+token.json
+*.sas7bdat          # 真实 SAS 数据集，未脱敏
+*.xpt               # 同上（样本 CSV 例外，见下）
+
+# ---- 例外：要提交的样本数据 ----
+!data/samples/*.csv
+!data/samples/*_meta.json

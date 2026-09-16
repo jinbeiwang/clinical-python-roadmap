@@ -1,0 +1,115 @@
+name: CI
+
+# 对应第 17 章「工程化」：每次提交自动跑一遍全部案例。
+# 价值不在"证明代码能跑"，而在于 —— 当你改了 clinic/ 里的某个工具函数，
+# 所有依赖它的案例会**立刻**告诉你有没有被改坏。
+# 这就是"双编程验证"的自动化版本。
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:        # 允许手动触发
+
+jobs:
+  smoke-test:
+    name: 冒烟测试（Python ${{ matrix.python-version }}）
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false       # 某个版本失败不影响其他版本，一次看全
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 环境信息
+        run: |
+          python -V
+          python -c "import pandas, numpy, pyreadstat; print('pandas', pandas.__version__); print('numpy', numpy.__version__); print('pyreadstat', pyreadstat.__version__)"
+
+      - name: 逐个跑通所有案例
+        # ★ 这里不用 `set -e`，而是显式收集退出码 ——
+        #   目的是"跑完所有案例再报告哪些失败"，而不是第一个失败就退出。
+        #   这与案例 06 演示的"异常隔离"是同一个思路。
+        run: |
+          failed=0
+          for f in cases/case0*.py; do
+            echo "::group::运行 $f"
+            if python "$f" > /tmp/case_out.txt 2>&1; then
+              echo "✓ 通过"
+            else
+              echo "✗ 失败"
+              failed=1
+            fi
+            tail -n 20 /tmp/case_out.txt
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      - name: 校验输出产物是否生成
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+
+          expected = [
+              "outputs/table01_demographics.html",
+              "outputs/table03_lab_shift.html",
+              "outputs/adsl_derived.csv",
+              "outputs/adsl_validation.html",
+              "outputs/case06_summary.xlsx",
+              "outputs/agent_report.md",
+              "outputs/agent_transcript.json",
+          ]
+          missing = [p for p in expected if not Path(p).exists()]
+          for p in expected:
+              mark = "✓" if Path(p).exists() else "✗"
+              size = f"{Path(p).stat().st_size:,} B" if Path(p).exists() else "-"
+              print(f"{mark} {p:44s} {size}")
+          if missing:
+              print(f"\n缺失 {len(missing)} 个产物", file=sys.stderr)
+              sys.exit(1)
+          print(f"\n全部 {len(expected)} 个产物已生成")
+          PY
+
+      - name: 校验 case05 的双编程验证结果
+        # ★ 把"口径结论"也纳入 CI —— 如果哪天改了派生逻辑导致匹配率下降，
+        #   CI 会立刻失败。这比人工对比可靠得多。
+        run: |
+          python - <<'PY'
+          import sys
+          import pandas as pd
+
+          rep = pd.read_csv("outputs/adsl_validation.csv")
+          bad = rep[rep["判定"] == "不一致"]
+          if len(bad):
+              print(bad.to_string(index=False), file=sys.stderr)
+              sys.exit(f"存在 {len(bad)} 个变量判定为『不一致』")
+
+          exact = int((rep["判定"] == "一致").sum())
+          print(f"一致 {exact} / {len(rep)} 个变量")
+          print(f"判定分布：{rep['判定'].value_counts().to_dict()}")
+          assert exact >= 23, f"完全一致的变量数下降到了 {exact}"
+          print("case05 验证通过")
+          PY
+
+      - name: 上传产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outputs-py${{ matrix.python-version }}
+          path: outputs/
+          retention-days: 14

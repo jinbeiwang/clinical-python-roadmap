@@ -1,0 +1,28 @@
+# 本项目运行所需的依赖
+#
+# 安装：
+#     pip install -r requirements.txt
+#
+# ★ 为什么把版本写死？
+#   临床统计编程强调**可复现性**。pandas 2 → 3 有过若干行为变更
+#   （如字符串 dtype 独立、copy-on-write 默认开启），
+#   不锁版本可能导致"半年前跑得通、现在跑不通"。
+#   如果你要把本项目用于任何正式交付，请记录完整环境：
+#       pip freeze > environment-lock.txt
+
+# ---- 核心（必须）----
+pandas>=2.0,<4.0            # DataFrame —— 取代 DATA 步 + PROC SQL
+numpy>=1.24,<3.0            # 向量化运算底座
+pyreadstat>=1.2             # 读写 SAS XPT / sas7bdat（保留变量标签）
+
+# ---- 输出（案例用到）----
+openpyxl>=3.1               # 写 .xlsx（case06 的多 sheet 汇总）
+
+# ---- 可选 ----
+matplotlib>=3.7             # 绘图（第 14 章）
+scipy>=1.11                 # 统计检验：t 检验 / Fisher / 卡方 / Wilcoxon（第 14 章）
+statsmodels>=0.14           # 回归 / Logistic / Mixed Model（第 14 章）
+
+# ---- Agent 案例（case07）----
+# 只在需要"真实 LLM 模式"时安装；不装也能跑 Mock 离线模式
+# openai>=1.30              # OpenAI 兼容接口（也支持 DeepSeek / 通义 / 本地 vLLM）

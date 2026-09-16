@@ -1,0 +1,41 @@
+{
+  "column_labels": {
+    "STUDYID": "Study Identifier",
+    "DOMAIN": "Domain Abbreviation",
+    "USUBJID": "Unique Subject Identifier",
+    "EXSEQ": "Sequence Number",
+    "EXTRT": "Name of Actual Treatment",
+    "EXDOSE": "Dose per Administration",
+    "EXDOSU": "Dose Units",
+    "EXDOSFRM": "Dose Form",
+    "EXDOSFRQ": "Dosing Frequency per Interval",
+    "EXROUTE": "Route of Administration",
+    "VISITNUM": "Visit Number",
+    "VISIT": "Visit Name",
+    "VISITDY": "Planned Study Day of Visit",
+    "EXSTDTC": "Start Date/Time of Treatment",
+    "EXENDTC": "End Date/Time of Treatment",
+    "EXSTDY": "Study Day of Start of Treatment",
+    "EXENDY": "Study Day of End of Treatment"
+  },
+  "value_labels": {},
+  "variable_types": {
+    "STUDYID": null,
+    "DOMAIN": null,
+    "USUBJID": null,
+    "EXSEQ": null,
+    "EXTRT": null,
+    "EXDOSE": null,
+    "EXDOSU": null,
+    "EXDOSFRM": null,
+    "EXDOSFRQ": null,
+    "EXROUTE": null,
+    "VISITNUM": null,
+    "VISIT": null,
+    "VISITDY": null,
+    "EXSTDTC": null,
+    "EXENDTC": null,
+    "EXSTDY": null,
+    "EXENDY": null
+  }
+}

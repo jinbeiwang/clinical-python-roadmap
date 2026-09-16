@@ -1,0 +1,33 @@
+{
+  "column_labels": {
+    "STUDYID": "Study Identifier",
+    "DOMAIN": "Domain Abbreviation",
+    "USUBJID": "Unique Subject Identifier",
+    "DSSEQ": "Sequence Number",
+    "DSSPID": "Sponsor-Defined Identifier",
+    "DSTERM": "Reported Term for the Disposition Event",
+    "DSDECOD": "Standardized Disposition Term",
+    "DSCAT": "Category for Disposition Event",
+    "VISITNUM": "Visit Number",
+    "VISIT": "Visit Name",
+    "DSDTC": "Date/Time of Collection",
+    "DSSTDTC": "Start Date/Time of Disposition Event",
+    "DSSTDY": "Study Day of Start of Disposition Event"
+  },
+  "value_labels": {},
+  "variable_types": {
+    "STUDYID": null,
+    "DOMAIN": null,
+    "USUBJID": null,
+    "DSSEQ": null,
+    "DSSPID": null,
+    "DSTERM": null,
+    "DSDECOD": null,
+    "DSCAT": null,
+    "VISITNUM": null,
+    "VISIT": null,
+    "DSDTC": null,
+    "DSSTDTC": null,
+    "DSSTDY": null
+  }
+}
