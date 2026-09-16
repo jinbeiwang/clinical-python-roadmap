@@ -25,7 +25,7 @@
 
 > 💡 PharmaSUG 2026 的 ET-223 论文（Python 做临床统计编程）
 > 演示的正是完整链路：读 ADaM → 核心运算 → 格式化 TFL 输出。
-> 见 [`resources/02-PharmaSUG论文资料.md`](../resources/02-PharmaSUG论文资料.md)
+> 见 [`resources/03-论文与技术资料.md`](../resources/03-论文与技术资料.md)
 
 ---
 
