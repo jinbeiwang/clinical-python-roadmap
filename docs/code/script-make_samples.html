@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scripts/make_samples.py</title>
+<meta name="description" content="make_samples.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="scripts/make_samples.py">
+<meta property="og:description" content="make_samples.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/script-make_samples.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 构建脚本</div><h1>scripts/make_samples.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/scripts/make_samples.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/scripts/make_samples.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">make_samples.py</strong> · 211 行 · 8 KB<br>make_samples.py —— 从 data/raw/*.xpt 生成轻量 CSV 样本到 data/samples/</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">make_samples.py —— 从 data/raw/*.xpt 生成轻量 CSV 样本到 data/samples/</span>
+
+<span class="sd">为什么需要这一步</span>
+<span class="sd">----------------</span>
+<span class="sd">原始的 CDISC 试点数据是 SAS XPT 格式（且部分文件达 30 MB）。</span>
+<span class="sd">为了让**克隆仓库后无需联网下载即可直接跑通所有案例**，</span>
+<span class="sd">本脚本把案例用到的数据集转成小体积 CSV，并对超大表做**有原则的裁剪**：</span>
+
+<span class="sd">- 大数据集（如 VS）只保留案例实际用到的变量与访视，并在文件名/README 中标注；</span>
+<span class="sd">- 小数据集（DM/ADSL/AE/ADAE/ADTTE/EX/DS）完整导出，不做裁剪；</span>
+<span class="sd">- 同时导出变量标签 JSON，供教程演示"如何保留 SAS 的 label 信息"。</span>
+
+<span class="sd">用法</span>
+<span class="sd">----</span>
+<span class="sd">    python scripts/make_samples.py</span>
+<span class="sd">    python scripts/make_samples.py --raw data/raw --out data/samples</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"</span><span class="si">%(levelname)s</span><span class="s2"> | </span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 完整导出（不裁剪）</span>
+<span class="n">FULL_DATASETS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"adtte"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">]</span>
+
+<span class="c1"># VS 裁剪规格：案例 04（生命体征移位表）只需血压与脉搏，且限定在分析访视</span>
+<span class="n">VS_KEEP_COLS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VSTESTCD"</span><span class="p">,</span> <span class="s2">"VSTEST"</span><span class="p">,</span> <span class="s2">"VSSTRESN"</span><span class="p">,</span> <span class="s2">"VSSTRESU"</span><span class="p">,</span>
+                <span class="s2">"VSBLFL"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">,</span> <span class="s2">"VISIT"</span><span class="p">,</span> <span class="s2">"VSDTC"</span><span class="p">]</span>
+<span class="n">VS_KEEP_TESTS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SYSBP"</span><span class="p">,</span> <span class="s2">"DIABP"</span><span class="p">,</span> <span class="s2">"PULSE"</span><span class="p">]</span>
+<span class="n">VS_VISIT_RANGE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>          <span class="c1"># 含端点；筛掉非计划访视（3.1 / 3.5）</span>
+
+<span class="c1"># VS 人体测量子集：案例 05（ADSL 衍生）需要身高体重算 BMI</span>
+<span class="n">VS_ANTHROP_TESTS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"HEIGHT"</span><span class="p">,</span> <span class="s2">"WEIGHT"</span><span class="p">]</span>
+
+<span class="c1"># ADLBC 裁剪规格：案例 04（实验室移位表）用基线 + 治疗结束两个访视</span>
+<span class="n">ADLBC_KEEP_COLS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRTP"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"PARAM"</span><span class="p">,</span> <span class="s2">"PARCAT1"</span><span class="p">,</span>
+                   <span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"BASE"</span><span class="p">,</span> <span class="s2">"CHG"</span><span class="p">,</span> <span class="s2">"ANRLO"</span><span class="p">,</span> <span class="s2">"ANRHI"</span><span class="p">,</span>
+                   <span class="s2">"ANRIND"</span><span class="p">,</span> <span class="s2">"BNRIND"</span><span class="p">,</span> <span class="s2">"ABLFL"</span><span class="p">,</span> <span class="s2">"AVISIT"</span><span class="p">,</span> <span class="s2">"AVISITN"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">]</span>
+<span class="n">ADLBC_KEEP_VISITS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Baseline"</span><span class="p">,</span> <span class="s2">"End of Treatment"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">strip_chars</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""去掉 XPT 里字符列的首尾空格（XPT 定长存储会补空格）。</span>
+
+<span class="sd">    注意两点：</span>
+
+<span class="sd">    1. 不依赖 ``select_dtypes("object")`` —— pandas 3 起字符串 dtype 已独立，</span>
+<span class="sd">       用 ``object`` 过滤会**漏掉** StringDtype 的列。</span>
+<span class="sd">    2. 用 ``astype("string")`` 而不是 ``astype(str)``：</span>
+<span class="sd">       后者会把真正的缺失值 ``NaN`` 变成字符串 ``"nan"``，</span>
+<span class="sd">       写出 CSV 后就再也分不清"缺失"和"值等于 nan 的字符串"了。</span>
+<span class="sd">    """</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_datetime64_any_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">])):</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">label_json</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""导出变量标签与值标签，演示如何把 SAS label 带进 pandas 工作流。"""</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"column_labels"</span><span class="p">:</span> <span class="n">meta</span><span class="o">.</span><span class="n">column_names_to_labels</span><span class="p">,</span>
+        <span class="s2">"value_labels"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"variable_value_labels"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="s2">"variable_types"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"original_variable_types"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{},</span>
+    <span class="p">}</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_meta.json"</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  标签 -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">export_full</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">raw_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.xpt"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"  跳过 </span><span class="si">%s</span><span class="s2">（原始文件不存在，请先运行 download_data.py）"</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">strip_chars</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv"</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  </span><span class="si">%-8s</span><span class="s2"> -&gt; </span><span class="si">%-12s</span><span class="s2"> </span><span class="si">%7d</span><span class="s2"> 行 x </span><span class="si">%2d</span><span class="s2"> 列  (</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span>
+                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.xpt"</span><span class="p">,</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dst</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> KB"</span><span class="p">)</span>
+    <span class="n">label_json</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">export_vs_subset</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">raw_dir</span> <span class="o">/</span> <span class="s2">"vs.xpt"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"  跳过 vs（原始文件不存在）"</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">VS_KEEP_COLS</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">VS_VISIT_RANGE</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">"VSTESTCD"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">VS_KEEP_TESTS</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">df</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">]</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">),</span>
+        <span class="n">cols</span><span class="p">,</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">strip_chars</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"vs_bp.csv"</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  </span><span class="si">%-8s</span><span class="s2"> -&gt; </span><span class="si">%-12s</span><span class="s2"> </span><span class="si">%7d</span><span class="s2"> 行 x </span><span class="si">%2d</span><span class="s2"> 列  (</span><span class="si">%s</span><span class="s2">)  [已裁剪: </span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2"> 行]"</span><span class="p">,</span>
+                 <span class="s2">"vs.xpt"</span><span class="p">,</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">sub</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dst</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> KB"</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">export_vs_anthrop</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""导出身高/体重记录（案例 05 用它派生 HEIGHTBL / WEIGHTBL / BMIBL）。</span>
+
+<span class="sd">    ★ 这里有个很容易踩的坑：``VSSTRESN`` 是"标准单位"的**全精度**值，</span>
+<span class="sd">      例如体重 120 LB → 54.43 kg，而 ADSL 的 ``WEIGHTBL`` 是</span>
+<span class="sd">      ``ROUND(., 0.1)`` 之后的 54.4。</span>
+<span class="sd">      直接拿 VSSTRESN 去比会 253/254 不一致 —— 必须先舍入再比。</span>
+<span class="sd">    """</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">raw_dir</span> <span class="o">/</span> <span class="s2">"vs.xpt"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"  跳过 vs（原始文件不存在）"</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VSTESTCD"</span><span class="p">,</span> <span class="s2">"VSTEST"</span><span class="p">,</span> <span class="s2">"VSORRES"</span><span class="p">,</span> <span class="s2">"VSORRESU"</span><span class="p">,</span>
+                        <span class="s2">"VSSTRESN"</span><span class="p">,</span> <span class="s2">"VSSTRESU"</span><span class="p">,</span> <span class="s2">"VSBLFL"</span><span class="p">,</span>
+                        <span class="s2">"VISITNUM"</span><span class="p">,</span> <span class="s2">"VISIT"</span><span class="p">,</span> <span class="s2">"VSDTC"</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"VSTESTCD"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">VS_ANTHROP_TESTS</span><span class="p">),</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">strip_chars</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"vs_anthrop.csv"</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  </span><span class="si">%-8s</span><span class="s2"> -&gt; </span><span class="si">%-12s</span><span class="s2"> </span><span class="si">%7d</span><span class="s2"> 行 x </span><span class="si">%2d</span><span class="s2"> 列  (</span><span class="si">%s</span><span class="s2">)  [已裁剪: </span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2"> 行]"</span><span class="p">,</span>
+                 <span class="s2">"vs.xpt"</span><span class="p">,</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">sub</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dst</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> KB"</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">export_adlbc_subset</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""导出实验室检查（ADLBC）的移位表用子集：基线 + 治疗结束。"""</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">raw_dir</span> <span class="o">/</span> <span class="s2">"adlbc.xpt"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"  跳过 adlbc（原始文件不存在）"</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ADLBC_KEEP_COLS</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">ADLBC_KEEP_VISITS</span><span class="p">),</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">strip_chars</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"adlbc_shift.csv"</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  </span><span class="si">%-8s</span><span class="s2"> -&gt; </span><span class="si">%-12s</span><span class="s2"> </span><span class="si">%7d</span><span class="s2"> 行 x </span><span class="si">%2d</span><span class="s2"> 列  (</span><span class="si">%s</span><span class="s2">)  [已裁剪: </span><span class="si">%d</span><span class="s2"> -&gt; </span><span class="si">%d</span><span class="s2"> 行]"</span><span class="p">,</span>
+                 <span class="s2">"adlbc.xpt"</span><span class="p">,</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">sub</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dst</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> KB"</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">write_manifest</span><span class="p">(</span><span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""生成样本清单，说明每个 CSV 的来源与是否裁剪。"""</span>
+    <span class="n">TRIM_NOTE</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"vs_bp"</span><span class="p">:</span> <span class="s2">"是（仅 SYSBP/DIABP/PULSE，访视 1-13）"</span><span class="p">,</span>
+        <span class="s2">"vs_anthrop"</span><span class="p">:</span> <span class="s2">"是（仅 HEIGHT/WEIGHT）"</span><span class="p">,</span>
+        <span class="s2">"adlbc_shift"</span><span class="p">:</span> <span class="s2">"是（仅 Baseline / End of Treatment 两个访视）"</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">out_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.csv"</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"MANIFEST.csv"</span><span class="p">:</span>
+            <span class="k">continue</span>                      <span class="c1"># 不把自己列进清单</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">head</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">head</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"文件"</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"行数"</span><span class="p">:</span> <span class="n">n_rows</span><span class="p">,</span>
+            <span class="s2">"列数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+            <span class="s2">"大小(KB)"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">),</span>
+            <span class="s2">"来源"</span><span class="p">:</span> <span class="s2">"CDISCPILOT01 "</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+            <span class="s2">"是否裁剪"</span><span class="p">:</span> <span class="n">TRIM_NOTE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span> <span class="s2">"否"</span><span class="p">),</span>
+        <span class="p">})</span>
+    <span class="n">mf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">mf</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"MANIFEST.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">样本清单："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"从 XPT 生成案例用 CSV 样本"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--raw"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"data/raw"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--out"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"data/samples"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">raw</span><span class="p">),</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"从 </span><span class="si">%s</span><span class="s2"> 生成 CSV 样本到 </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">FULL_DATASETS</span><span class="p">:</span>
+        <span class="n">export_full</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">export_vs_subset</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">)</span>
+    <span class="n">export_vs_anthrop</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">)</span>
+    <span class="n">export_adlbc_subset</span><span class="p">(</span><span class="n">raw_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">)</span>
+    <span class="n">write_manifest</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="script-download_data.html"><span class="pg-label">← 上一篇</span><span class="pg-title">download_data.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

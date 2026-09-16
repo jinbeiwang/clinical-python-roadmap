@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>权威 GitHub 仓库索引</title>
+<meta name="description" content="GitHub 权威仓库 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="权威 GitHub 仓库索引">
+<meta property="og:description" content="GitHub 权威仓库 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/res-01.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>权威 GitHub 仓库索引</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/resources/01-GitHub%E6%9D%83%E5%A8%81%E4%BB%93%E5%BA%93.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>面向临床统计编程的 Python / R / 开源工具链。</strong>
+收录标准：真实存在、在维护、对临床数据工作有直接价值。
+星标数为 <strong>2026-09</strong> 的实测值（会随时间变化，仅供判断热度参考）。</p>
+</blockquote>
+<p><strong>图例</strong>：🟢 强烈推荐 ｜ 🔵 值得收藏 ｜ ⚪ 参考</p>
+<blockquote>
+<p>⚠️ 部分企业内网无法直连 <code>github.com</code>。
+如果拉取失败，优先检查是否需要配置代理；本项目的
+<code>scripts/download_data.py</code> 内置了多通道回退，可作参考。</p>
+</blockquote>
+<hr />
+<h2 id="1-数据读取与写入python--sas">1. 数据读取与写入（Python ↔ SAS）</h2>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://github.com/Roche/pyreadstat">Roche/pyreadstat</a></td>
+<td>428</td>
+<td><strong>本项目用来读 XPT 的库</strong>。读写 SAS/SPSS/Stata 文件，保留变量标签与值标签。Python 生态里事实标准</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/sanders41/sas7bdat-converter">sanders41/sas7bdat-converter</a></td>
+<td>22</td>
+<td>把 <code>.sas7bdat</code> 转成 CSV/Parquet 的命令行工具，适合批量转换场景</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/dylanmeysmans/duckdb-read-stat">dylanmeysmans/duckdb-read-stat</a></td>
+<td>35</td>
+<td>在 DuckDB 里直接查 SAS/Stata/SPSS 文件。<strong>数据大到内存装不下时的正确解法</strong></td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/asnr/sas-to-python">asnr/sas-to-python</a></td>
+<td>25</td>
+<td>SAS DATA 步语法 → pandas 的翻译规则。做迁移时拿来对照</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/swhume/odmlib">swhume/odmlib</a></td>
+<td>29</td>
+<td>Python 处理 CDISC ODM / Define-XML。写 define.xml 时有用</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/swhume/odmlib_examples">swhume/odmlib_examples</a></td>
+<td>14</td>
+<td>odmlib 的示例程序集</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-cdisc-官方cdisc-org">2. CDISC 官方（<code>cdisc-org</code>）</h2>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">cdisc-org/sdtm-adam-pilot-project</a></td>
+<td>81</td>
+<td><strong>本项目的全部数据来源</strong>。CDISCPILOT01（2007 年阿尔茨海默症试验）的 SDTM + ADaM + 原始 TFL 输出，是唯一被 FDA 审阅过的公开完整数据集</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://github.com/cdisc-org/cdisc-rules-engine">cdisc-org/cdisc-rules-engine</a></td>
+<td>114</td>
+<td><strong>CORE（CDISC Open Rules Engine）</strong>。官方开源的一致性校验引擎，用 Python（pandas/dask）实现。可以直接对 SDTM/ADaM 跑官方规则集</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://github.com/cdisc-org/analysis-results-standard">cdisc-org/analysis-results-standard</a></td>
+<td>72</td>
+<td><strong>ARS</strong>。新一代"分析结果元数据"标准 —— 用机器可读的方式描述 TFL 的呈现逻辑。做自动化报表必看</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/cdisc-org/DataExchange-DatasetJson">cdisc-org/DataExchange-DatasetJson</a></td>
+<td>41</td>
+<td><strong>Dataset-JSON</strong>。CDISC 推出的 XPT 替代交换格式，JSON 友好、能保留元数据。未来几年会逐步替代 XPT</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/cdisc-org/COSMoS">cdisc-org/COSMoS</a></td>
+<td>33</td>
+<td>Clinical Open Source Management &amp; Operations —— 药企如何<strong>合规地</strong>引入开源软件的实践指南</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/cdisc-org/usdm">cdisc-org/usdm</a></td>
+<td>22</td>
+<td>USDM：机器可读的协议（Protocol）标准，让"协议 → 数据 → 报表"可追溯</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/cdisc-org/DDF-RA">cdisc-org/DDF-RA</a></td>
+<td>53</td>
+<td>Digital Data Flow / Real-world应用方向</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/cdisc-org/cdisc-library-client">cdisc-org/CDISC-library-client</a></td>
+<td>9</td>
+<td>官方 Python 客户端，程序化访问 CDISC Library（标准原文、CT 术语）</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/cdisc-org/cosa">cdisc-org/cosa</a></td>
+<td>18</td>
+<td>CDISC Open Source Alliance 相关</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-phuse-项目仓库phuse-org">3. PHUSE 项目仓库（<code>phuse-org</code>）</h2>
+<p>PHUSE 是临床统计编程领域最有影响力的<strong>开源协作社区</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://github.com/phuse-org/phuse-scripts">phuse-org/phuse-scripts</a></td>
+<td>129</td>
+<td><strong>PHUSE 官方脚本库</strong>。按 CDISC 标准交付的行业标准分析脚本，覆盖 SDTM/ADaM/SEND。看别人的生产代码怎么写，这是最好的样本</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://github.com/phuse-org/OSTCDA">phuse-org/OSTCDA</a></td>
+<td>39</td>
+<td><strong>Open Source Technology in Clinical Data Analysis</strong>。最有价值的资源之一：SAS/R/Python 的<strong>方法学对照</strong>，同一张表用三种语言实现并比对结果</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/phuse-org/valtools">phuse-org/valtools</a></td>
+<td>56</td>
+<td>临床研究中 R 包的<strong>验证框架</strong>。想理解"开源工具在 GxP 环境怎么验证"，看这个</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/phuse-org/TestDataFactory">phuse-org/TestDataFactory</a></td>
+<td>31</td>
+<td><strong>TDF</strong>。生成符合 CDISC 标准的测试数据 —— 开发阶段不用真实患者数据的解法</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/phuse-org/rdf.cdisc.org">phuse-org/rdf.cdisc.org</a></td>
+<td>36</td>
+<td>语义技术工作组：把 CDISC 标准转成 RDF/知识图谱</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/phuse-org/git-in-statistical-programming">phuse-org/git-in-statistical-programming</a></td>
+<td>14</td>
+<td><strong>Git 在统计编程中的使用规范</strong>。<code>git pull</code> 遇到冲突怎么办、分支怎么管，这里有行业共识</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/phuse-org/aesummaries">phuse-org/aesummaries</a></td>
+<td>10</td>
+<td>AE 汇总表的开源实现（森林图方向）</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/phuse-org/sendigR">phuse-org/sendigR</a></td>
+<td>14</td>
+<td>SEND 数据集的跨研究分析（R）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-atorus-research开源-pharmaverse-的重要推手">4. Atorus Research（开源 pharmaverse 的重要推手）</h2>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://github.com/atorus-research/CDISC_pilot_replication">atorus-research/CDISC_pilot_replication</a></td>
+<td>53</td>
+<td><strong>用现代 R + pharmaverse 复刻 CDISC 试点项目的全部 TFL 输出。</strong> 想验证自己的实现对不对，这是最好的参照物</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://github.com/atorus-research/xportr">atorus-research/xportr</a></td>
+<td>54</td>
+<td>把数据框导出成<strong>符合 CDISC 合规要求</strong>的 XPT（长度、标签、格式都按规范处理）。★ 这些细节手写极易踩坑</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/atorus-research/Tplyr">atorus-research/Tplyr</a></td>
+<td>109</td>
+<td>分层汇总表框架（如 AE 表、人口学表），代替 <code>PROC TABULATE</code> 的思路</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/atorus-research/metacore">atorus-research/metacore</a></td>
+<td>50</td>
+<td>基于元数据（define.xml / spec）自动给数据集加标签与格式</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/atorus-research/atorus-sas-macros">atorus-research/atorus-sas-macros</a></td>
+<td>32</td>
+<td>开源 SAS 宏集。<strong>如果你还在写 SAS，这是现成的轮子</strong></td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/atorus-research/datasetjson">atorus-research/datasetjson</a></td>
+<td>26</td>
+<td>Dataset-JSON 的读写实现（R）</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/atorus-research/pharmaRTF">atorus-research/pharmaRTF</a></td>
+<td>34</td>
+<td>生成符合药企排版要求的 RTF 输出</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-pharmaverser-生态但思路值得学">5. pharmaverse（R 生态，但思路值得学）</h2>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://github.com/pharmaverse/sdtm.oak">pharmaverse/sdtm.oak</a></td>
+<td>77</td>
+<td><strong>EDC 与标准无关的 SDTM 转换引擎</strong>：从 spec（Excel/metadata）驱动生成 SDTM，而不是逐个手写映射代码。这是 SDTM 生产的趋势方向</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>为什么 R 生态值得 SAS 程序员看？</strong>
+pharmaverse（R）在"元数据驱动 + 自动化"这条路上走得比 Python 生态更前面，
+有很多设计思想（spec 驱动、<code>xportr</code> 的合规检查、<code>metacore</code> 的标签注入）
+完全可以移植到 Python。<strong>学的是思路，不是语言。</strong></p>
+</blockquote>
+<hr />
+<h2 id="6-数据映射与-ai-辅助">6. 数据映射与 AI 辅助</h2>
+<table>
+<thead>
+<tr>
+<th>仓库</th>
+<th>星标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔵 <a href="https://github.com/stomioka/sdtm_mapper">stomioka/sdtm_mapper</a></td>
+<td>58</td>
+<td>AI 辅助 SDTM 映射（R 做 ML，Python/TensorFlow 做 DL）</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/stomioka/ucum">stomioka/ucum</a></td>
+<td>5</td>
+<td>UCUM 单位换算与校验 —— 单位转换是 SDTM 里最容易出错的一环</td>
+</tr>
+<tr>
+<td>⚪ <a href="https://github.com/scassells/cdisclibrarytools">scassells/cdisclibrarytools</a></td>
+<td>11</td>
+<td>访问 CDISC Library 的 Python 工具</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-通用-python-数据栈必装的几个">7. 通用 Python 数据栈（必装的几个）</h2>
+<p>这些不是临床专用，但你的工作 90% 靠它们。</p>
+<table>
+<thead>
+<tr>
+<th>包</th>
+<th>文档</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>pandas</strong></td>
+<td><a href="https://pandas.pydata.org/docs/">pandas.pydata.org/docs</a></td>
+<td>DataFrame —— 取代 DATA 步 + PROC SQL</td>
+</tr>
+<tr>
+<td><strong>numpy</strong></td>
+<td><a href="https://numpy.org/doc/stable/">numpy.org/doc/stable</a></td>
+<td>向量化运算的底座</td>
+</tr>
+<tr>
+<td><strong>pyreadstat</strong></td>
+<td><a href="https://pyreadstat.readthedocs.io/">pyreadstat.readthedocs.io</a></td>
+<td>读写 XPT / sas7bdat / SPSS</td>
+</tr>
+<tr>
+<td><strong>openpyxl</strong></td>
+<td><a href="https://openpyxl.readthedocs.io/">openpyxl.readthedocs.io</a></td>
+<td>读写 xlsx（含单元格格式）</td>
+</tr>
+<tr>
+<td><strong>scipy</strong></td>
+<td><a href="https://scipy.org/">scipy.org</a></td>
+<td>统计检验（t 检验、Fisher、卡方、Wilcoxon）</td>
+</tr>
+<tr>
+<td><strong>statsmodels</strong></td>
+<td><a href="https://www.statsmodels.org/">statsmodels.org</a></td>
+<td>回归、Logistic、Mixed Model（对应 PROC REG/LOGISTIC/MIXED）</td>
+</tr>
+<tr>
+<td><strong>matplotlib</strong></td>
+<td><a href="https://matplotlib.org/">matplotlib.org</a></td>
+<td>绘图（对应 PROC SGPLOT）</td>
+</tr>
+<tr>
+<td><strong>Jupyter</strong></td>
+<td><a href="https://jupyter.org/">jupyter.org</a></td>
+<td>交互式探索 —— <strong>替代 SAS Studio 的探索体验</strong></td>
+</tr>
+<tr>
+<td><strong>pyarrow</strong></td>
+<td><a href="https://arrow.apache.org/docs/python/">arrow.apache.org/docs/python</a></td>
+<td>Parquet 读写，大文件提速 10 倍以上</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-怎么用这些仓库给临床程序员的实操建议">8. 怎么用这些仓库（给临床程序员的实操建议）</h2>
+<p><strong>如果你是纯 SAS 背景，第一次看开源项目，建议按这个顺序：</strong></p>
+<ol>
+<li><strong>先跑通数据</strong> —— 克隆 <code>sdtm-adam-pilot-project</code>，用本项目
+   <code>scripts/download_data.py</code> 把 XPT 拉下来，用 <code>case01</code> 体检一遍。
+   <em>目的：建立"这些数据我真的能读到"的信心。</em></li>
+<li><strong>再对照结果</strong> —— 打开 <code>CDISC_pilot_replication</code> 或
+   <code>phuse-org/phuse-scripts</code>，找一张你已经做过的表（比如 TEAE 汇总），
+   看别人怎么实现。
+   <em>目的：建立"我的口径对不对"的判断标准。</em></li>
+<li><strong>再看工程化</strong> —— 读 <code>phuse-org/git-in-statistical-programming</code>，
+   理解版本管理在受监管环境里怎么落地。
+   <em>目的：从"写代码"进阶到"交付可审计的程序"。</em></li>
+<li><strong>最后看元数据驱动</strong> —— 看 <code>sdtm.oak</code> 和 <code>analysis-results-standard</code>。
+   <em>目的：理解行业的下一个十年往哪走 —— 从"手写程序"到"元数据驱动生成"。</em></li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>合规提醒</strong>：以上开源软件在 GxP 环境使用前，通常需要走
+内部验证流程（见 <code>cdisc-org/COSMoS</code>）。
+开源 ≠ 可以直接用于提交。<strong>"能跑通"和"能用于注册申报"是两件事。</strong></p>
+</blockquote>
+<hr />
+<p><strong>返回</strong> → <a href="../index.html">项目主页</a> ｜ <a href="resources.html">资料索引总览</a></p></article>
+<nav class="pager"><a class="pg-prev" href="resources.html"><span class="pg-label">← 上一篇</span><span class="pg-title">资料索引 · 总览</span></a><a class="pg-next" href="res-02.html"><span class="pg-label">下一篇 →</span><span class="pg-title">标准与规范 · CDISC / PHUSE</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CDISC / PHUSE 标准与官方资源</title>
+<meta name="description" content="标准与规范 · CDISC / PHUSE — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CDISC / PHUSE 标准与官方资源">
+<meta property="og:description" content="标准与规范 · CDISC / PHUSE — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/res-02.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>CDISC / PHUSE 标准与官方资源</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/resources/02-%E6%A0%87%E5%87%86%E4%B8%8E%E8%A7%84%E8%8C%83-CDisc-PHUSE.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>这一份是<strong>查口径、查定义、查术语</strong>时要用的地方。
+临床统计编程的每一个数字背后都有一个标准依据 —— 找到它，比记住它更重要。</p>
+</blockquote>
+<hr />
+<h2 id="1-cdisc-官方最权威">1. CDISC 官方（最权威）</h2>
+<p><strong>主站</strong>：https://www.cdisc.org/</p>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+<th>什么时候用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>SDTMIG</strong>（SDTM 实施指南）</td>
+<td><a href="https://www.cdisc.org/standards/foundational/sdtmig">cdisc.org/standards/foundational/sdtmig</a></td>
+<td>查"这个变量该叫什么、该放哪个域"。SDTM 的宪法</td>
+</tr>
+<tr>
+<td>🟢 <strong>SDTM</strong>（模型本体）</td>
+<td><a href="https://www.cdisc.org/standards/foundational/sdtm">cdisc.org/standards/foundational/sdtm</a></td>
+<td>域与变量的通用规则（不限于某一版 IG）</td>
+</tr>
+<tr>
+<td>🟢 <strong>ADaM</strong></td>
+<td><a href="https://www.cdisc.org/standards/foundational/adam">cdisc.org/standards/foundational/adam</a></td>
+<td><strong>ADSL/ADAE/ADTTE 的变量与派生要求。做 ADaM 必查</strong></td>
+</tr>
+<tr>
+<td>🟢 <strong>受控术语（CT）</strong></td>
+<td><a href="https://www.cdisc.org/standards/terminology/controlled-terminology">cdisc.org/standards/terminology/controlled-terminology</a></td>
+<td>查 <code>AESEV</code>、<code>AEOUT</code>、<code>SEX</code> 等变量的<strong>合法取值列表</strong>。CT 违规是最常见的一致性错误</td>
+</tr>
+<tr>
+<td>🔵 <strong>标准总览</strong></td>
+<td><a href="https://www.cdisc.org/standards">cdisc.org/standards</a></td>
+<td>看看还有哪些标准（ODM、Define-XML、SEND、USDM…）</td>
+</tr>
+<tr>
+<td>🔵 <strong>教育与培训</strong></td>
+<td><a href="https://www.cdisc.org/education">cdisc.org/education</a></td>
+<td>官方公开课、网络研讨会（部分免费）</td>
+</tr>
+<tr>
+<td>⚪ <strong>Define-XML</strong></td>
+<td>见 standards 页下的 Data Exchange 部分</td>
+<td>元数据交换："这个变量是什么、从哪来、怎么算的"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="免费但常被忽略的cdisc-library">免费但常被忽略的：CDISC Library</h3>
+<p>CDISC Library 是标准的<strong>机器可读版本</strong>。用它的好处是：
+写代码时不用人肉抄 CT 列表，可以直接拉一份下来做校验。</p>
+<ul>
+<li>官方 Python 客户端：<a href="https://github.com/cdisc-org/CDISC-library-client">cdisc-org/CDISC-library-client</a></li>
+<li>社区 Python 工具：<a href="https://github.com/scassells/cdisclibrarytools">scassells/cdisclibrarytools</a></li>
+</ul>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 思路示意（需申请 API key）</span>
+<span class="c1"># 1) 从 CDISC Library 拉取 SEX 的受控术语 → 存成本地 JSON</span>
+<span class="c1"># 2) QC 时用这份 JSON 校验数据里的 SEX 取值</span>
+<span class="c1"># ★ 好处：CT 版本升级时只改一处，不用改程序</span>
+</code></pre></div></div>
+<hr />
+<h2 id="2-试点项目唯一被-fda-审阅过的公开数据集">2. 试点项目：唯一被 FDA 审阅过的公开数据集</h2>
+<p><strong>CDISC SDTM/ADaM Pilot Project</strong> — <strong>本项目全部案例的数据来源</strong></p>
+<ul>
+<li>仓库：<a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">cdisc-org/sdtm-adam-pilot-project</a></li>
+<li>内容：CDISCPILOT01（2007 年阿尔茨海默症试验）的 SDTM + ADaM + <strong>原始 TFL 输出</strong></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>你能从中得到</th>
+<th>为什么珍贵</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SDTM 原始域（DM/AE/EX/DS/VS/LB/MH/CM/SC/SV…）</td>
+<td>不用编造数据，全部真实</td>
+</tr>
+<tr>
+<td>ADaM 数据集（ADSL/ADAE/ADLBC/ADTTE/ADVS）</td>
+<td>可用来验证你自己的派生实现</td>
+</tr>
+<tr>
+<td><strong>原始 TFL 输出（PDF/RTF）</strong></td>
+<td>★ <strong>可以拿自己的结果去对</strong>。这是学习"口径"最直接的方式</td>
+</tr>
+<tr>
+<td>define.xml</td>
+<td>看真实的元数据长什么样</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>强烈建议的练习方式</strong>：
+不要只看数据。<strong>拿一张原始 TFL 输出，自己用 Python 做一遍，
+再和它逐个数字对。</strong> 对不上的地方就是你要学的地方 ——
+本项目 <code>cases/case02</code>~<code>case05</code> 全都是这么做的。</p>
+</blockquote>
+<hr />
+<h2 id="3-phuse临床统计编程最有价值的社区">3. PHUSE（临床统计编程最有价值的社区）</h2>
+<p><strong>主站</strong>：https://phuse.global/</p>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+<th>为什么值得看</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>PHUSE 资源库</strong></td>
+<td><a href="https://phuse.global/resources">phuse.global/resources</a></td>
+<td>白皮书、交付物、最佳实践文档的入口</td>
+</tr>
+<tr>
+<td>🟢 <strong>PHUSE Advance Hub</strong></td>
+<td><a href="https://advance.phuse.global/">advance.phuse.global</a></td>
+<td>工作组的成果集中地。<strong>开源在临床落地的第一手资料</strong></td>
+</tr>
+<tr>
+<td>🔵 <strong>PHUSE 活动</strong></td>
+<td><a href="https://phuse.global/events">phuse.global/events</a></td>
+<td>年会（EU/US/China）与单日研讨会，大量免费材料</td>
+</tr>
+<tr>
+<td>🟢 <strong>PHUSE 脚本库</strong></td>
+<td><a href="https://github.com/phuse-org/phuse-scripts">phuse-org/phuse-scripts</a></td>
+<td>行业标准分析脚本，按 CDISC 标准交付</td>
+</tr>
+<tr>
+<td>🟢 <strong>OSTCDA</strong></td>
+<td><a href="https://github.com/phuse-org/OSTCDA">phuse-org/OSTCDA</a></td>
+<td><strong>Open Source Technology in Clinical Data Analysis</strong>：SAS/R/Python 方法学对照。这是"用 Python 做临床统计到底行不行"最权威的回答</td>
+</tr>
+<tr>
+<td>🔵 <strong>valtools</strong></td>
+<td><a href="https://github.com/phuse-org/valtools">phuse-org/valtools</a></td>
+<td>开源工具在 GxP 下的验证框架</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phuse-的几个关键工作组关注这些方向">PHUSE 的几个关键工作组（关注这些方向）</h3>
+<ul>
+<li><strong>Open Source Technology in Clinical Data Analysis (OSTCDA)</strong>
+  —— 开源技术的方法学与合规性论证</li>
+<li><strong>Analysis &amp; Display Standards</strong> —— TFL 的标准化呈现</li>
+<li><strong>Data Transparency</strong> —— 数据共享与去标识</li>
+<li><strong>Semantic Technology</strong> —— CDISC 标准的知识图谱化（<a href="https://github.com/phuse-org/rdf.cdisc.org">rdf.cdisc.org</a>）</li>
+<li><strong>Test Data Factory (TDF)</strong> —— 测试数据生成（<a href="https://github.com/phuse-org/TestDataFactory">仓库</a>）</li>
+</ul>
+<blockquote>
+<p>💡 <strong>PHUSE 与 PharmaSUG 的区别</strong>：
+- <strong>PHUSE</strong> 更偏<strong>项目制协作</strong>（有工作组、有交付物、有开源仓库）
+- <strong>PharmaSUG</strong> 更偏<strong>论文与经验分享</strong>（大量实操技巧，见下一篇）</p>
+<p>两个都要看。PHUSE 告诉你"应该怎么做"，PharmaSUG 告诉你"实际怎么做"。</p>
+</blockquote>
+<hr />
+<h2 id="4-其他常被引用的标准组织">4. 其他常被引用的标准组织</h2>
+<table>
+<thead>
+<tr>
+<th>组织 / 标准</th>
+<th>链接</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MedDRA</strong></td>
+<td><a href="https://www.meddra.org/">meddra.org</a></td>
+<td>不良事件编码字典。★ <strong>需要授权</strong>，Agent/程序不得绕过许可使用</td>
+</tr>
+<tr>
+<td><strong>WHODrug</strong></td>
+<td><a href="https://www.who-umc.org/">who-umc.org</a></td>
+<td>合并用药编码字典。同样需授权</td>
+</tr>
+<tr>
+<td><strong>ICH E3 / E9</strong></td>
+<td><a href="https://www.ich.org/">ich.org</a></td>
+<td>临床研究报告结构（E3）、统计原则（E9）。TFL 的"为什么要有这么多表"的依据</td>
+</tr>
+<tr>
+<td><strong>FDA 生物统计</strong></td>
+<td><a href="https://www.fda.gov/about-fda/center-drug-evaluation-and-research-cder/office-biostatistics">fda.gov/.../biostatistics</a></td>
+<td>审评相关的指南文件（Guidance for Industry）</td>
+</tr>
+<tr>
+<td><strong>HL7 FHIR</strong></td>
+<td><a href="https://hl7.org/fhir/">hl7.org/fhir</a></td>
+<td>医疗数据交换标准。做 RWD（真实世界数据）方向会遇到</td>
+</tr>
+<tr>
+<td><strong>UCUM</strong></td>
+<td><a href="https://ucum.org/">ucum.org</a></td>
+<td>计量单位标准 —— SDTM 单位转换的依据。工具见 <a href="https://github.com/stomioka/ucum">stomioka/ucum</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-受控术语ct到底该怎么用">5. 受控术语（CT）到底该怎么用</h2>
+<p>这是<strong>最高频的 QC 问题来源</strong>（本项目的 <code>clinic/qc.py</code> 就有 CT 检查）。</p>
+<p><strong>三个版本层次，必须分清：</strong></p>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>内容</th>
+<th>谁定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CDISC CT（SDTM CT）</strong></td>
+<td><code>SEX</code>、<code>AESEV</code>、<code>AEOUT</code>、<code>NY</code>（Y/N/U）等</td>
+<td>CDISC，每季度更新</td>
+</tr>
+<tr>
+<td><strong>申办方扩展 CT</strong></td>
+<td>在 CDISC CT 基础上补充项目特有取值</td>
+<td>申办方，须写进 define.xml</td>
+</tr>
+<tr>
+<td><strong>编码字典</strong></td>
+<td>MedDRA（AE）、WHODrug/ATC（CM）</td>
+<td>商业授权方</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实操要点：</strong></p>
+<ol>
+<li><strong>不要硬编码 CT 列表</strong>。CT 每季度更新，硬编码意味着每季度改程序。</li>
+<li><strong>QC 时要检查"数据里的取值 ⊆ 声明允许的取值"</strong>，而不是"⊆ 我记得的取值"。</li>
+<li><strong>CT 版本必须记录</strong>（在 define.xml 与 ADRG 里）。同一份数据用不同版本 CT
+   校验，结果会不同 —— 这是审计时的必查项。</li>
+<li><strong><code>Y</code>/<code>N</code> 的坑</strong>：有些公司写 <code>YES</code>/<code>NO</code>，有些写 <code>Y</code>/<code>N</code>。
+   这是<strong>项目级约定</strong>，不是标准 —— 但必须与 CT 一致。</li>
+</ol>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 思路示意：把 CT 检查做成配置驱动，而不是硬编码</span>
+<span class="n">CONTROLLED_TERMS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"dm"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"SEX"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"M"</span><span class="p">,</span> <span class="s2">"F"</span><span class="p">,</span> <span class="s2">"U"</span><span class="p">],</span> <span class="s2">"DTHFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">]},</span>
+    <span class="s2">"ae"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"AESEV"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"MILD"</span><span class="p">,</span> <span class="s2">"MODERATE"</span><span class="p">,</span> <span class="s2">"SEVERE"</span><span class="p">],</span> <span class="s2">"AESER"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">]},</span>
+<span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_ct</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">terms</span><span class="p">):</span>
+    <span class="n">issues</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">allowed</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">actual</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">illegal</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">actual</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">allowed</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">illegal</span><span class="p">:</span>
+            <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">var</span><span class="p">,</span> <span class="n">illegal</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">issues</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>Y</code>/<code>N</code> 缺失的陷阱</strong>：
+本项目里 <code>DTHFL</code> 只有死亡受试者才填 <code>Y</code>，其余为缺失 ——
+这与 CT 里"允许取 <code>Y</code>/<code>N</code>"并不矛盾（CT 说明"允许"什么，不要求"必须填"）。
+<strong>不要因为"缺失多"就判定数据有问题。</strong> 本案例的 <code>case01</code> 特意演示了这一点。</p>
+</blockquote>
+<hr />
+<h2 id="6-一页速查遇到问题该去哪查">6. 一页速查：遇到问题该去哪查</h2>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>去哪儿</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AESEV</code> 可以取哪些值？</td>
+<td>CDISC CT 页面</td>
+</tr>
+<tr>
+<td><code>ADSL</code> 必须有哪些变量？</td>
+<td>ADaM IG（<code>cdisc.org/standards/foundational/adam</code>）</td>
+</tr>
+<tr>
+<td><code>TRT01P</code> 和 <code>TRT01A</code> 的区别？</td>
+<td>ADaM IG 的 ADSL 章节 + 本项目 <code>case05</code></td>
+</tr>
+<tr>
+<td>"完成 8 周治疗"怎么算？</td>
+<td>SAP / define.xml / 本项目 <code>case05</code>（三种口径实测对比）</td>
+</tr>
+<tr>
+<td>这张表该用什么分母？</td>
+<td>SAP。<strong>没有 SAP 就不要猜</strong></td>
+</tr>
+<tr>
+<td>我的结果和别人不一样怎么办？</td>
+<td>先比口径（denominator / population / visit），再比实现</td>
+</tr>
+<tr>
+<td>开源工具能用于注册申报吗？</td>
+<td><a href="https://github.com/cdisc-org/COSMoS">cdisc-org/COSMoS</a> + 公司内部验证流程</td>
+</tr>
+<tr>
+<td>别人怎么用 Python 做这个？</td>
+<td><a href="https://github.com/phuse-org/OSTCDA">phuse-org/OSTCDA</a></td>
+</tr>
+<tr>
+<td>有没有现成的示例输出可以对？</td>
+<td><a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">cdisc-org/sdtm-adam-pilot-project</a> + <a href="https://github.com/atorus-research/CDISC_pilot_replication">atorus-research/CDISC_pilot_replication</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>返回</strong> → <a href="../index.html">项目主页</a> ｜ <a href="resources.html">资料索引总览</a></p></article>
+<nav class="pager"><a class="pg-prev" href="res-01.html"><span class="pg-label">← 上一篇</span><span class="pg-title">GitHub 权威仓库</span></a><a class="pg-next" href="res-03.html"><span class="pg-label">下一篇 →</span><span class="pg-title">论文与技术资料</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

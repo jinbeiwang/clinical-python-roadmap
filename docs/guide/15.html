@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 15 章 · AI 辅助编程与 SAS→Python 代码迁移</title>
+<meta name="description" content="AI 辅助编程与代码迁移 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 15 章 · AI 辅助编程与 SAS→Python 代码迁移">
+<meta property="og:description" content="AI 辅助编程与代码迁移 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/15.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第四阶段 · AI 与工程化</div><h1>第 15 章 · AI 辅助编程与 SAS→Python 代码迁移</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/15-AI%E8%BE%85%E5%8A%A9%E7%BC%96%E7%A8%8B%E4%B8%8E%E4%BB%A3%E7%A0%81%E8%BF%81%E7%A7%BB.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把大语言模型（LLM）变成你的日常生产力工具，
+尤其是<strong>用它加速 SAS → Python 的迁移</strong>。
+这是当前行业最真实、最有效的 AI 落地场景。</p>
+</blockquote>
+<hr />
+<h2 id="151-先看清-ai-在临床编程里能做什么不能做什么">15.1 先看清 AI 在临床编程里能做什么、不能做什么</h2>
+<p><strong>行业共识</strong>（PharmaSUG 2026 ET-223 的原话是
+"AI could generate programming, but programmers who know the language
+efficiently handle AI"）：</p>
+<table>
+<thead>
+<tr>
+<th>能做好</th>
+<th>做不好 / 有风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅ 解释一段陌生的 SAS / Python 代码</td>
+<td>❌ 保证逻辑完全等价（<strong>必须人工核对</strong>）</td>
+</tr>
+<tr>
+<td>✅ 语法翻译（DATA 步 → pandas）</td>
+<td>❌ 理解你的 SAP 里的业务规则</td>
+</tr>
+<tr>
+<td>✅ 生成样板代码（程序头、循环、批处理）</td>
+<td>❌ 边界条件（<code>&gt;=</code> 还是 <code>&gt;</code>）</td>
+</tr>
+<tr>
+<td>✅ 写单元测试与文档</td>
+<td>❌ 知道哪个"看起来对"的结果其实是错的</td>
+</tr>
+<tr>
+<td>✅ 排查报错（把 Traceback 丢给它）</td>
+<td>❌ 在 GxP 环境下直接交付未验证的代码</td>
+</tr>
+<tr>
+<td>✅ 生成假数据用于开发测试</td>
+<td>❌ 处理受控术语/编码（MedDRA/WHODrug）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>一句话原则</strong>：
+<strong>AI 负责"写得快"，你负责"写得对"。</strong>
+临床编程的最终责任永远在人身上。<strong>任何 AI 生成的代码都必须走完整的验证流程。</strong></p>
+</blockquote>
+<hr />
+<h2 id="152-高效提示词三个真正有用的模板">15.2 高效提示词：三个真正有用的模板</h2>
+<h3 id="模板-1sas--python-逐句翻译最高频">模板 1：SAS → Python 逐句翻译（最高频）</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>你是一位精通 SAS 和 Python 的临床统计程序员，熟悉 CDISC SDTM/ADaM 标准。
+
+请把下面的 SAS 代码转换成等价的 Python（pandas）代码。
+
+要求：
+1. 逐句对应，用注释标明每一行 Python 对应哪一行 SAS。
+2. 使用向量化写法，不要用 for 循环遍历行。
+3. 变量名保持全大写（CDISC 惯例）。
+4. 特别说明以下容易出错的地方（如果有）：
+   - 缺失值处理（SAS 的 . 与 pandas 的 NaN/NaT 差异）
+   - 舍入规则（SAS 是四舍五入，Python 是银行家舍入）
+   - 排序与分组顺序（SAS 的 CLASS 顺序 vs pandas 的 Categorical）
+   - 字符空串与缺失的区别
+5. 最后给出一段"结果核对建议"：我应该检查哪些数字来确认转换正确。
+
+SAS 代码：
+```sas
+&lt;粘贴你的 SAS 代码&gt;
+</code></pre></div></div>
+<p>数据上下文：&lt;变量清单 / 数据集行数 / 关键取值&gt;</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>
+### 模板 2：报错诊断（最省时间）
+</code></pre></div></div>
+<p>我在用 pandas 处理临床数据时遇到报错。请诊断原因并给出修复方案。</p>
+<p>【环境】Python 3.x + pandas 2.x
+【我的代码】</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="o">&lt;</span><span class="n">你的代码</span><span class="o">&gt;</span>
+</code></pre></div></div>
+<p>【报错信息】</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>&lt;Traceback 全文&gt;
+</code></pre></div></div>
+<p>【数据结构】<df.shape / df.dtypes / 前几行的样子>
+【我的意图】&lt;你想做什么&gt;</p>
+<p>请：
+1. 用一句话说明根本原因。
+2. 给出修复后的代码，并说明改了什么。
+3. 告诉我以后如何避免同类问题。</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>
+### 模板 3：代码审查（QC 视角）
+</code></pre></div></div>
+<p>请以"临床统计编程 QC 人员"的视角审查下面这段 Python 代码，
+找出可能导致结果与方法学不一致的问题。</p>
+<p>重点检查：
+1. 分母是否正确（分析人群、受试者数 vs 事件数）
+2. 缺失值是否被意外排除或意外计入
+3. 舍入规则是否与 SAS 一致
+4. 分组/排序顺序是否可复现
+5. 连接（merge）是否可能产生重复或丢失记录
+6. 是否有静默错误（不报错但结果错）</p>
+<p>【代码】&lt;粘贴&gt;
+【对应的 SAP 要求】&lt;粘贴相关段落&gt;</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>
+&gt; 💡 **模板 <span class="m">3</span> 的价值极高**：它相当于给你配了一个
+&gt; <span class="s">"永远不疲倦的 QC 伙伴"</span>。虽然不能替代正式 QC，
+&gt; 但能在你提交前抓掉大部分低级错误。
+
+---
+
+## <span class="m">15.3</span> 实战演练：把一段真实 SAS 迁移过去
+
+### 输入：一段典型的 SAS 安全性汇总
+
+```sas
+<span class="c">/* 计算各组受试者中，发生 SAE 的比例 */</span>
+<span class="kr">proc sort </span>data=adsl; <span class="k">by</span> usubjid;<span class="kr"> run;</span>
+<span class="kr">proc sort </span>data=adae; <span class="k">by</span> usubjid;<span class="kr"> run;</span>
+
+<span class="kr">data </span>sae;
+    <span class="k">merge</span> adsl (<span class="k">in</span>=a) adae (<span class="k">in</span>=b);
+    <span class="k">by</span> usubjid;
+    <span class="k">if</span> a;
+    <span class="k">if</span> aeser = <span class="s">'Y'</span> <span class="k">then</span> SAEFL = <span class="s">'Y'</span>;
+<span class="kr">run;</span>
+
+<span class="kr">proc sql;</span>
+    <span class="k">create</span> <span class="k">table</span> sae_sum <span class="k">as</span>
+    <span class="k">select</span>  trt01p,
+            count(<span class="k">distinct</span> usubjid) <span class="k">as</span> N_SAE
+    <span class="k">from</span>    sae
+    <span class="k">where</span>   SAEFL = <span class="s">'Y'</span>
+    <span class="k">group</span> <span class="k">by</span> trt01p;
+<span class="kr">quit;</span>
+
+<span class="kr">proc sql;</span>
+    <span class="k">create</span> <span class="k">table</span> denom <span class="k">as</span>
+    <span class="k">select</span>  trt01p,
+            count(<span class="k">distinct</span> usubjid) <span class="k">as</span> N_TOT
+    <span class="k">from</span>    adsl
+    <span class="k">where</span>   saffl = <span class="s">'Y'</span>
+    <span class="k">group</span> <span class="k">by</span> trt01p;
+<span class="kr">quit;</span>
+
+<span class="kr">data </span>final;
+    <span class="k">merge</span> sae_sum denom;
+    <span class="k">by</span> trt01p;
+    PCT = N_SAE / N_TOT * <span class="m">100</span>;
+    <span class="k">format</span> PCT <span class="m">5.1</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<h3 id="输出ai-迁移结果附核对点">输出：AI 迁移结果（附核对点）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># --- 对应 proc sort + merge adsl(in=a) adae; by usubjid; if a; ---</span>
+<span class="c1"># 注意：SAS 的 merge 在这个场景下会"按 USUBJID 展开"，</span>
+<span class="c1">#       a=1 但无 AE 的受试者仍会被保留（AE 变量为空）</span>
+<span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adae</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"_AE"</span><span class="p">))</span>
+
+<span class="c1"># --- 对应 if aeser = 'Y' then SAEFL = 'Y'; ---</span>
+<span class="c1"># 注意 1：pandas 里字符缺失是 NaN，不是 ''，用 == 'Y' 判断即可</span>
+<span class="c1"># 注意 2：SAS 的 if 不给 SAEFL 赋缺失时它保持为空白；pandas 需要显式给 'N' 或 NaN</span>
+<span class="n">merged</span><span class="p">[</span><span class="s2">"SAEFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">merged</span><span class="p">[</span><span class="s2">"AESER"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+<span class="c1"># --- 对应第一个 proc sql（分子）---</span>
+<span class="c1"># ★ 关键点：SAS 用 count(distinct usubjid)，所以要去重</span>
+<span class="c1">#   而且这里的分母应该是"安全性人群"，不是"全部 adsl"（原 SAS 用了 adsl 全集）</span>
+<span class="n">sae_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">merged</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAEFL == 'Y'"</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"N_SAE"</span><span class="p">))</span>
+
+<span class="c1"># --- 对应第二个 proc sql（分母）---</span>
+<span class="n">denom</span> <span class="o">=</span> <span class="p">(</span><span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span>
+             <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+             <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"N_TOT"</span><span class="p">))</span>
+
+<span class="c1"># --- 对应 data final ---</span>
+<span class="n">final</span> <span class="o">=</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">sae_n</span><span class="p">,</span> <span class="n">denom</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+           <span class="o">.</span><span class="n">fillna</span><span class="p">({</span><span class="s2">"N_SAE"</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+           <span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+<span class="n">final</span><span class="p">[</span><span class="s2">"PCT"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="s2">"N_SAE"</span><span class="p">]</span> <span class="o">/</span> <span class="n">final</span><span class="p">[</span><span class="s2">"N_TOT"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div></div>
+<h3 id="必须核对的点ai-未必全部指出">必须核对的点（AI 未必全部指出）</h3>
+<table>
+<thead>
+<tr>
+<th>核对项</th>
+<th>为什么重要</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>how="left"</code> 对不对</td>
+<td>SAS 的 <code>if a</code> = 保留 adsl 全部 = left join</td>
+<td>比较行数与 USUBJID 数</td>
+</tr>
+<tr>
+<td>分子分母的口径</td>
+<td>原 SAS 分母用 <code>adsl</code> 全集；但 <code>SAFFL='Y'</code> 才有意义</td>
+<td><strong>这里原 SAS 可能有 bug！</strong> 需确认</td>
+</tr>
+<tr>
+<td><code>count(distinct)</code></td>
+<td>pandas 用 <code>nunique()</code> 而不是 <code>size()</code></td>
+<td>同一受试者多条 SAE 时数字会不同</td>
+</tr>
+<tr>
+<td>SAE 的数量</td>
+<td>试点数据里 <code>AESER='Y'</code> 只有 <strong>3 条记录</strong></td>
+<td><code>(adae["AESER"]=="Y").sum()</code></td>
+</tr>
+<tr>
+<td>输出顺序</td>
+<td>治疗组顺序必须与 SAP 一致</td>
+<td>用 <code>Categorical</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>注意上面第 2 行</strong>：AI 转换时<strong>可能帮你发现原 SAS 代码的 bug</strong>。
+例子中的原代码用 <code>adsl</code> 全集算分母，但变量叫 <code>N_TOT</code> 且加了 <code>where saffl='Y'</code>
+—— 两处口径不一致。<strong>这正是"知道语言的人才能有效使用 AI"的含义。</strong></p>
+</blockquote>
+<hr />
+<h2 id="154-用-llm-加速的其他高价值场景">15.4 用 LLM 加速的其他高价值场景</h2>
+<h3 id="场景-1批量生成程序骨架与文档">场景 1：批量生成程序骨架与文档</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""用 LLM 从统计需求生成程序头注释与骨架代码"""</span>
+
+<span class="n">PROMPT</span> <span class="o">=</span> <span class="s2">"""你是临床统计程序员。请为下面的 TLF 生成一段 SAS/Python 程序头注释。</span>
+
+<span class="s2">输出要求：只输出注释块，包含字段：</span>
+<span class="s2">项目/研究、程序名、程序用途、输入数据集、输出、创建人、创建日期、修订历史。</span>
+
+<span class="s2">TLF 信息：</span>
+<span class="si">{tlf_info}</span>
+<span class="s2">"""</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gen_program_header</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">tlf_info</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="s2">"gpt-4o-mini"</span><span class="p">,</span>
+        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">PROMPT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tlf_info</span><span class="o">=</span><span class="n">tlf_info</span><span class="p">)}],</span>
+        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+</code></pre></div></div>
+<h3 id="场景-2生成测试用假数据">场景 2：生成测试用假数据</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">FAKE_DATA_PROMPT</span> <span class="o">=</span> <span class="s2">"""生成一段 Python 代码，造一个模拟的 SDTM AE 数据集用于开发测试。</span>
+
+<span class="s2">要求：</span>
+<span class="s2">- 200 个受试者，USUBJID 格式为 '01-</span><span class="si">{site:03d}</span><span class="s2">-</span><span class="si">{subj:04d}</span><span class="s2">'</span>
+<span class="s2">- 每个受试者 0~8 条 AE</span>
+<span class="s2">- 含变量：USUBJID, AESEQ, AETERM, AEDECOD, AEBODSYS, AESEV, AESER, AESTDTC, AEENDTC</span>
+<span class="s2">- AESEV 只能是 MILD/MODERATE/SEVERE，分布约为 65%/30%/5%</span>
+<span class="s2">- AESTDTC 在 2018-01-01 到 2020-12-31 之间</span>
+<span class="s2">- 用 numpy 的 default_rng(seed) 保证可复现</span>
+<span class="s2">- 输出纯代码，不要解释</span>
+<span class="s2">"""</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>重要合规提醒</strong>：<strong>绝对不要</strong>把真实的患者数据、
+未公开的研究数据、公司内部代码放进公开的 LLM 服务。
+使用前必须确认：
+1. 公司/客户是否允许使用外部 LLM 服务；
+2. 数据是否已充分去标识化；
+3. 是否有本地部署（如 Ollama + 开源模型）可用。
+<strong>在临床环境里，这通常比技术问题更重要。</strong></p>
+</blockquote>
+<h3 id="场景-3给代码加注释与文档">场景 3：给代码加注释与文档</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>请为下面的函数补充 NumPy 风格的 docstring，
+并逐行添加中文注释说明它在临床数据处理中的作用。
+注意：注释要解释"为什么这么做"，而不只是"这行做了什么"。
+</code></pre></div></div>
+<hr />
+<h2 id="155-关于ai-自动迁移-sasrpython的行业现状">15.5 关于"AI 自动迁移 SAS→R/Python"的行业现状</h2>
+<p>PharmaSUG 2026 有几篇论文直接讨论这个：</p>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>内容</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AI-305</strong> Merck</td>
+<td><em>Improving AI SAS-to-R Code Migration via an Intermediate Design Document Layer</em>：用"中间设计文档"作为 AI 迁移的桥梁，提升迁移准确性</td>
+<td><a href="https://pharmasug.org/proceedings/2026/AI/PharmaSUG-2026-AI-305.pdf">PDF</a></td>
+</tr>
+<tr>
+<td><strong>AI-332</strong> Merck</td>
+<td><em>A Human-in-the-Loop AI-Assisted Framework for ADaM Standardization</em>：人在环中的 AI 辅助 ADaM 标准化框架</td>
+<td><a href="https://pharmasug.org/proceedings/2026/AI/PharmaSUG-2026-AI-332.pdf">PDF</a></td>
+</tr>
+<tr>
+<td><strong>SS-261</strong> TUM</td>
+<td><em>Closing the Loop: Validating AI-Generated SDTM Mappings using CDISC CORE and Synthetic Data</em></td>
+<td><a href="https://pharmasug.org/proceedings/2026/SS/PharmaSUG-2026-SS-261.pdf">PDF</a></td>
+</tr>
+<tr>
+<td><strong>ET-223</strong> Servier</td>
+<td><em>Python as a Cost-Effective Solution for Clinical Statistical Programming</em>（完整 Python TFL 工作流）</td>
+<td><a href="https://pharmasug.org/proceedings/2026/ET/PharmaSUG-2026-ET-223.pdf">PDF</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>从这些论文能提炼出的行业共识</strong>：</p>
+<ol>
+<li><strong>纯 AI 迁移不可靠</strong>，需要"中间表示"（设计文档/规格）来约束。</li>
+<li><strong>人在环中（Human-in-the-Loop）是当前最现实的架构</strong>。</li>
+<li><strong>验证要靠自动化工具</strong>（如 CDISC CORE）而不是靠人眼。</li>
+<li><strong>"懂语言的程序员"是 AI 时代更值钱而不是更不值钱</strong>。</li>
+</ol>
+<blockquote>
+<p>💡 PharmaSUG 2026 AI-305 的"中间设计文档层"思路值得直接借鉴：
+<strong>不要直接把 SAS 丢给 AI 要 Python</strong>，而是先让 AI 把 SAS 的<strong>意图</strong>
+写成一份结构化的设计说明（输入、人群、派生规则、统计方法、输出格式），
+你审核这份说明无误后，再让 AI 按说明写 Python。
+<strong>多一步，但准确性提升明显，而且这份说明本身就是很好的 QC 依据。</strong></p>
+</blockquote>
+<hr />
+<h2 id="156-工具清单">15.6 工具清单</h2>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>工具</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对话式编程</td>
+<td>Claude / ChatGPT / 国内大模型</td>
+<td>主力</td>
+</tr>
+<tr>
+<td>IDE 内置补全</td>
+<td>GitHub Copilot、Cursor、Trae、Qoder</td>
+<td>你已在用多款 AI 编辑器</td>
+</tr>
+<tr>
+<td>本地/离线模型</td>
+<td>Ollama + Qwen / DeepSeek</td>
+<td>数据不出内网</td>
+</tr>
+<tr>
+<td>代码解释</td>
+<td>直接把代码贴给 LLM</td>
+<td>读别人代码效率翻倍</td>
+</tr>
+<tr>
+<td>报错诊断</td>
+<td>把 Traceback 贴给 LLM</td>
+<td>省掉大量搜索时间</td>
+</tr>
+<tr>
+<td>结构化迁移</td>
+<td>先让 LLM 写设计文档，再写代码</td>
+<td>见 15.5</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="157-动手练习">15.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>迁移练习</strong>：用 15.2 的模板 1，把一段你自己的 SAS 程序
+   （20-40 行）交给 LLM 迁移，然后按 15.3 的核对清单逐项验证。
+   <strong>记录 AI 出错的地方</strong>——这比成功案例更有价值。</p>
+</li>
+<li>
+<p><strong>报错诊断</strong>：故意写一段有错的 pandas 代码（比如不带括号的 <code>&amp;</code> 条件、
+   忘记 <code>na=False</code>），把报错交给 LLM，看你能否从它的回答里学到新东西。</p>
+</li>
+<li>
+<p><strong>QC 审查</strong>：把你写的一段 TFL 代码用模板 3 让 LLM 审查，
+   看它能否发现"分母口径"或"受试者去重"的问题。</p>
+</li>
+<li>
+<p><strong>假数据</strong>：用 15.4 场景 2 的提示词生成一份假的 AE 数据集，
+   用于测试你的 AE 汇总表脚本。</p>
+</li>
+<li>
+<p><strong>（合规思考）</strong> 列出你所在环境使用 LLM 的三条红线，
+   以及为规避这些红线你打算采取的措施。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="14.html">第 14 章 · 统计分析与可视化</a>
+<strong>下一章 →</strong> <a href="16.html">第 16 章 · Agent 开发入门：从 API 调用到临床 QC Agent</a></p></article>
+<nav class="pager"><a class="pg-prev" href="14.html"><span class="pg-label">← 上一篇</span><span class="pg-title">统计分析与可视化</span></a><a class="pg-next" href="16.html"><span class="pg-label">下一篇 →</span><span class="pg-title">Agent 开发入门：临床 QC Agent</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 05 章 · 文件与批处理自动化</title>
+<meta name="description" content="文件与批处理自动化 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 05 章 · 文件与批处理自动化">
+<meta property="og:description" content="文件与批处理自动化 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/05.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第一阶段 · Python 基础</div><h1>第 05 章 · 文件与批处理自动化</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/05-%E6%96%87%E4%BB%B6%E4%B8%8E%E6%89%B9%E5%A4%84%E7%90%86%E8%87%AA%E5%8A%A8%E5%8C%96.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：这是 Python 相对 SAS <strong>优势最明显、见效最快</strong>的领域。
+学完本章你就能写出自动化脚本，把"复制粘贴改文件名"这类苦力活消灭掉。
+对应案例：<a href="../code/case06.html"><code>cases/case06_批处理自动化.py</code></a></p>
+</blockquote>
+<hr />
+<h2 id="51-为什么这是最值得先学的部分">5.1 为什么这是最值得先学的部分</h2>
+<p>PharmaSUG 2018 的论文 <em>Why SAS Programmers Should Learn Python Too</em>（AD-12）
+统计过：临床程序员日常最耗时的<strong>非统计分析工作</strong>是——</p>
+<ul>
+<li>从 QC 跟踪表里把几百个程序名/输出名一个个敲出来</li>
+<li>批量重命名、批量改程序头、批量归档</li>
+<li>从几十个日志文件里提取 ERROR / WARNING</li>
+<li>汇总多个文件夹里的输出清单</li>
+</ul>
+<p><strong>这些事情用 SAS 做很别扭（SAS 不擅长文件系统操作），用 Python 做是几行代码。</strong>
+PharmaSUG China 2019 的 CC-036 论文就是纯讲"用 Python 自动创建 SAS 程序文件"的。</p>
+<blockquote>
+<p>💡 <strong>务实建议</strong>：不要一上来就想用 Python 做统计分析（SAS 在这块更成熟）。
+<strong>先用 Python 干掉你的文书性工作量</strong>——这一步的 ROI 最高，
+而且能让你在不影响主要交付的前提下快速积累 Python 手感。</p>
+</blockquote>
+<hr />
+<h2 id="52-路径处理pathlib-是你的好朋友">5.2 路径处理：<code>pathlib</code> 是你的好朋友</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># 定义路径（跨平台，Windows/Linux 都能跑）</span>
+<span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"data/raw"</span><span class="p">)</span>
+<span class="n">fpath</span> <span class="o">=</span> <span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"dm.xpt"</span>              <span class="c1"># 用 / 拼接路径（不是字符串相加！）</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span>                             <span class="c1"># data\raw\dm.xpt</span>
+
+<span class="c1"># 路径的组成部分</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">name</span>          <span class="c1"># 'dm.xpt'            文件名</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">stem</span>          <span class="c1"># 'dm'                不含扩展名</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">suffix</span>        <span class="c1"># '.xpt'             扩展名</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">parent</span>        <span class="c1"># 'data/raw'          父目录</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>     <span class="c1"># 绝对路径（很重要，出问题时用它确认）</span>
+
+<span class="c1"># 判断与创建</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>                  <span class="c1"># 文件存在吗</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>                 <span class="c1"># 是文件吗</span>
+<span class="n">fpath</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span>                  <span class="c1"># 是目录吗</span>
+<span class="n">data_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>   <span class="c1"># 建目录（已存在不报错）</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>不要用字符串拼路径</strong>：
+<code>"data\\raw\\" + "dm.xpt"</code> 在 Windows 上凑巧能用，在 Linux 上会挂。
+用 <code>Path</code> 对象，<code>/</code> 运算符会自动处理分隔符。</p>
+</blockquote>
+<h3 id="绝对路径的坑很多新手卡在这里">绝对路径的坑（很多新手卡在这里）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 危险：相对路径取决于"你从哪个目录运行脚本"</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/dm.csv"</span><span class="p">)</span>
+
+<span class="c1"># ✅ 稳妥：以脚本自身位置为基准</span>
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>     <span class="c1"># 项目根目录</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"dm.csv"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong>原因</strong>：你从 <code>cases/</code> 运行脚本和从项目根目录运行脚本，
+"当前工作目录"是不同的，相对路径就会失效。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 一个通用写法（放在每个脚本开头）</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"data"</span>
+<span class="n">RAW_DIR</span> <span class="o">=</span> <span class="n">DATA_DIR</span> <span class="o">/</span> <span class="s2">"raw"</span>
+<span class="n">SAMPLE_DIR</span> <span class="o">=</span> <span class="n">DATA_DIR</span> <span class="o">/</span> <span class="s2">"samples"</span>
+<span class="n">OUT_DIR</span> <span class="o">=</span> <span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+<span class="n">OUT_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="53-遍历文件glob-与-rglob">5.3 遍历文件：<code>glob</code> 与 <code>rglob</code></h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># 当前目录下所有 .xpt</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">))</span>
+
+<span class="c1"># 递归查找所有 .csv（含子目录）</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">BASE_DIR</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">"*.csv"</span><span class="p">))</span>
+
+<span class="c1"># 多模式匹配</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"ad*.xpt"</span><span class="p">))</span>         <span class="c1"># adsl, adae, adtte ...</span>
+
+<span class="c1"># 只取文件名（不带路径）</span>
+<span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">)]</span>
+
+<span class="c1"># 只取域名（去掉扩展名）</span>
+<span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">stem</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">)]</span>
+
+<span class="c1"># 按模块名排序，便于输出稳定</span>
+<span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"sdtm/*.xpt"</span><span class="p">))</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>为什么要 <code>sorted()</code></strong>：<code>glob</code> 返回的顺序依赖文件系统，<strong>不稳定</strong>。
+临床程序要求输出可复现，<strong>凡是遍历文件都要显式排序</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="54-实战-1批量重命名对应-sas-里最烦的活">5.4 实战 1：批量重命名（对应 SAS 里最烦的活）</h2>
+<p>场景：一堆文件叫 <code>dm_final_v2.xpt</code>、<code>ae_FINAL_v3.xpt</code>，
+要统一改成 SDTM 规范的小写域名格式 <code>dm.xpt</code>、<code>ae.xpt</code>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_domain_name</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""从杂乱文件名中提取域名，统一成小写。</span>
+
+<span class="sd">    'dm_final_v2.xpt' -&gt; 'dm.xpt'</span>
+<span class="sd">    'AE-FINAL-v3.csv' -&gt; 'ae.csv'</span>
+<span class="sd">    'LbFinal.xpt'     -&gt; 'lb.xpt'</span>
+<span class="sd">    """</span>
+    <span class="n">stem</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="c1"># 匹配开头连续的字母（域名一般是 2-4 个字母）</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^([a-z]{2,4})"</span><span class="p">,</span> <span class="n">stem</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">.xpt"</span> <span class="k">if</span> <span class="n">m</span> <span class="k">else</span> <span class="n">filename</span>
+
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">)):</span>
+    <span class="n">new_name</span> <span class="o">=</span> <span class="n">normalize_domain_name</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">new_name</span> <span class="o">!=</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="si">:</span><span class="s2">30s</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">new_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="c1"># f.rename(f.with_name(new_name))     # 确认无误后再取消注释</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>安全第一</strong>：任何批量重命名/删除脚本，<strong>先打印（dry-run），
+确认清单无误后再执行</strong>。这是本教程贯穿始终的原则。</p>
+</blockquote>
+<hr />
+<h2 id="55-实战-2批量转换-xpt--csv">5.5 实战 2：批量转换 XPT → CSV</h2>
+<p>这是你日常会用到的：把 SAS 数据集批量导出成 Excel/CSV 给非编程同事。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">"""把 data/raw/ 下所有 XPT 批量转换成 CSV 到 data/samples/。"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"</span><span class="si">%(levelname)s</span><span class="s2"> | </span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">RAW_DIR</span> <span class="o">=</span> <span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"raw"</span>
+<span class="n">OUT_DIR</span> <span class="o">=</span> <span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">xpt_to_csv</span><span class="p">(</span><span class="n">xpt_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="n">xpt_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">out_path</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">xpt_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">.csv"</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>   <span class="c1"># utf-8-sig 让 Excel 不乱码</span>
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">OUT_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"在 </span><span class="si">%s</span><span class="s2"> 下没找到 .xpt 文件"</span><span class="p">,</span> <span class="n">RAW_DIR</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"请先运行: python scripts/download_data.py --core"</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="n">ok</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">xpt_to_csv</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">OUT_DIR</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"</span><span class="si">%-10s</span><span class="s2"> -&gt; </span><span class="si">%-12s</span><span class="s2"> </span><span class="si">%6d</span><span class="s2"> 行 x </span><span class="si">%d</span><span class="s2"> 列"</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
+            <span class="n">ok</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"转换 </span><span class="si">%s</span><span class="s2"> 失败: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"完成：</span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2"> 个文件转换成功"</span><span class="p">,</span> <span class="n">ok</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong><code>encoding="utf-8-sig"</code> 的意义</strong>：Windows 版 Excel 打开纯 UTF-8 的 CSV
+会把中文显示成乱码。加 BOM 头（<code>utf-8-sig</code>）就能正常打开。
+这是"给同事发的 CSV 打不开/乱码"问题的标准解法。</p>
+</blockquote>
+<hr />
+<h2 id="56-实战-3批量扫描-sas-日志提取-error--warning">5.6 实战 3：批量扫描 SAS 日志，提取 ERROR / WARNING</h2>
+<p>PharmaSUG 论文里反复出现的场景。核心是用<strong>正则 + 状态机</strong>逐行扫描。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+
+<span class="c1"># SAS 日志里错误行的典型模式</span>
+<span class="n">PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"ERROR"</span><span class="p">:</span>   <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^ERROR"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">),</span>
+    <span class="s2">"WARNING"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^WARNING"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">),</span>
+    <span class="s2">"UNinit"</span><span class="p">:</span>  <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"NOTE: .*uninitialized"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">),</span>
+    <span class="s2">"MERGE"</span><span class="p">:</span>   <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"NOTE: .*MERGE statement has more than one data set"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">),</span>
+    <span class="s2">"重复"</span><span class="p">:</span>    <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"NOTE: .*duplicate"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scan_log</span><span class="p">(</span><span class="n">log_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""扫描单个日志，返回各问题类别的行号和内容。"""</span>
+    <span class="n">findings</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">PATTERNS</span><span class="p">}</span>
+    <span class="k">with</span> <span class="n">log_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+                    <span class="n">findings</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">lineno</span><span class="p">,</span> <span class="n">text</span><span class="p">[:</span><span class="mi">160</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">findings</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scan_all</span><span class="p">(</span><span class="n">log_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">totals</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">log_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.log"</span><span class="p">)):</span>
+        <span class="n">findings</span> <span class="o">=</span> <span class="n">scan_log</span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+        <span class="n">issues</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">findings</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">issues</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== </span><span class="si">{</span><span class="n">log</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> （</span><span class="si">{</span><span class="n">issues</span><span class="si">}</span><span class="s2"> 处问题）==="</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">findings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  [</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">] L</span><span class="si">{</span><span class="n">lineno</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">totals</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"=== </span><span class="si">{</span><span class="n">log</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> 无异常 ==="</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">--- 汇总 ---"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">totals</span><span class="o">.</span><span class="n">most_common</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">kind</span><span class="si">:</span><span class="s2">10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="扩展同时生成一份-excel-巡检报告">扩展：同时生成一份 Excel 巡检报告</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">scan_all_to_excel</span><span class="p">(</span><span class="n">log_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_xlsx</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">log_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.log"</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">scan_log</span><span class="p">(</span><span class="n">log</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"程序"</span><span class="p">:</span> <span class="n">log</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"类别"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span> <span class="s2">"行号"</span><span class="p">:</span> <span class="n">lineno</span><span class="p">,</span> <span class="s2">"内容"</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelWriter</span><span class="p">(</span><span class="n">out_xlsx</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"openpyxl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s2">"日志巡检"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"已输出 </span><span class="si">{</span><span class="n">out_xlsx</span><span class="si">}</span><span class="s2">（</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条）"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="57-实战-4从-excel-跟踪表批量生成-sas-程序骨架">5.7 实战 4：从 Excel 跟踪表批量生成 SAS 程序骨架</h2>
+<p>这是 PharmaSUG China 2019 CC-036 论文的方案——<strong>自动化最高价值的应用</strong>。
+你不再需要一个个复制粘贴程序头和 <code>%let</code> 语句。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""读取 QC 跟踪表，为每个 TLF 批量生成带标准程序头的 .sas 骨架。"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">TEMPLATE</span> <span class="o">=</span> <span class="s2">"""/* ============================================================</span>
+<span class="s2"> * 项目/研究  : </span><span class="si">{study}</span>
+<span class="s2"> * 程序名      : </span><span class="si">{pgm}</span><span class="s2">.sas</span>
+<span class="s2"> * 程序用途    : </span><span class="si">{purpose}</span>
+<span class="s2"> * 输入数据集  : </span><span class="si">{indata}</span>
+<span class="s2"> * 输出        : </span><span class="si">{output}</span>
+<span class="s2"> * 创建人      : </span><span class="si">{author}</span>
+<span class="s2"> * 创建日期    : </span><span class="si">{date}</span>
+<span class="s2"> * ============================================================ */</span>
+
+<span class="si">%le</span><span class="s2">t pgm    = </span><span class="si">{pgm}</span><span class="s2">;</span>
+<span class="si">%le</span><span class="s2">t out    = </span><span class="si">{output}</span><span class="s2">;</span>
+<span class="si">%le</span><span class="s2">t indata = </span><span class="si">{indata}</span><span class="s2">;</span>
+
+<span class="s2">/* --- 主逻辑 --- */</span>
+<span class="s2">"""</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_skeletons</span><span class="p">(</span><span class="n">tracking_xlsx</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">tracking_xlsx</span><span class="p">)</span>
+    <span class="c1"># 期望列：PGM | PURPOSE | INDATA | OUTPUT | STUDY</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">study</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"STUDY"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">pgm</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">"PGM"</span><span class="p">],</span> <span class="n">purpose</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"PURPOSE"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+            <span class="n">indata</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"INDATA"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">output</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"OUTPUT"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+            <span class="n">author</span><span class="o">=</span><span class="n">author</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'PGM'</span><span class="p">]</span><span class="si">}</span><span class="s2">.sas"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">n</span>
+</code></pre></div></div>
+<blockquote>
+<p>这段代码的价值：一个 CSR 可能有 <strong>几百个</strong> TLF 程序。
+手工创建 + 填表头，一个人要花好几天，还容易打错字。
+Python 版本几秒钟跑完，且<strong>零打字错误</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="58-文件读写几个必知要点">5.8 文件读写：几个必知要点</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># 文本读写</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"outputs/note.txt"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"第一行</span><span class="se">\n</span><span class="s2">第二行</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>     <span class="c1"># 写（覆盖）</span>
+<span class="n">text</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>                   <span class="c1"># 读全部</span>
+<span class="n">lines</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>     <span class="c1"># 按行</span>
+
+<span class="c1"># 追加（对应 SAS 的 mod 模式）</span>
+<span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"第三行</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 逐行读大文件（避免一次性进内存）</span>
+<span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"ERROR"</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 表格读写</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/dm.csv"</span><span class="p">)</span>                 <span class="c1"># 默认 utf-8</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"x.csv"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"gbk"</span><span class="p">)</span>                <span class="c1"># 中文 Excel 导出的常见编码</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="s2">"x.xlsx"</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s2">"Sheet1"</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">)</span>      <span class="c1"># SAS XPORT</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"x.sas7bdat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"sas7bdat"</span><span class="p">)</span>        <span class="c1"># SAS 数据集（注意编码）</span>
+
+<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"out.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">"out.xlsx"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>index=False</code> 必加</strong>。否则 pandas 会把行号当成一列写进去，
+下次读回来就多了一列 <code>Unnamed: 0</code>。</p>
+</blockquote>
+<hr />
+<h2 id="59-动手练习">5.9 动手练习</h2>
+<ol>
+<li>
+<p><strong>dry-run 重命名</strong>：写一个脚本，列出 <code>data/samples/</code> 下所有 CSV，
+   把文件名中的下划线换成中划线（如 <code>ad_sl.csv</code> → <code>ad-sl.csv</code>），
+   <strong>先只打印、不执行</strong>。</p>
+</li>
+<li>
+<p><strong>批量转 CSV</strong>：运行 5.5 节的脚本，把 <code>data/raw/</code> 里的 XPT 全部转成 CSV。</p>
+</li>
+<li>
+<p><strong>日志巡检</strong>：自己造两个假的 <code>.log</code> 文件（里面各写几行 ERROR / WARNING），
+   用 5.6 节的脚本扫描，确认能正确提取。</p>
+</li>
+<li>
+<p><strong>程序骨架生成</strong>：手工造一个 5 行的 Excel 跟踪表（列：PGM/PURPOSE/INDATA/OUTPUT），
+   用 5.7 节的脚本生成 5 个 <code>.sas</code> 骨架文件。</p>
+</li>
+<li>
+<p><strong>（综合）</strong> 写一个脚本：遍历 <code>data/samples/</code> 下所有 CSV，
+   输出一份清单表格（文件名、行数、列数、文件大小），存成 <code>outputs/data_inventory.xlsx</code>。</p>
+</li>
+</ol>
+<hr />
+<h2 id="510-本章小节sas--python-文件操作对照">5.10 本章小节：SAS ↔ Python 文件操作对照</h2>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列目录</td>
+<td><code>%sysfunc(dread())</code> + 循环</td>
+<td><code>Path.glob()</code></td>
+</tr>
+<tr>
+<td>文件是否存在</td>
+<td><code>%sysfunc(fileexist())</code></td>
+<td><code>Path.exists()</code></td>
+</tr>
+<tr>
+<td>复制文件</td>
+<td>系统命令 / <code>%sysfunc</code></td>
+<td><code>shutil.copy2()</code></td>
+</tr>
+<tr>
+<td>重命名</td>
+<td>系统命令</td>
+<td><code>Path.rename()</code></td>
+</tr>
+<tr>
+<td>建目录</td>
+<td><code>%sysfunc(dcreate())</code></td>
+<td><code>Path.mkdir()</code></td>
+</tr>
+<tr>
+<td>读文本</td>
+<td><code>data _null_; infile; input;</code></td>
+<td><code>Path.read_text()</code> / <code>open()</code></td>
+</tr>
+<tr>
+<td>写文本</td>
+<td><code>data _null_; file; put;</code></td>
+<td><code>Path.write_text()</code> / <code>open("w")</code></td>
+</tr>
+<tr>
+<td>读 Excel</td>
+<td><code>PROC IMPORT dbms=xlsx</code></td>
+<td><code>pd.read_excel()</code></td>
+</tr>
+<tr>
+<td>写 Excel</td>
+<td><code>PROC EXPORT dbms=xlsx</code></td>
+<td><code>df.to_excel()</code></td>
+</tr>
+<tr>
+<td>读 SAS 数据集</td>
+<td><code>set adsl;</code></td>
+<td><code>pd.read_sas(..., format="sas7bdat")</code></td>
+</tr>
+<tr>
+<td>正则匹配</td>
+<td><code>PRXMATCH</code></td>
+<td><code>re.search</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>上一章 ←</strong> <a href="04.html">第 04 章 · 控制流、函数、模块与异常</a>
+<strong>下一章 →</strong> <a href="06.html">第 06 章 · NumPy 与向量化思维</a></p></article>
+<nav class="pager"><a class="pg-prev" href="04.html"><span class="pg-label">← 上一篇</span><span class="pg-title">控制流、函数、模块与异常</span></a><a class="pg-next" href="06.html"><span class="pg-label">下一篇 →</span><span class="pg-title">NumPy 与向量化思维</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

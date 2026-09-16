@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 01 · 数据体检</title>
+<meta name="description" content="数据体检 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 01 · 数据体检">
+<meta property="og:description" content="数据体检 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case01.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 01 · 数据体检</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case01_%E6%95%B0%E6%8D%AE%E4%BD%93%E6%A3%80.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case01_%E6%95%B0%E6%8D%AE%E4%BD%93%E6%A3%80.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case01_数据体检.py</strong> · 147 行 · 5 KB<br>案例 01 · 数据体检（Data Profiling） =====================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 01 · 数据体检（Data Profiling）</span>
+<span class="sd">=====================================</span>
+
+<span class="sd">**目标**：拿到一批 CDISC 数据后，30 秒内摸清它的底细。</span>
+
+<span class="sd">**对应 SAS**：``PROC CONTENTS`` + ``PROC MEANS nmiss`` + ``PROC FREQ``</span>
+<span class="sd">的组合，但**一次跑完、结果结构化、可重复**。</span>
+
+<span class="sd">**覆盖教程章节**：第 10 章（数据质量）、第 11 章（数据结构）、第 12 章（SDTM）</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case01_数据体检.py</span>
+<span class="sd">    python cases/case01_数据体检.py --data data/raw      # 用下载的 XPT</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># 让脚本无论从哪里运行都能 import 到项目根目录下的 clinic 包</span>
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>          <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">qc</span>                 <span class="c1"># noqa: E402</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.max_colwidth"</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+
+<span class="c1"># 要体检的域（SDTM + ADaM）</span>
+<span class="n">DOMAINS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"adtte"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">section</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">78</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">78</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"CDISC 数据集体检"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--data"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"数据目录（默认优先 data/raw，其次 data/samples）"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--out"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"输出目录（默认 outputs/）"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+        <span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">raw</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"raw"</span><span class="p">,</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span>
+        <span class="n">data_dir</span> <span class="o">=</span> <span class="n">raw</span> <span class="k">if</span> <span class="p">(</span><span class="n">raw</span> <span class="o">/</span> <span class="s2">"dm.xpt"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">raw</span> <span class="o">/</span> <span class="s2">"dm.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="n">samples</span>
+
+    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">out</span> <span class="k">else</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"数据目录：</span><span class="si">{</span><span class="n">data_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"1. 载入各域（单个域失败不影响其他）"</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">load_domains</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">DOMAINS</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"没有加载到任何数据。"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"请先运行：python scripts/download_data.py --core"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"    然后：  python scripts/make_samples.py"</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="n">sizes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+        <span class="p">{</span><span class="s2">"域"</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s2">"行数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="s2">"列数"</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+         <span class="s2">"内存MB"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sizes</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"2. 逐域体检（变量级缺失与分布概况）"</span><span class="p">)</span>
+    <span class="n">profiles</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">--- </span><span class="si">{</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> ---"</span><span class="p">)</span>
+        <span class="n">prof</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">profile</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prof</span>
+        <span class="c1"># 只显示有缺失或低基数的变量，避免刷屏</span>
+        <span class="n">interesting</span> <span class="o">=</span> <span class="n">prof</span><span class="p">[(</span><span class="n">prof</span><span class="p">[</span><span class="s2">"缺失数"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s2">"唯一值数"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">)]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">interesting</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">interesting</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">prof</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    （另有 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">prof</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">interesting</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个变量无缺失且取值丰富，已省略）"</span><span class="p">)</span>
+        <span class="n">prof</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"profile_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"3. 质量检查（按 CDISC 规则）"</span><span class="p">)</span>
+    <span class="n">all_issues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">dtype_</span> <span class="o">=</span> <span class="s2">"adam"</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"ad"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"sdtm"</span>
+        <span class="n">issues</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">check_dataset</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dtype_</span><span class="p">)</span>
+        <span class="n">all_issues</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">issues</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">qc</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">issues</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"4. 受试者一致性（以 DM 为基准）"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"dm"</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">others</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"dm"</span> <span class="ow">and</span> <span class="s2">"USUBJID"</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
+        <span class="n">cons</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">check_subject_consistency</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"dm"</span><span class="p">],</span> <span class="n">others</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">qc</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">cons</span><span class="p">,</span> <span class="s2">"跨域一致性"</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【重点解读】"</span><span class="p">)</span>
+        <span class="n">dm_n</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"dm"</span><span class="p">][</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="n">adsl_n</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"adsl"</span><span class="p">][</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="k">if</span> <span class="s2">"adsl"</span> <span class="ow">in</span> <span class="n">data</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  DM   受试者数 = </span><span class="si">{</span><span class="n">dm_n</span><span class="si">}</span><span class="s2">   （全部被筛选/入组者）"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">adsl_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ADSL 受试者数 = </span><span class="si">{</span><span class="n">adsl_n</span><span class="si">}</span><span class="s2">   （仅随机化并接受治疗者）"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  差 </span><span class="si">{</span><span class="n">dm_n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">adsl_n</span><span class="si">}</span><span class="s2"> 人：这些是筛选失败/未随机化者。"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  ★ 任何分析的基数都应以 ADSL 为准；用 DM 的 306 当分母会算错百分比。"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"（未加载 dm，跳过）"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"5. 治疗组分布（核对分母）"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"adsl"</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">adsl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"adsl"</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"TRT01A"</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">vc</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">:"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vc</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">k</span><span class="si">:</span><span class="s2">26s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">&gt;4</span><span class="si">}</span><span class="s2">  (</span><span class="si">{</span><span class="n">v</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">adsl</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"SAFFL"</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">SAFFL: </span><span class="si">{</span><span class="n">adsl</span><span class="p">[</span><span class="s1">'SAFFL'</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  ★ SAFFL='Y' 的受试者数就是所有安全性报表的分母。"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">total_high</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_issues</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"严重性"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"高"</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">78</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"体检完成：共检查 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个域，发现 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">total_high</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个高优先级问题"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"变量级报告已输出到：</span><span class="si">{</span><span class="n">out_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">78</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="../guide/res-04.html"><span class="pg-label">← 上一篇</span><span class="pg-title">Python 学习资源与工具链</span></a><a class="pg-next" href="case02.html"><span class="pg-label">下一篇 →</span><span class="pg-title">人口学表</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

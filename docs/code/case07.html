@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 07 · 临床数据 QC Agent</title>
+<meta name="description" content="临床数据 QC Agent — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 07 · 临床数据 QC Agent">
+<meta property="og:description" content="临床数据 QC Agent — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case07.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 07 · 临床数据 QC Agent</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case07_%E4%B8%B4%E5%BA%8A%E6%95%B0%E6%8D%AEQC_Agent.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case07_%E4%B8%B4%E5%BA%8A%E6%95%B0%E6%8D%AEQC_Agent.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case07_临床数据QC_Agent.py</strong> · 494 行 · 17 KB<br>案例 07 · 临床数据 QC Agent（LLM + 工具 + 循环） ================================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 07 · 临床数据 QC Agent（LLM + 工具 + 循环）</span>
+<span class="sd">================================================</span>
+
+<span class="sd">**目标**：写通一个**真正意义上的 Agent**，而不是"包装得花哨的 if-else"。</span>
+
+<span class="sd">**覆盖教程章节**：第 16 章（Agent 开发入门）</span>
+
+<span class="sd">Agent ≠ 脚本</span>
+<span class="sd">------------</span>
+<span class="sd">========================  ==========================================</span>
+<span class="sd">脚本                       你写死的流程：读数据 → 计算 → 输出</span>
+<span class="sd">LLM 调用                   把文本给模型，拿回文本</span>
+<span class="sd">**Agent**                  **LLM 自己决定调哪些工具、按什么顺序、调几次**</span>
+<span class="sd">========================  ==========================================</span>
+
+<span class="sd">Agent 的本质 = **LLM + 工具 + 循环**。</span>
+
+<span class="sd">两种运行模式</span>
+<span class="sd">------------</span>
+<span class="sd">1. **MOCK 模式（默认，离线兜底）**</span>
+<span class="sd">   不需要任何 API Key、不联网。用一个确定性的"决策器"按预设顺序调用工具，</span>
+<span class="sd">   把工具**真实计算**的结果收集起来，再生成报告。</span>
+<span class="sd">   它的价值是：验证「工具能不能用、结果对不对、流程通不通」。</span>
+
+<span class="sd">2. **真实 LLM 模式**</span>
+<span class="sd">   设置 ``OPENAI_API_KEY`` 即自动切换。同一个 Agent 主循环，</span>
+<span class="sd">   换成真实模型后，**调哪些工具、调几次完全由模型现场决定**。</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case07_临床数据QC_Agent.py                    # Mock 模式</span>
+<span class="sd">    python cases/case07_临床数据QC_Agent.py --verbose-tools     # 打印完整工具返回</span>
+
+<span class="sd">    # 真实 LLM（OpenAI 兼容接口，也适用于 DeepSeek / 通义 / 本地 vLLM）</span>
+<span class="sd">    pip install openai</span>
+<span class="sd">    set OPENAI_API_KEY=sk-xxxx                     # Windows CMD</span>
+<span class="sd">    $env:OPENAI_API_KEY = "sk-xxxx"                # Windows PowerShell</span>
+<span class="sd">    export OPENAI_API_KEY=sk-xxxx                  # Linux/macOS</span>
+<span class="sd">    python cases/case07_临床数据QC_Agent.py</span>
+
+<span class="sd">    # 指向其他兼容接口</span>
+<span class="sd">    $env:OPENAI_BASE_URL = "https://api.deepseek.com/v1"</span>
+<span class="sd">    $env:LLM_MODEL = "deepseek-chat"</span>
+
+<span class="sd">安全说明（重要）</span>
+<span class="sd">----------------</span>
+<span class="sd">工具层做了**数据集白名单**校验（``clinic/agent_tools.ALLOWED_DATASETS``），</span>
+<span class="sd">Agent 无法读取白名单以外的任何文件。</span>
+<span class="sd">**边界必须写在代码里，不能只写在提示词里** —— LLM 是不可信的执行者。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">clinic.agent_tools</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">T</span>          <span class="c1"># noqa: E402</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 1) 客户端：两种模式共用同一个接口 decide(messages) -&gt; 决策</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MockLLMClient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""离线兜底客户端。</span>
+
+<span class="sd">    **它不做推理**，而是按预设顺序依次调用工具 ——</span>
+<span class="sd">    这足以验证「工具是否可用、结果是否正确、循环是否能收敛」。</span>
+<span class="sd">    最后一"步"返回根据真实工具输出拼装的报告，而不是一句空话。</span>
+
+<span class="sd">    为什么要保留 Mock 模式？</span>
+<span class="sd">    ------------------------</span>
+<span class="sd">    - 内网/合规环境不能访问外部 LLM；</span>
+<span class="sd">    - 调试工具实现时，你不想每一步都等模型响应；</span>
+<span class="sd">    - 单元测试需要**确定性**输出（真实 LLM 的输出不可复现）。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plan</span> <span class="o">=</span> <span class="n">plan</span> <span class="ow">or</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"list_datasets"</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"dataset_type"</span><span class="p">:</span> <span class="s2">"adam"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"dataset_type"</span><span class="p">:</span> <span class="s2">"sdtm"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"dataset_type"</span><span class="p">:</span> <span class="s2">"sdtm"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"check_subject_consistency"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"domains"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">]}),</span>
+            <span class="p">(</span><span class="s2">"summarize_by_group"</span><span class="p">,</span>
+             <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"group_var"</span><span class="p">:</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"value_var"</span><span class="p">:</span> <span class="s2">"AGE"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"frequency"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"var"</span><span class="p">:</span> <span class="s2">"SEX"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"count_events"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"level"</span><span class="p">:</span> <span class="s2">"soc"</span><span class="p">,</span> <span class="s2">"treatment_only"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}),</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transcript</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">decide</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plan</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"final"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">build_mock_report</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transcript</span><span class="p">)}</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plan</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"tool_call"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"arguments"</span><span class="p">:</span> <span class="n">args</span><span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">OpenAIClient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""真实 LLM 客户端（OpenAI 兼容接口）。</span>
+
+<span class="sd">    同一套 ``decide()`` 接口，所以主循环完全不用改 ——</span>
+<span class="sd">    **这就是把"客户端"与"主循环"解耦的好处**。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span>
+                <span class="s2">"未安装 openai 包。请运行：pip install openai</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"（或者不设置 OPENAI_API_KEY，直接用 Mock 模式）"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OPENAI_API_KEY"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"DEEPSEEK_API_KEY"</span><span class="p">)</span>
+               <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ARK_API_KEY"</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="s2">"未找到 API Key 环境变量。"</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"LLM_MODEL"</span><span class="p">,</span> <span class="s2">"gpt-4o-mini"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                             <span class="n">base_url</span><span class="o">=</span><span class="n">base_url</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OPENAI_BASE_URL"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">decide</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">T</span><span class="o">.</span><span class="n">TOOLS</span><span class="p">,</span>
+            <span class="n">tool_choice</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+            <span class="n">tc</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tc</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span> <span class="ow">or</span> <span class="s2">"</span><span class="si">{}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"tool_call"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">tc</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">"arguments"</span><span class="p">:</span> <span class="n">args</span><span class="p">,</span> <span class="s2">"raw"</span><span class="p">:</span> <span class="n">msg</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"final"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">}</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 2) 工具执行器（薄薄一层，真正的边界在 agent_tools._load 里）</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">execute_tool</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""执行工具，返回可喂回 LLM 的 JSON 字符串。任何异常都转成可读信息。"""</span>
+    <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 3) Mock 模式的报告生成：用真实结果拼装，不是写死的套话</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_safe_json</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_mock_report</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把工具的真实返回值整理成一份结构化报告。</span>
+
+<span class="sd">    ★ 注意：这不是 LLM 写的。它是**确定性规则**生成的。</span>
+<span class="sd">      这么做的意义在于：把"Agent 的决策"与"报告的呈现"分开看 ——</span>
+<span class="sd">      真实 LLM 模式下，这一段的活是模型干的，但**数据来源完全一样**</span>
+<span class="sd">      （都来自工具返回值），所以结论不会跑偏。</span>
+<span class="sd">    """</span>
+    <span class="n">L</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"# 临床数据质量审查报告（MOCK 模式）"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"&gt; 本报告由**确定性规则**根据工具返回的真实计算结果生成，"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"&gt; 未经 LLM 润色。如需 LLM 自主决策版本，请设置 `OPENAI_API_KEY` 后重跑。"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"共执行 **</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">transcript</span><span class="p">)</span><span class="si">}</span><span class="s2">** 次工具调用。"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 数据全景 ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"list_datasets"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">r</span><span class="p">:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"## 1. 可访问数据集"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 数据集 | 可用 | 大小(KB) |"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"数据集"</span><span class="p">,</span> <span class="p">[]):</span>
+                    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">'名称'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="s1">'✓'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">d</span><span class="p">[</span><span class="s1">'可用'</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'✗'</span><span class="si">}</span><span class="s2"> "</span>
+                             <span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'文件大小KB'</span><span class="p">)</span><span class="si">}</span><span class="s2"> |"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 数据结构 ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"describe_dataset"</span> <span class="ow">and</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">]):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"## 2. 数据结构：</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'数据集'</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- 规模：**</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'行数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'列数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列**"</span><span class="p">)</span>
+            <span class="n">top</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"变量"</span><span class="p">]</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="s2">"缺失数"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+                         <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="s2">"缺失率%"</span><span class="p">])[:</span><span class="mi">8</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">top</span><span class="p">:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- 缺失最多的变量："</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 变量 | 缺失数 | 缺失率 |"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">top</span><span class="p">:</span>
+                    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'变量'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'缺失数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'缺失率%'</span><span class="p">]</span><span class="si">}</span><span class="s2">% |"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- 无缺失值。"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- QC 检查 ----</span>
+    <span class="n">qc_rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"run_qc_checks"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">qc_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"### QC 检查：</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'数据集'</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">（</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'数据集类型'</span><span class="p">]</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- 结论：**</span><span class="si">{</span><span class="s1">'通过（无高优先级问题）'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">r</span><span class="p">[</span><span class="s1">'通过'</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'未通过'</span><span class="si">}</span><span class="s2">**"</span>
+                     <span class="sa">f</span><span class="s2">"｜问题总数 </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'问题总数'</span><span class="p">]</span><span class="si">}</span><span class="s2">｜高优先级 </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'高优先级问题数'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">]:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 严重性 | 类别 | 详情 |"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">]:</span>
+                    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">i</span><span class="p">[</span><span class="s1">'严重性'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">i</span><span class="p">[</span><span class="s1">'类别'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">'详情'</span><span class="p">])[:</span><span class="mi">110</span><span class="p">]</span><span class="si">}</span><span class="s2"> |"</span><span class="p">)</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 跨数据集一致性 ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"check_subject_consistency"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### 跨数据集受试者一致性"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- DM 受试者总数：**</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'DM 受试者总数'</span><span class="p">]</span><span class="si">}</span><span class="s2">**"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 域 | 受试者数 | 不在DM中(错误) | DM中有但本域无记录(通常正常) |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|---|"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"各域明细"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'受试者数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'不在DM中'</span><span class="p">]</span><span class="si">}</span><span class="s2"> "</span>
+                         <span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">v</span><span class="p">[</span><span class="s1">'DM中有但本域无记录'</span><span class="p">]</span><span class="si">}</span><span class="s2"> |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 人口学 ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"summarize_by_group"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"### 人口学：按 </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'分组变量'</span><span class="p">]</span><span class="si">}</span><span class="s2"> 汇总 </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'统计变量'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 分组 | N | Mean | SD | Median | Min | Max |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|---|---|---|---|"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">]:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> | </span><span class="si">{}</span><span class="s2"> |"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"分组变量"</span><span class="p">]),</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"N"</span><span class="p">),</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Mean"</span><span class="p">),</span>
+                    <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SD"</span><span class="p">),</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Median"</span><span class="p">),</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Min"</span><span class="p">),</span>
+                    <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Max"</span><span class="p">)))</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 频数 ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"frequency"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"### 频数分布：</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'数据集'</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'变量'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+                     <span class="sa">f</span><span class="s2">"（总记录 </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'总记录数'</span><span class="p">]</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 取值 | 频数 | 占比 |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---|---|---|"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"分布"</span><span class="p">]:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'取值'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'频数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'占比%'</span><span class="p">]</span><span class="si">}</span><span class="s2">% |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- AE ----</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">transcript</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"count_events"</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"result"</span><span class="p">])</span>
+            <span class="c1"># ★ 工具可能返回 {"错误": ...}（例如参数不合法）。</span>
+            <span class="c1">#   报告生成器必须能容忍这种情况 —— 否则一次工具报错</span>
+            <span class="c1">#   会让整个 Agent 崩掉，而"工具报错"本来就是预期内的分支。</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span> <span class="ow">or</span> <span class="s2">"结果"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">r</span> <span class="ow">and</span> <span class="s2">"错误"</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+                    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"### 不良事件汇总：工具返回错误 —— </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'错误'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">trts</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">]</span> <span class="k">else</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"层级"</span><span class="p">]</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"### 不良事件汇总（</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'统计层级'</span><span class="p">]</span><span class="si">}</span><span class="s2"> 层级，</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'事件范围'</span><span class="p">]</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- 分母（安全性人群）：`</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'分母（安全性人群）'</span><span class="p">]</span><span class="si">}</span><span class="s2">`"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- 有任一 TEAE 的受试者数：`</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'有任一 TEAE 的受试者数'</span><span class="p">]</span><span class="si">}</span><span class="s2">`"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| 层级 | "</span> <span class="o">+</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trts</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"|---"</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trts</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"|"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">][:</span><span class="mi">12</span><span class="p">]:</span>
+                <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"| "</span> <span class="o">+</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"层级"</span><span class="p">])]</span> <span class="o">+</span>
+                                           <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trts</span><span class="p">])</span> <span class="o">+</span> <span class="s2">" |"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&gt; </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'注意事项'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 结论 ----</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"## 结论与后续建议"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qc_rows</span><span class="p">:</span>
+        <span class="n">high</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"高优先级问题数"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">qc_rows</span><span class="p">)</span>
+        <span class="n">allissues</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"问题总数"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">qc_rows</span><span class="p">)</span>
+        <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- 本次共检查 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">qc_rows</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个数据集，累计 </span><span class="si">{</span><span class="n">allissues</span><span class="si">}</span><span class="s2"> 条检查结论，"</span>
+                 <span class="sa">f</span><span class="s2">"其中**高优先级问题 </span><span class="si">{</span><span class="n">high</span><span class="si">}</span><span class="s2"> 条**。"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">high</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- 未发现高优先级问题；数据集可用作分析输入。"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- 存在高优先级问题，**必须先定位根因并修复**，"</span>
+                     <span class="s2">"修复后重新运行本 Agent 复验。"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- 需要人工确认的项目：受控术语版本（MedDRA/WHODrug）"</span>
+             <span class="s2">"与 define.xml 声明是否一致 —— **Agent 不做这类判断**。"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- ★ 所有数值均直接取自工具返回值。在临床场景下，"</span>
+             <span class="s2">"**任何由模型「凭记忆」给出的数字都是不可接受的**。"</span><span class="p">)</span>
+    <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 4) Agent 主循环 —— 全篇最核心的 20 行</span>
+<span class="c1"># ==========================================================================</span>
+<span class="n">SYSTEM_PROMPT</span> <span class="o">=</span> <span class="s2">"""你是一位资深临床统计编程专家（CDISC SDTM/ADaM 方向）。</span>
+
+<span class="s2">你的任务是审查临床数据集的质量，并给出专业结论。</span>
+
+<span class="s2">工作原则：</span>
+<span class="s2">1. 先了解数据（describe_dataset），再做检查（run_qc_checks），最后才下结论。</span>
+<span class="s2">2. 所有结论必须有工具返回的数据支撑，**不要凭经验猜测**。</span>
+<span class="s2">3. 报告问题时要说明：问题是什么、影响什么、建议怎么处理。</span>
+<span class="s2">4. 明确区分「数据本身的问题」与「符合预期的情况」。</span>
+<span class="s2">   例如：ADSL 只有 254 人而 DM 有 306 人，这是**正常的**</span>
+<span class="s2">   （ADSL 只含随机化人群，Screen Failure 不进分析人群），不是数据错误。</span>
+<span class="s2">5. 如果你需要的工具不存在，直接说明「信息不足」，</span>
+<span class="s2">   **绝对不要编造数据或凭记忆给出数值**。</span>
+<span class="s2">6. 最后给出结构化结论：整体质量评价、高优先级问题、建议的后续动作。</span>
+
+<span class="s2">输出使用中文。"""</span>
+
+<span class="n">USER_TASK</span> <span class="o">=</span> <span class="s2">"""请对 CDISC 试点项目（CDISCPILOT01）的以下数据集做一次质量审查：</span>
+
+<span class="s2">- ADSL（ADaM 受试者层级数据集）</span>
+<span class="s2">- DM（SDTM 人口学域）</span>
+<span class="s2">- AE（SDTM 不良事件域）</span>
+
+<span class="s2">要求：</span>
+<span class="s2">1. 检查数据完整性与跨数据集一致性</span>
+<span class="s2">2. 汇总安全性人群的人口学特征（按治疗组）</span>
+<span class="s2">3. 汇总治疗中出现的不良事件（按 SOC，受试者层级）</span>
+<span class="s2">4. 给出质量结论与后续建议</span>
+
+<span class="s2">请自行决定调用哪些工具、按什么顺序。"""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">run_agent</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+              <span class="n">preview_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Agent 主循环。</span>
+
+<span class="sd">    只有四件事：**问模型 → 执行工具 → 把结果喂回去 → 重复**。</span>
+<span class="sd">    所有复杂度都在"工具实现"里，循环本身必须保持简单。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    max_steps : 最大步数上限。**必须有这个上限** ——</span>
+<span class="sd">        否则一个卡在循环里的 Agent 会把你的 API 额度烧光。</span>
+<span class="sd">    preview_len : 终端预览工具返回时的截断长度，</span>
+<span class="sd">        避免一行 JSON 把屏幕刷爆（记录文件里存的是完整内容）。</span>
+<span class="sd">    """</span>
+    <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"system"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">SYSTEM_PROMPT</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">USER_TASK</span><span class="p">},</span>
+    <span class="p">]</span>
+    <span class="n">transcript</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s2">"transcript"</span><span class="p">):</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">transcript</span> <span class="o">=</span> <span class="n">transcript</span>          <span class="c1"># Mock 用它生成报告</span>
+
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">decision</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">decide</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">decision</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"final"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'='</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">76</span><span class="si">}</span><span class="se">\n</span><span class="s2">  最终报告（第 </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> 步收敛）</span><span class="se">\n</span><span class="si">{</span><span class="s1">'='</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">76</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">decision</span><span class="p">[</span><span class="s2">"content"</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">decision</span><span class="p">[</span><span class="s2">"content"</span><span class="p">],</span> <span class="n">transcript</span>
+
+        <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">decision</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="n">decision</span><span class="p">[</span><span class="s2">"arguments"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[步骤 </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">] 调用工具：</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"          参数：</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">execute_tool</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="n">transcript</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"step"</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span> <span class="s2">"tool"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"args"</span><span class="p">:</span> <span class="n">args</span><span class="p">,</span> <span class="s2">"result"</span><span class="p">:</span> <span class="n">result</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">preview</span> <span class="o">=</span> <span class="p">(</span><span class="n">result</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">preview_len</span>
+                       <span class="k">else</span> <span class="n">result</span><span class="p">[:</span><span class="n">preview_len</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" …(已截断)"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"          返回：</span><span class="si">{</span><span class="n">preview</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="c1"># 把「工具调用」与「工具结果」写回对话历史（两种模式的格式不同）</span>
+        <span class="k">if</span> <span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"raw"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>                <span class="c1"># 真实 LLM</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decision</span><span class="p">[</span><span class="s2">"raw"</span><span class="p">])</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"tool"</span><span class="p">,</span>
+                             <span class="s2">"tool_call_id"</span><span class="p">:</span> <span class="n">decision</span><span class="p">[</span><span class="s2">"raw"</span><span class="p">]</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                             <span class="s2">"content"</span><span class="p">:</span> <span class="n">result</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>                                              <span class="c1"># Mock</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span>
+                             <span class="s2">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"调用工具 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">，参数 </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"工具返回：</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="s2">"（达到最大步数限制，未收敛）"</span><span class="p">,</span> <span class="n">transcript</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># main</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"临床数据 QC Agent（Mock / 真实 LLM 双模式）"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--verbose-tools"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"打印工具返回的完整内容（默认截断到 420 字符）"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--max-steps"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"最大步数上限"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">real_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OPENAI_API_KEY"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"DEEPSEEK_API_KEY"</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ARK_API_KEY"</span><span class="p">))</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="s2">"真实 LLM"</span> <span class="k">if</span> <span class="n">real_key</span> <span class="k">else</span> <span class="s2">"MOCK（离线兜底）"</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">76</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  案例 07 · 临床数据 QC Agent   ——   模式：</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">76</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  可用工具（</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">TOOLS</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个）："</span>
+          <span class="o">+</span> <span class="s2">"、"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">'function'</span><span class="p">][</span><span class="s1">'name'</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">TOOLS</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  数据边界（白名单）：</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ALLOWED_DATASETS</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">real_key</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  ┌─ 当前为 MOCK 模式 ────────────────────────────────────────────────────┐</span>
+<span class="s2">  │ 不联网、不需要 API Key，用确定性决策序列调用工具，                    │</span>
+<span class="s2">  │ 但**工具执行的是真实逻辑**，结果与真实模式完全一致。                  │</span>
+<span class="s2">  │                                                                      │</span>
+<span class="s2">  │ 想切换到真实 LLM（由模型自行决定调用哪些工具）：                       │</span>
+<span class="s2">  │   Windows PowerShell:  $env:OPENAI_API_KEY = "sk-xxxx"                │</span>
+<span class="s2">  │   Windows CMD:         set OPENAI_API_KEY=sk-xxxx                     │</span>
+<span class="s2">  │   Linux / macOS:       export OPENAI_API_KEY=sk-xxxx                  │</span>
+<span class="s2">  │   可选：$env:OPENAI_BASE_URL / $env:LLM_MODEL 指向 DeepSeek 等兼容接口 │</span>
+<span class="s2">  │   依赖：pip install openai                                            │</span>
+<span class="s2">  └──────────────────────────────────────────────────────────────────────┘"""</span><span class="p">)</span>
+
+    <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAIClient</span><span class="p">()</span> <span class="k">if</span> <span class="n">real_key</span> <span class="k">else</span> <span class="n">MockLLMClient</span><span class="p">()</span>
+    <span class="c1"># 工具返回常常是一大段 JSON；默认截断显示，加 --verbose-tools 看全量</span>
+    <span class="n">preview_len</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">9</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose_tools</span> <span class="k">else</span> <span class="mi">420</span>
+    <span class="n">report</span><span class="p">,</span> <span class="n">transcript</span> <span class="o">=</span> <span class="n">run_agent</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span>
+                                   <span class="n">preview_len</span><span class="o">=</span><span class="n">preview_len</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="s2">"agent_transcript.json"</span>
+    <span class="n">rp</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="s2">"agent_report.md"</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">transcript</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+                  <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">rp</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">report</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'='</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">76</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  输出文件"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">76</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  对话记录（可审计）：</span><span class="si">{</span><span class="n">tp</span><span class="si">}</span><span class="s2">   （</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">transcript</span><span class="p">)</span><span class="si">}</span><span class="s2"> 步）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  审查报告：          </span><span class="si">{</span><span class="n">rp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  ★ 为什么要保存完整的 transcript？</span>
+<span class="s2">    这是 Agent 能被**质量审查**的前提。</span>
+<span class="s2">    没有记录 = 无法审计 = 不能用在实际生产。</span>
+<span class="s2">    记录里应包含：每步调了什么工具、参数是什么、返回什么、模型版本、时间戳。"""</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case06.html"><span class="pg-label">← 上一篇</span><span class="pg-title">批处理自动化</span></a><a class="pg-next" href="clinic-io.html"><span class="pg-label">下一篇 →</span><span class="pg-title">io.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

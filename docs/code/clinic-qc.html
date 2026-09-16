@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/qc.py</title>
+<meta name="description" content="qc.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/qc.py">
+<meta property="og:description" content="qc.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-qc.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/</div><h1>clinic/qc.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/qc.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/qc.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">qc.py</strong> · 326 行 · 11 KB<br>clinic.qc —— 数据质量检查规则</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""</span>
+<span class="sd">clinic.qc —— 数据质量检查规则</span>
+
+<span class="sd">把临床编程里靠"人眼看日志 / 双编程比对"的检查，固化成**可重复运行的代码**。</span>
+
+<span class="sd">设计要点</span>
+<span class="sd">--------</span>
+<span class="sd">- 每个检查返回结构化的 issue 列表（而不是 print），便于汇总成报告。</span>
+<span class="sd">- 严重性分三级：``高``（必须修复）/ ``中``（需确认）/ ``信息``（记录状态）。</span>
+<span class="sd">- 检查规则通过常量声明，便于按项目定制。</span>
+
+<span class="sd">对应 SAS 场景</span>
+<span class="sd">-------------</span>
+<span class="sd">- ``PROC CONTENTS``  → ``profile``</span>
+<span class="sd">- ``PROC SORT nodupkey`` → 主键唯一性检查</span>
+<span class="sd">- 双编程 + ``PROC COMPARE`` → ``compare_frames``</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 检查规则配置</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+
+<span class="c1"># 各数据集的必需变量（按 CDISC 标准的最小集）</span>
+<span class="n">REQUIRED_VARS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># SDTM</span>
+    <span class="s2">"dm"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"SUBJID"</span><span class="p">,</span> <span class="s2">"RFSTDTC"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">],</span>
+    <span class="s2">"ae"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AESEQ"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AESTDTC"</span><span class="p">],</span>
+    <span class="s2">"cm"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"CMSEQ"</span><span class="p">,</span> <span class="s2">"CMDECOD"</span><span class="p">,</span> <span class="s2">"CMSTDTC"</span><span class="p">],</span>
+    <span class="s2">"ex"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"EXSEQ"</span><span class="p">,</span> <span class="s2">"EXDOSE"</span><span class="p">,</span> <span class="s2">"EXSTDTC"</span><span class="p">],</span>
+    <span class="s2">"ds"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"DSSEQ"</span><span class="p">,</span> <span class="s2">"DSDECOD"</span><span class="p">],</span>
+    <span class="s2">"vs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VSSEQ"</span><span class="p">,</span> <span class="s2">"VSTESTCD"</span><span class="p">,</span> <span class="s2">"VSORRES"</span><span class="p">],</span>
+    <span class="s2">"lb"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"LBSEQ"</span><span class="p">,</span> <span class="s2">"LBTESTCD"</span><span class="p">,</span> <span class="s2">"LBORRES"</span><span class="p">],</span>
+    <span class="c1"># ADaM</span>
+    <span class="s2">"adsl"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"SUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"TRT01A"</span><span class="p">,</span> <span class="s2">"SAFFL"</span><span class="p">],</span>
+    <span class="s2">"adae"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRTEMFL"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"ASTDT"</span><span class="p">],</span>
+    <span class="s2">"adtte"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"CNSR"</span><span class="p">],</span>
+    <span class="s2">"adlbc"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"ANRIND"</span><span class="p">],</span>
+    <span class="s2">"advs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">],</span>
+    <span class="s2">"adqsadas"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="c1"># 主键（用于唯一性检查）</span>
+<span class="n">KEY_VARS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"dm"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span> <span class="s2">"adsl"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span> <span class="s2">"adtte"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">],</span>
+    <span class="s2">"ae"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AESEQ"</span><span class="p">],</span> <span class="s2">"adae"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AESEQ"</span><span class="p">],</span> <span class="s2">"cm"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"CMSEQ"</span><span class="p">],</span>
+    <span class="s2">"ex"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"EXSEQ"</span><span class="p">],</span> <span class="s2">"ds"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"DSSEQ"</span><span class="p">],</span> <span class="s2">"vs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VSSEQ"</span><span class="p">],</span>
+    <span class="s2">"lb"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"LBSEQ"</span><span class="p">],</span> <span class="s2">"adlbc"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVISITN"</span><span class="p">,</span> <span class="s2">"LBSEQ"</span><span class="p">],</span>
+    <span class="s2">"advs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"AVISITN"</span><span class="p">,</span> <span class="s2">"VSSEQ"</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="c1"># 受控术语（CDISC CT 的常用子集）</span>
+<span class="n">CONTROLLED_TERMS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"dm"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"SEX"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"M"</span><span class="p">,</span> <span class="s2">"F"</span><span class="p">,</span> <span class="s2">"U"</span><span class="p">,</span> <span class="s2">"UNDIFFERENTIATED"</span><span class="p">],</span>
+        <span class="s2">"DTHFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">],</span>
+        <span class="s2">"RACE"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"WHITE"</span><span class="p">,</span> <span class="s2">"BLACK OR AFRICAN AMERICAN"</span><span class="p">,</span>
+                 <span class="s2">"AMERICAN INDIAN OR ALASKA NATIVE"</span><span class="p">,</span> <span class="s2">"ASIAN"</span><span class="p">,</span>
+                 <span class="s2">"NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER"</span><span class="p">,</span>
+                 <span class="s2">"OTHER"</span><span class="p">,</span> <span class="s2">"MULTIPLE"</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">"ae"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"AESEV"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"MILD"</span><span class="p">,</span> <span class="s2">"MODERATE"</span><span class="p">,</span> <span class="s2">"SEVERE"</span><span class="p">],</span>
+        <span class="s2">"AESER"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">],</span>
+        <span class="s2">"AEOUT"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"RECOVERED/RESOLVED"</span><span class="p">,</span> <span class="s2">"RECOVERING/RESOLVING"</span><span class="p">,</span>
+                  <span class="s2">"NOT RECOVERED/NOT RESOLVED"</span><span class="p">,</span> <span class="s2">"RECOVERED/RESOLVED WITH SEQUELAE"</span><span class="p">,</span>
+                  <span class="s2">"FATAL"</span><span class="p">,</span> <span class="s2">"UNKNOWN"</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">"adsl"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"SAFFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">],</span> <span class="s2">"ITTFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">],</span> <span class="s2">"EFFFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">]},</span>
+    <span class="s2">"adae"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"TRTEMFL"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">],</span> <span class="s2">"AESEV"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"MILD"</span><span class="p">,</span> <span class="s2">"MODERATE"</span><span class="p">,</span> <span class="s2">"SEVERE"</span><span class="p">]},</span>
+<span class="p">}</span>
+
+<span class="c1"># 日期逻辑检查：结束日期不得早于开始日期</span>
+<span class="n">DATE_PAIRS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"ae"</span><span class="p">:</span> <span class="p">[(</span><span class="s2">"AESTDTC"</span><span class="p">,</span> <span class="s2">"AEENDTC"</span><span class="p">)],</span>
+    <span class="s2">"cm"</span><span class="p">:</span> <span class="p">[(</span><span class="s2">"CMSTDTC"</span><span class="p">,</span> <span class="s2">"CMENDTC"</span><span class="p">)],</span>
+    <span class="s2">"ex"</span><span class="p">:</span> <span class="p">[(</span><span class="s2">"EXSTDTC"</span><span class="p">,</span> <span class="s2">"EXENDTC"</span><span class="p">)],</span>
+    <span class="s2">"adae"</span><span class="p">:</span> <span class="p">[(</span><span class="s2">"ASTDT"</span><span class="p">,</span> <span class="s2">"AENDT"</span><span class="p">)],</span>
+<span class="p">}</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 工具</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_issue</span><span class="p">(</span><span class="n">category</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">severity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">detail</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"类别"</span><span class="p">:</span> <span class="n">category</span><span class="p">,</span> <span class="s2">"严重性"</span><span class="p">:</span> <span class="n">severity</span><span class="p">,</span> <span class="s2">"详情"</span><span class="p">:</span> <span class="n">detail</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">profile</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"数据集"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""快速数据体检（≈ ``PROC CONTENTS`` + 缺失概况）。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DataFrame</span>
+<span class="sd">        每行一个变量：dtype / 缺失数 / 缺失率 / 唯一值数 / 示例值</span>
+<span class="sd">    """</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+        <span class="n">nn</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"变量"</span><span class="p">:</span> <span class="n">c</span><span class="p">,</span>
+            <span class="s2">"类型"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="s2">"缺失数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+            <span class="s2">"缺失率%"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s2">"唯一值数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">nunique</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+            <span class="s2">"示例值"</span><span class="p">:</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nn</span><span class="o">.</span><span class="n">unique</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]),</span>
+        <span class="p">})</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"shape"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_dataset</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                  <span class="n">dataset_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""对单个数据集执行标准质量检查。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataset_type : ``'sdtm'`` / ``'adam'`` / ``'auto'``。</span>
+<span class="sd">        ``'auto'`` 时按名称是否以 ``ad`` 开头判断。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[dict]</span>
+<span class="sd">        问题列表。每项含 ``类别`` / ``严重性`` / ``详情``。</span>
+<span class="sd">        **空列表表示未发现"高"严重性问题。**</span>
+<span class="sd">    """</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">issues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># 0) 数据规模（信息）</span>
+    <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"数据规模"</span><span class="p">,</span> <span class="s2">"信息"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">))</span>
+
+    <span class="c1"># 1) 必需变量存在性</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="n">REQUIRED_VARS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">required</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"必需变量缺失"</span><span class="p">,</span> <span class="s2">"高"</span><span class="p">,</span>
+                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 缺少必需变量 </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+
+    <span class="c1"># 2) 主键唯一性</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">KEY_VARS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="n">present</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+            <span class="n">dup_mask</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">n_dup</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dup_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">n_dup</span><span class="p">:</span>
+                <span class="n">sample</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">dup_mask</span><span class="p">,</span> <span class="n">keys</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                            <span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">"records"</span><span class="p">))</span>
+                <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span>
+                    <span class="s2">"主键重复"</span><span class="p">,</span> <span class="s2">"高"</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 主键 </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> 有 </span><span class="si">{</span><span class="n">n_dup</span><span class="si">}</span><span class="s2"> 条重复记录；示例：</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"主键唯一性"</span><span class="p">,</span> <span class="s2">"信息"</span><span class="p">,</span>
+                                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 主键 </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> 唯一（</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条）"</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"主键不可用"</span><span class="p">,</span> <span class="s2">"中"</span><span class="p">,</span>
+                                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 主键变量 </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> 不完整（存在：</span><span class="si">{</span><span class="n">present</span><span class="si">}</span><span class="s2">）"</span><span class="p">))</span>
+
+    <span class="c1"># 3) 日期逻辑</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">DATE_PAIRS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">end</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+            <span class="n">n_bad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">s</span><span class="o">.</span><span class="n">notna</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">notna</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">e</span> <span class="o">&lt;</span> <span class="n">s</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">n_bad</span><span class="p">:</span>
+                <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span>
+                    <span class="s2">"日期逻辑错误"</span><span class="p">,</span> <span class="s2">"高"</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">n_bad</span><span class="si">}</span><span class="s2"> 条记录的 </span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2"> 早于 </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+
+    <span class="c1"># 4) 受控术语</span>
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">allowed</span> <span class="ow">in</span> <span class="n">CONTROLLED_TERMS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">actual</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+            <span class="n">illegal</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">actual</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">allowed</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">illegal</span><span class="p">:</span>
+                <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span>
+                    <span class="s2">"受控术语违规"</span><span class="p">,</span> <span class="s2">"中"</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> 出现非标准取值 </span><span class="si">{</span><span class="n">illegal</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"（共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">illegal</span><span class="p">)</span><span class="si">}</span><span class="s2"> 种）"</span><span class="p">))</span>
+
+    <span class="c1"># 5) 全缺失变量</span>
+    <span class="n">all_na</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">all_na</span><span class="p">:</span>
+        <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"全缺失变量"</span><span class="p">,</span> <span class="s2">"中"</span><span class="p">,</span>
+                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 有 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_na</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个变量完全缺失: </span><span class="si">{</span><span class="n">all_na</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+
+    <span class="c1"># 6) 字符首尾空格</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">])</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_datetime64_any_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]):</span>
+            <span class="k">continue</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+            <span class="n">padded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">padded</span><span class="p">:</span>
+        <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"首尾空格"</span><span class="p">,</span> <span class="s2">"低"</span><span class="p">,</span>
+                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 中 </span><span class="si">{</span><span class="n">padded</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2"> 存在首尾空格"</span><span class="p">))</span>
+
+    <span class="c1"># 7) 数值变量的异常值（粗筛，便于人工确认）</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]):</span>
+            <span class="k">continue</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">q1</span><span class="p">,</span> <span class="n">q3</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">quantile</span><span class="p">([</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">])</span>
+        <span class="n">iqr</span> <span class="o">=</span> <span class="n">q3</span> <span class="o">-</span> <span class="n">q1</span>
+        <span class="k">if</span> <span class="n">iqr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">far</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">s</span> <span class="o">&lt;</span> <span class="n">q1</span> <span class="o">-</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">iqr</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">s</span> <span class="o">&gt;</span> <span class="n">q3</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">iqr</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">far</span><span class="p">:</span>
+                <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span><span class="s2">"离群值"</span><span class="p">,</span> <span class="s2">"低"</span><span class="p">,</span>
+                                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2"> 有 </span><span class="si">{</span><span class="n">far</span><span class="si">}</span><span class="s2"> 个极端值（超出 Q1/Q3 ± 5×IQR）"</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">issues</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_subject_consistency</span><span class="p">(</span><span class="n">dm</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                              <span class="n">others</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""检查各域的 USUBJID 是否都在 DM 中（真实 QC 场景）。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[dict]</span>
+<span class="sd">        对每个域给出一条信息或问题记录。</span>
+<span class="sd">    """</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dm</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">issues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">_issue</span><span class="p">(</span><span class="s2">"受试者基准"</span><span class="p">,</span> <span class="s2">"信息"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"DM 中共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">base</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位受试者"</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">others</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s2">"USUBJID"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">subj</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+        <span class="n">orphan</span> <span class="o">=</span> <span class="n">subj</span> <span class="o">-</span> <span class="n">base</span>
+        <span class="n">no_rec</span> <span class="o">=</span> <span class="n">base</span> <span class="o">-</span> <span class="n">subj</span>
+        <span class="k">if</span> <span class="n">orphan</span><span class="p">:</span>
+            <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span>
+                <span class="s2">"孤儿受试者"</span><span class="p">,</span> <span class="s2">"高"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 有 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">orphan</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位受试者不在 DM 中："</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">orphan</span><span class="p">)[:</span><span class="mi">5</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">issues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_issue</span><span class="p">(</span>
+                <span class="s2">"受试者一致性"</span><span class="p">,</span> <span class="s2">"信息"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">subj</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位受试者全部在 DM 中；"</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">no_rec</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位 DM 中的受试者在 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 无记录"</span>
+                <span class="sa">f</span><span class="s2">"（通常属正常情况：该受试者没有此类记录）"</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">issues</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_frames</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                   <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""比对两个 DataFrame（≈ ``PROC COMPARE``）。</span>
+
+<span class="sd">    用于端到端验证：例如把 Python 生成的 ADSL 与 SAS 生成的 ADSL 对照。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        含 ``行数一致`` / ``仅A有`` / ``仅B有`` / ``差异单元格`` 等键。</span>
+<span class="sd">    """</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">();</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="n">set_a</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="n">keys</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()))</span>
+    <span class="n">set_b</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">b</span><span class="p">[</span><span class="n">keys</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()))</span>
+
+    <span class="n">common</span> <span class="o">=</span> <span class="n">set_a</span> <span class="o">&amp;</span> <span class="n">set_b</span>
+    <span class="n">ai</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="n">bi</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="n">common_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">common</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">common_idx</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"行数一致"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"仅A有"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">set_a</span> <span class="o">-</span> <span class="n">set_b</span><span class="p">)[:</span><span class="mi">5</span><span class="p">],</span>
+                <span class="s2">"仅B有"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">set_b</span> <span class="o">-</span> <span class="n">set_a</span><span class="p">)[:</span><span class="mi">5</span><span class="p">],</span> <span class="s2">"差异单元格"</span><span class="p">:</span> <span class="p">{}}</span>
+
+    <span class="n">ai</span> <span class="o">=</span> <span class="n">ai</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common_idx</span><span class="p">];</span> <span class="n">bi</span> <span class="o">=</span> <span class="n">bi</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common_idx</span><span class="p">]</span>
+    <span class="n">shared_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ai</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">bi</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+    <span class="n">diffs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">shared_cols</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">ai</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">bi</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+            <span class="n">bad</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
+                              <span class="n">rtol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">equal_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bad</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">y</span><span class="o">.</span><span class="n">isna</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bad</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+            <span class="n">diffs</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ai</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">bad</span><span class="p">][:</span><span class="mi">3</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">bad</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">bad</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"行数一致"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">),</span>
+        <span class="s2">"A 行数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="s2">"B 行数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">),</span>
+        <span class="s2">"仅A有"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">set_a</span> <span class="o">-</span> <span class="n">set_b</span><span class="p">)[:</span><span class="mi">5</span><span class="p">],</span>
+        <span class="s2">"仅B有"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">set_b</span> <span class="o">-</span> <span class="n">set_a</span><span class="p">)[:</span><span class="mi">5</span><span class="p">],</span>
+        <span class="s2">"共同记录数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">common_idx</span><span class="p">),</span>
+        <span class="s2">"差异变量"</span><span class="p">:</span> <span class="n">diffs</span><span class="p">,</span>
+        <span class="s2">"结论"</span><span class="p">:</span> <span class="s2">"一致"</span> <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">diffs</span>
+                          <span class="ow">and</span> <span class="n">set_a</span> <span class="o">==</span> <span class="n">set_b</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"存在差异"</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="n">issues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把 issue 列表渲染成可读文本。"""</span>
+    <span class="n">high</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">issues</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"严重性"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"高"</span><span class="p">]</span>
+    <span class="n">mid</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">issues</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"严重性"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"中"</span><span class="p">]</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">issues</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"严重性"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"信息"</span><span class="p">]</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'='</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+             <span class="sa">f</span><span class="s2">"QC 报告 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">  ——  高 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">high</span><span class="p">)</span><span class="si">}</span><span class="s2"> / 中 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span><span class="si">}</span><span class="s2"> / 信息 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+             <span class="s2">"="</span> <span class="o">*</span> <span class="mi">70</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"高"</span><span class="p">,</span> <span class="n">high</span><span class="p">),</span> <span class="p">(</span><span class="s2">"中"</span><span class="p">,</span> <span class="n">mid</span><span class="p">),</span> <span class="p">(</span><span class="s2">"信息"</span><span class="p">,</span> <span class="n">info</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">group</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">it</span><span class="p">[</span><span class="s1">'类别'</span><span class="p">]</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">it</span><span class="p">[</span><span class="s1">'详情'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">结论：</span><span class="si">{</span><span class="s1">'未发现高优先级问题'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">high</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="sa">f</span><span class="s1">'发现 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">high</span><span class="p">)</span><span class="si">}</span><span class="s1"> 个高优先级问题'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-report.html"><span class="pg-label">← 上一篇</span><span class="pg-title">report.py</span></a><a class="pg-next" href="clinic-agent_tools.html"><span class="pg-label">下一篇 →</span><span class="pg-title">agent_tools.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

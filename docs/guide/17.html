@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 17 章 · 工程化与后续进阶</title>
+<meta name="description" content="工程化与后续进阶 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 17 章 · 工程化与后续进阶">
+<meta property="og:description" content="工程化与后续进阶 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/17.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第四阶段 · AI 与工程化</div><h1>第 17 章 · 工程化与后续进阶</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/17-%E5%B7%A5%E7%A8%8B%E5%8C%96%E4%B8%8E%E5%90%8E%E7%BB%AD%E8%BF%9B%E9%98%B6.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把你的 Python 代码从"能跑的脚本"变成"可交付的工程"。
+这一章是"业余"与"专业"的分界线。</p>
+</blockquote>
+<hr />
+<h2 id="171-git临床程序员必须掌握的版本控制">17.1 Git：临床程序员必须掌握的版本控制</h2>
+<p><strong>SAS 时代的版本管理通常是</strong>：<code>t_demo_v2.sas</code>、<code>t_demo_v2_final.sas</code>、
+<code>t_demo_v2_final_20240513.sas</code>……</p>
+<p><strong>Python 世界的答案只有一个：Git。</strong></p>
+<h3 id="15-分钟上手需要记住的命令就这几个">15 分钟上手（需要记住的命令就这几个）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code><span class="c1"># 一次性配置</span>
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>user.name<span class="w">  </span><span class="s2">"Your Name"</span>
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>user.email<span class="w"> </span><span class="s2">"you@example.com"</span>
+
+<span class="c1"># 日常循环（99% 的时间只用这四条）</span>
+git<span class="w"> </span>status<span class="w">                      </span><span class="c1"># 看哪些文件改了</span>
+git<span class="w"> </span>diff<span class="w">                        </span><span class="c1"># 看具体改了什么</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;文件&gt;<span class="w">                  </span><span class="c1"># 把改动加入暂存区</span>
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"说明这次改了什么"</span><span class="w">  </span><span class="c1"># 提交（形成历史快照）</span>
+
+<span class="c1"># 同步到远端</span>
+git<span class="w"> </span>push
+
+<span class="c1"># 查看历史</span>
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span>-20
+git<span class="w"> </span>log<span class="w"> </span>-p<span class="w"> </span>&lt;文件&gt;<span class="w">               </span><span class="c1"># 看某文件的完整变更历史</span>
+
+<span class="c1"># 撤销（重要）</span>
+git<span class="w"> </span>restore<span class="w"> </span>&lt;文件&gt;<span class="w">              </span><span class="c1"># 丢弃未提交的修改</span>
+git<span class="w"> </span>restore<span class="w"> </span>--staged<span class="w"> </span>&lt;文件&gt;<span class="w">     </span><span class="c1"># 取消暂存</span>
+git<span class="w"> </span>revert<span class="w"> </span>&lt;commit&gt;<span class="w">             </span>#<span class="w"> </span>生成一个<span class="s2">"反向提交"</span>（安全，推荐）
+</code></pre></div></div>
+<h3 id="分支为每个-tlf-或每个需求开分支">分支：为每个 TLF 或每个需求开分支</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>feat/table02-teae<span class="w">     </span><span class="c1"># 新建并切到分支</span>
+<span class="c1"># ... 写代码、提交 ...</span>
+git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>feat/table02-teae<span class="w">  </span><span class="c1"># 推到远端</span>
+#<span class="w"> </span>在<span class="w"> </span>GitHub<span class="w"> </span>上开<span class="w"> </span>Pull<span class="w"> </span>Request<span class="w"> </span>→<span class="w"> </span>同事<span class="w"> </span>review<span class="w"> </span>→<span class="w"> </span>合并
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>为什么临床编程特别需要 PR（Pull Request）</strong>：
+<strong>它天然是一个 QC 工作流</strong>——改动被展示、被评论、被批准，
+每一步都留痕。这比"邮件发程序给 QC 同事"可追溯得多。
+PHUSE 甚至有专门的工作组研究 <em>The Use of Git in Statistical Programming</em>。</p>
+</blockquote>
+<h3 id="gitignore什么绝不能提交"><code>.gitignore</code>：什么绝不能提交</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">GITIGNORE</span></div><div class="hl"><pre><code># 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# 数据（体积大 / 可能敏感）
+data/raw/
+*.xpt
+*.sas7bdat
+
+# 输出（可重新生成）
+outputs/
+
+# 密钥（★绝对★不要提交）
+.env
+*.key
+secrets.json
+
+# 编辑器
+.vscode/
+.idea/
+.ipynb_checkpoints/
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>最重要的一条：永远不要提交 API Key、密码、患者数据。</strong>
+一旦 push 到远端，即使后来删除，历史记录里依然存在。
+补救需要用 <code>git filter-repo</code> 重写历史——非常麻烦。
+<strong>防范成本远低于补救成本。</strong></p>
+</blockquote>
+<hr />
+<h2 id="172-项目结构建立一个可复用的模板">17.2 项目结构：建立一个可复用的模板</h2>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>my-clinical-analysis/
+├── README.md                  # 项目说明：做什么、怎么跑
+├── requirements.txt           # 依赖清单（可复现的前提）
+├── .gitignore
+├── .env.example               # 环境变量模板（不含真实值）
+├── data/
+│   ├── README.md              # 数据来源与说明
+│   ├── raw/                   # 原始数据（gitignore）
+│   └── samples/               # 小样本（可提交）
+├── src/ 或 clinic/            # 你自己的工具包
+│   ├── __init__.py
+│   ├── io.py                  # 读写
+│   ├── derive.py              # 派生逻辑
+│   ├── report.py              # 报表构造
+│   └── qc.py                  # QC 检查
+├── programs/                  # 生产脚本（每个 TLF 一个）
+│   ├── t01_demographics.py
+│   └── t02_teae.py
+├── tests/                     # 单元测试
+│   ├── test_derive.py
+│   └── test_report.py
+├── metadata/                  # 规格文档（变量级）
+│   └── adsl_spec.xlsx
+├── outputs/                   # 产出（gitignore）
+└── docs/                      # 文档、SAP 摘录、ADRG
+</code></pre></div></div>
+<h3 id="为什么这个结构重要">为什么这个结构重要</h3>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>对应 SAS 世界的什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clinic/</code></td>
+<td>你的宏库（<code>%include</code> 的那些）</td>
+</tr>
+<tr>
+<td><code>programs/</code></td>
+<td>每个 TLF 的 <code>.sas</code> 程序</td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td><strong>SAS 世界里通常缺失的一块</strong>，见 17.3</td>
+</tr>
+<tr>
+<td><code>metadata/</code></td>
+<td>变量级规格（SAS 里是 Excel 或 define.xml）</td>
+</tr>
+<tr>
+<td><code>outputs/</code></td>
+<td>输出目录</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="173-单元测试把-qc-变成代码">17.3 单元测试：把 QC 变成代码</h2>
+<p><strong>这是 Python 相对 SAS 最大的增量价值之一。</strong></p>
+<p>在 SAS 世界里，"验证"通常靠：
+1. 独立编程（双编程）+ <code>PROC COMPARE</code>
+2. 人工看日志
+3. 人工抽查输出</p>
+<p>这些方法<strong>每次都要重做</strong>。而在 Python 里，你可以把验证写成<strong>测试代码</strong>，
+<strong>一次编写，永久运行</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""tests/test_report.py —— 报表工具的单元测试"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.report</span><span class="w"> </span><span class="kn">import</span> <span class="n">pct_format</span><span class="p">,</span> <span class="n">summarize_continuous</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="n">sas_round_series</span><span class="p">,</span> <span class="n">derive_agegr1</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TestSasRound</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""验证舍入规则与 SAS 一致（这是最容易出错的地方）"""</span>
+
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"value,expected"</span><span class="p">,</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">2.4</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">2.6</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_round_half_away_from_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""SAS 的 ROUND 是"四舍五入（远离零）"，而 Python 内置 round 是银行家舍入"""</span>
+        <span class="k">assert</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">value</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_nearest_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""ROUND(x, 10) 应舍入到最近的 10"""</span>
+        <span class="k">assert</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">1234.0</span><span class="p">,</span> <span class="mf">1235.0</span><span class="p">,</span> <span class="mf">1236.0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1234</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TestPctFormat</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_zero_shows_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">pct_format</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">86</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"0"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_basic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">pct_format</span><span class="p">(</span><span class="mi">26</span><span class="p">,</span> <span class="mi">86</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"26 (30.2%)"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_zero_denominator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">pct_format</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"-"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_rounding</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 1/3 = 33.333...% → 33.3%</span>
+        <span class="k">assert</span> <span class="n">pct_format</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"1 (33.3%)"</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TestSummarizeContinuous</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_uses_sample_sd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""SD 必须用 ddof=1，与 SAS 的 STD 一致"""</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">63.0</span><span class="p">,</span> <span class="mf">64.0</span><span class="p">,</span> <span class="mf">71.0</span><span class="p">,</span> <span class="mf">74.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">])</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">summarize_continuous</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">res</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">5</span>
+        <span class="k">assert</span> <span class="n">res</span><span class="p">[</span><span class="s2">"sd"</span><span class="p">]</span> <span class="o">==</span> <span class="n">pytest</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">res</span><span class="p">[</span><span class="s2">"sd"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TestAgeGr1</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""★ 边界测试：这是分组派生最容易出错的地方"""</span>
+
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"age,expected"</span><span class="p">,</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="s2">"&lt;65"</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">65</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">),</span>      <span class="c1"># 65 属于 65-80（左闭）</span>
+        <span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">),</span>      <span class="c1"># 80 属于 65-80（右闭）★ 最易错</span>
+        <span class="p">(</span><span class="mi">81</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="s2">"&lt;65"</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">89</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_boundaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">age</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"AGE"</span><span class="p">:</span> <span class="p">[</span><span class="n">age</span><span class="p">]})</span>
+        <span class="k">assert</span> <span class="n">derive_agegr1</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">"AGEGR1"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">expected</span>
+</code></pre></div></div>
+<p>运行：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>pip<span class="w"> </span>install<span class="w"> </span>pytest
+pytest<span class="w"> </span>tests/<span class="w"> </span>-v
+</code></pre></div></div>
+<p>输出：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>tests/test_report.py::TestSasRound::test_round_half_away_from_zero[2.5-3.0] PASSED
+tests/test_report.py::TestPctFormat::test_zero_shows_zero PASSED
+tests/test_report.py::TestAgeGr1::test_boundaries[80-65-80] PASSED
+...
+======================== 21 passed in 0.34s ========================
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>为什么这对临床编程是革命性的</strong>：
+1. <strong>边界条件被永久固定</strong>。<code>AGE=80</code> 应该归到哪一组，
+   这个规则现在写在测试里，<strong>任何人改动代码导致边界变化，测试会立刻失败</strong>。
+2. <strong>QC 有据可依</strong>。测试文件本身就是一份可执行的验证文档。
+3. <strong>重构变安全</strong>。优化代码后跑一遍测试，就知道有没有改坏东西。
+4. <strong>可挂 CI</strong>。每次提交自动跑测试（GitHub Actions），
+   相当于有了一个 24 小时值班的 QC。</p>
+</blockquote>
+<h3 id="与-sas-的双编程对照">与 SAS 的双编程对照</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS 传统 QC</th>
+<th>Python + 测试</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>边界规则</td>
+<td>放在 SAP 文档里（人读）</td>
+<td>放在测试里（机器跑）</td>
+</tr>
+<tr>
+<td>每次修改</td>
+<td>重新双编程</td>
+<td><code>pytest</code> 自动验证</td>
+</tr>
+<tr>
+<td>覆盖范围</td>
+<td>关键输出</td>
+<td>可以做到函数级全覆盖</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>高（人力）</td>
+<td>前期投入，长期摊薄</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>务实建议</strong>：不必追求 100% 覆盖率。
+<strong>优先给这几类代码写测试</strong>：
+① 边界敏感的派生（年龄/体重分组、期别划分）
+② 数值格式化（舍入、百分比）
+③ 人群标记（SAFFL/ITTFL 等）
+这三类占了临床 bug 的大半。</p>
+</blockquote>
+<hr />
+<h2 id="174-依赖管理让结果可复现">17.4 依赖管理：让结果可复现</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code><span class="c1"># 导出当前环境的精确依赖</span>
+pip<span class="w"> </span>freeze<span class="w"> </span>&gt;<span class="w"> </span>requirements.txt
+
+<span class="c1"># 更好的做法：区分直接依赖与传递依赖</span>
+pip<span class="w"> </span>install<span class="w"> </span>pip-tools
+<span class="c1"># requirements.in 里写你直接用的包</span>
+<span class="c1"># requirements.txt 由 pip-compile 生成（含精确版本）</span>
+pip-compile<span class="w"> </span>requirements.in
+</code></pre></div></div>
+<p><strong><code>requirements.txt</code> 应该写什么</strong>：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code># requirements.in —— 直接依赖
+pandas&gt;=2.2
+numpy&gt;=1.26
+pyreadstat&gt;=1.2
+matplotlib&gt;=3.8
+openpyxl&gt;=3.1
+requests&gt;=2.31
+pytest&gt;=8.0
+</code></pre></div></div>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code># requirements.txt —— 锁定版本（由 pip-compile 生成，用于复现）
+pandas==2.2.3
+numpy==2.1.3
+pyreadstat==1.2.8
+...
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>临床场景的硬要求</strong>：<strong>所有的分析结果必须可复现</strong>。
+这意味着必须记录：Python 版本、包版本、操作系统、随机种子。
+```python
+import sys, platform
+print(sys.version)
+print(platform.platform())
+import numpy, pandas; print(numpy.<strong>version</strong>, pandas.<strong>version</strong>)</p>
+<h1 id="随机种子任何涉及随机的步骤都要固定">随机种子：任何涉及随机的步骤都要固定</h1>
+<p>rng = np.random.default_rng(20240101)
+```</p>
+</blockquote>
+<hr />
+<h2 id="175-ci自动跑测试github-actions">17.5 CI：自动跑测试（GitHub Actions）</h2>
+<p>在仓库里加一个 <code>.github/workflows/tests.yml</code>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">YAML</span></div><div class="hl"><pre><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests</span>
+
+<span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">push</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pull_request</span><span class="p p-Indicator">]</span>
+
+<span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">test</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">strategy</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">matrix</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"3.11"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"3.12"</span><span class="p p-Indicator">]</span>
+
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ matrix.python-version }}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">安装依赖</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">python -m pip install --upgrade pip</span>
+<span class="w">          </span><span class="no">pip install -r requirements.txt</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">运行测试</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest tests/ -v</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">运行案例脚本（冒烟测试）</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">python cases/case01_数据体检.py</span>
+<span class="w">          </span><span class="no">python cases/case02_人口学表.py</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 这样一来，<strong>每次你 push 代码，GitHub 会自动跑一遍全部测试和案例</strong>。
+如果某个案例跑挂了，你会收到通知。
+<strong>这在 SAS 世界里是不可想象的自动化程度。</strong></p>
+</blockquote>
+<hr />
+<h2 id="176-合规与实践考量真实环境落地">17.6 合规与实践考量（真实环境落地）</h2>
+<p>这一节是"技术上能做"与"实际上能上"之间的差距。</p>
+<table>
+<thead>
+<tr>
+<th>议题</th>
+<th>关键问题</th>
+<th>实务做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>软件验证</strong></td>
+<td>Python 是开源的，怎么"验证"它？</td>
+<td>参考 FDA 2021 <em>Statistical Software Clarifying Statement</em>；做 IQ/OQ/PQ；用开源验证框架（PHUSE 的 <code>valtools</code>）</td>
+</tr>
+<tr>
+<td><strong>包的可信度</strong></td>
+<td>谁能保证 pandas 不算错？</td>
+<td>优先选有大量用户、有测试套件、有学术引用的包；关键算法与 SAS 对照验证</td>
+</tr>
+<tr>
+<td><strong>环境锁定</strong></td>
+<td>保证 3 年后还能跑出同样结果</td>
+<td>容器化（Docker）+ 锁定版本 + 归档环境快照</td>
+</tr>
+<tr>
+<td><strong>变更控制</strong></td>
+<td>改一行代码要走什么流程</td>
+<td>Git PR + Review + 回归测试；关键变更走变更控制流程</td>
+</tr>
+<tr>
+<td><strong>文档</strong></td>
+<td>监管要看什么</td>
+<td>ADRG（Analysis Data Reviewer's Guide）、代码清单、测试报告</td>
+</tr>
+<tr>
+<td><strong>数据安全</strong></td>
+<td>患者数据不能出环境</td>
+<td>本地/内网部署；不把数据放进公开 LLM</td>
+</tr>
+<tr>
+<td><strong>可追溯</strong></td>
+<td>结果→代码→数据 的链条</td>
+<td>Git commit hash 记录在输出日志里</td>
+</tr>
+</tbody>
+</table>
+<h3 id="行业参考资料值得通读">行业参考资料（值得通读）</h3>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PHUSE OSTCDA</strong> <br> <a href="https://phuse-org.github.io/OSTCDA/">https://phuse-org.github.io/OSTCDA/</a></td>
+<td>《Open Source Technology in Clinical Data Analysis》——<strong>行业专家对开源落地所有关键问题的众包答案</strong>（是否想用、能不能用、值不值得用），必读</td>
+</tr>
+<tr>
+<td><strong>PHUSE CAMIS</strong> <br> <a href="https://psiaims.github.io/CAMIS/">https://psiaims.github.io/CAMIS/</a></td>
+<td>SAS/R/Python 统计方法实现差异的比对库，跨语言验证的权威参考</td>
+</tr>
+<tr>
+<td><strong>CDISC CORE</strong> <br> <a href="https://cdisc-org.github.io/cdisc-rules-engine">https://cdisc-org.github.io/cdisc-rules-engine</a></td>
+<td>官方开源的规则引擎，本身就是用 pandas/dask 实现的</td>
+</tr>
+<tr>
+<td><strong>FDA Statistical Software Clarifying Statement (2021)</strong></td>
+<td>明确开源工具可用于提交</td>
+</tr>
+<tr>
+<td><strong>phuse-org/git-in-statistical-programming</strong></td>
+<td>Git 在统计编程中的行业工作组</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>ADRG 里必须写的一段话</strong>（示例）：
+"本分析使用 Python 3.12.3 + pandas 2.2.3 完成。
+所有统计量的计算逻辑已通过与 SAS 9.4 独立实现的结果对照验证
+（见 <code>validation/proc_compare_report.html</code>）。
+舍入规则遵循 SAS ROUND 的'四舍五入'语义，实现于 <code>clinic/derive.py::sas_round</code>。
+环境与代码版本记录于 <code>environment.lock</code>。"</p>
+</blockquote>
+<hr />
+<h2 id="177-后续学习路径">17.7 后续学习路径</h2>
+<p>你已经走完了从 SAS 到 Python 的主干。接下来可以按兴趣分支：</p>
+<h3 id="方向-a把-python-用到极致临床方向">方向 A：把 Python 用到极致（临床方向）</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>✅ 已完成：pandas 数据处理、TFL 生成、QC 自动化
+→ 深入：DuckDB / Polars（大数据量）
+→ 深入：great_tables（专业报表排版）
+→ 深入：Plotly / Altair（交互式可视化，给 DMC 用）
+→ 深入：statsmodels / lifelines / pymer4（统计建模）
+→ 深入：CDISC CORE 源码（学习用 pandas 写规则引擎）
+→ 深入：package 化（把你的一套工具做成内部 pip 包）
+</code></pre></div></div>
+<h3 id="方向-b数据科学--机器学习">方向 B：数据科学 / 机器学习</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>→ scikit-learn：从 PROC REG/LOGISTIC 迁移到更广的模型
+→ 特征工程、交叉验证、模型评估
+→ 生存分析机器学习（RSF、DeepSurv）
+→ 真实世界数据（RWD）：OMOP CDM、MIMIC-IV
+→ 因果推断（倾向性评分、Doubly Robust）
+</code></pre></div></div>
+<h3 id="方向-cai-agent-与自动化你选的方向">方向 C：AI Agent 与自动化（你选的方向）</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>✅ 已完成：LLM API 调用、工具调用、单 Agent
+→ RAG：让 Agent 读 CDISC 规范 / SAP / define.xml
+→ 多 Agent 编排：LangGraph / OpenAI Agents SDK
+→ MCP：把临床工具封装成标准协议服务
+→ 本地模型：Ollama + Qwen / DeepSeek，数据不出内网
+→ Agent 评测：怎么证明 Agent 的输出是可靠的
+</code></pre></div></div>
+<h3 id="必读的行业论文按优先级">必读的行业论文（按优先级）</h3>
+<p>见 <a href="res-03.html"><code>resources/03-论文与技术资料.md</code></a>，
+重点推荐：</p>
+<ol>
+<li><strong>PharmaSUG 2026 ET-223</strong> — Python 做临床统计编程的完整工作流 ⭐⭐⭐</li>
+<li><strong>PharmaSUG 2019/2020 AP-212/AP-255</strong> — Python-izing the SAS Programmer 系列 ⭐⭐⭐</li>
+<li><strong>PharmaSUG 2026 AI-305 / AI-332</strong> — AI 辅助代码迁移与 ADaM 标准化 ⭐⭐⭐</li>
+<li><strong>PHUSE OSTCDA</strong> — 开源落地的行业共识 ⭐⭐⭐</li>
+<li><strong>PHUSE CAMIS</strong> — 跨语言统计实现差异 ⭐⭐</li>
+</ol>
+<hr />
+<h2 id="178-动手练习">17.8 动手练习</h2>
+<ol>
+<li>
+<p><strong>初始化 Git</strong>：把这个项目 clone 到你自己的 GitHub，
+   修改一个文件，走一遍 <code>status → diff → add → commit → push</code>。</p>
+</li>
+<li>
+<p><strong>写测试</strong>：给第 13 章的 <code>pct_format()</code> 和 <code>summarize_continuous()</code>
+   写测试，至少覆盖：正常情况、分母为 0、分子为 0、边界舍入。</p>
+</li>
+<li>
+<p><strong>边界测试</strong>：给"AGEGR1 派生"写边界测试（64/65/80/81 四个关键值）。</p>
+</li>
+<li>
+<p><strong>加 CI</strong>：给仓库加 GitHub Actions 配置，让每次 push 自动跑测试。</p>
+</li>
+<li>
+<p><strong>写 ADRG 片段</strong>：为自己写的一段分析代码，写一份简短的
+   "分析数据评审指南"摘录，说明：环境、依赖版本、关键算法、
+   与 SAS 对照的验证方式、舍入规则。</p>
+</li>
+<li>
+<p><strong>（终极练习）</strong> 挑一个你工作里真实的小需求
+   （哪怕是"把 50 个日志文件里的 ERROR 汇总成 Excel"），
+   用 Python 完整实现，走 Git 提交，写测试。
+   <strong>做完这一步，你就真正完成迁移了。</strong></p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="16.html">第 16 章 · Agent 开发入门</a>
+<strong>回到</strong> <a href="00.html">第 00 章 · 学习路线图</a></p></article>
+<nav class="pager"><a class="pg-prev" href="16.html"><span class="pg-label">← 上一篇</span><span class="pg-title">Agent 开发入门：临床 QC Agent</span></a><a class="pg-next" href="cheatsheet.html"><span class="pg-label">下一篇 →</span><span class="pg-title">SAS → Python 速查表</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

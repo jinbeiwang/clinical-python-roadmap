@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 07 章 · pandas 入门：DataFrame 就是数据集</title>
+<meta name="description" content="pandas 入门：DataFrame 就是数据集 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 07 章 · pandas 入门：DataFrame 就是数据集">
+<meta property="og:description" content="pandas 入门：DataFrame 就是数据集 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/07.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第二阶段 · 数据操作</div><h1>第 07 章 · pandas 入门：DataFrame 就是数据集</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/07-pandas%E5%85%A5%E9%97%A8-DataFrame%E5%B0%B1%E6%98%AF%E6%95%B0%E6%8D%AE%E9%9B%86.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：建立对 pandas <code>DataFrame</code> 的准确心智模型——
+<strong>它就是 SAS 数据集</strong>，只是多了索引、少了自动留存。</p>
+</blockquote>
+<hr />
+<h2 id="71-dataframe--sas-数据集-的一一对应">7.1 DataFrame ↔ SAS 数据集 的一一对应</h2>
+<table>
+<thead>
+<tr>
+<th>SAS 数据集的概念</th>
+<th>pandas 对应物</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>观测（行）</td>
+<td><code>df</code> 的一行</td>
+<td>通过 <code>df.iloc[i]</code> 或布尔索引取</td>
+</tr>
+<tr>
+<td>变量（列）</td>
+<td><code>df["AGE"]</code>（一个 Series）</td>
+<td><strong>每一列单独取，不是 <code>AGE</code></strong></td>
+</tr>
+<tr>
+<td>变量名</td>
+<td><code>df.columns</code></td>
+<td>字符串列表</td>
+</tr>
+<tr>
+<td>变量标签</td>
+<td><code>df.attrs</code> / pyreadstat 的 meta</td>
+<td>pandas 原生不保留 label，需额外处理</td>
+</tr>
+<tr>
+<td>变量格式 / 长度</td>
+<td><code>df.dtypes</code></td>
+<td>类型（不是 format），见下</td>
+</tr>
+<tr>
+<td><code>PROC CONTENTS</code></td>
+<td><code>df.info()</code></td>
+<td>看结构</td>
+</tr>
+<tr>
+<td><code>PROC PRINT (obs=5)</code></td>
+<td><code>df.head()</code></td>
+<td>看前几行</td>
+</tr>
+<tr>
+<td><code>PROC PRINT</code> 全部</td>
+<td><code>df</code> （在 Notebook 里）</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nobs</code> / <code>nvar</code></td>
+<td><code>df.shape</code> → <code>(行, 列)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>_N_</code>（行号）</td>
+<td><code>df.index</code></td>
+<td>默认 0,1,2,…</td>
+</tr>
+<tr>
+<td><code>WORK</code> 库</td>
+<td>内存中的 Python 变量</td>
+<td><strong>不会自动留存</strong></td>
+</tr>
+<tr>
+<td>永久数据集</td>
+<td>CSV / Parquet / Excel 文件</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="数据类型对照重要">数据类型对照（重要）</h3>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas dtype</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值（全部）</td>
+<td><code>int64</code> / <code>float64</code></td>
+<td>pandas 区分整数与浮点（SAS 不区分）</td>
+</tr>
+<tr>
+<td>字符</td>
+<td><code>object</code> 或 <code>string</code></td>
+<td><code>object</code> 是"任意 Python 对象"，实际存字符串</td>
+</tr>
+<tr>
+<td>日期</td>
+<td><code>datetime64[ns]</code></td>
+<td>需要显式转换（第 10 章）</td>
+</tr>
+<tr>
+<td>分类（自定义 format）</td>
+<td><code>category</code></td>
+<td>有顺序的分类，见第 09 章</td>
+</tr>
+<tr>
+<td>缺失</td>
+<td><code>NaN</code>(float) / <code>pd.NA</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>数值列的坑</strong>：SAS 里 <code>AGE</code> 是纯数值；在 pandas 里
+如果这一列有缺失，整列会被提升为 <code>float64</code>，于是 <strong>63 会显示成 63.0</strong>。
+这是新手困惑的高频点。需要输出整数时用
+<code>df["AGE"].astype("Int64")</code>（大写 I 的可空整型）或输出时格式化。</p>
+</blockquote>
+<hr />
+<h2 id="72-三种创建-dataframe-的方式">7.2 三种创建 DataFrame 的方式</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 方式 1：从字典（最直观，适合小数据/测试）</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">"USUBJID"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">,</span> <span class="s2">"01-701-1023"</span><span class="p">,</span> <span class="s2">"01-701-1028"</span><span class="p">],</span>
+    <span class="s2">"TRT01P"</span><span class="p">:</span>  <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">],</span>
+    <span class="s2">"AGE"</span><span class="p">:</span>     <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">],</span>
+    <span class="s2">"SEX"</span><span class="p">:</span>     <span class="p">[</span><span class="s2">"F"</span><span class="p">,</span> <span class="s2">"M"</span><span class="p">,</span> <span class="s2">"M"</span><span class="p">],</span>
+<span class="p">})</span>
+
+<span class="c1"># 方式 2：从文件（真实工作场景）</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/dm.csv"</span><span class="p">)</span>
+<span class="c1"># 方式 3：从 SAS 文件</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="73-第一步永远是体检认识你的数据">7.3 第一步永远是"体检"：认识你的数据</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 1) 形状</span>
+<span class="n">df</span><span class="o">.</span><span class="n">shape</span>                 <span class="c1"># (306, 25)  → 306 行 25 列</span>
+
+<span class="c1"># 2) 结构总览：列名 + 非空数量 + 类型（≈ PROC CONTENTS 的精简版）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+
+<span class="c1"># 3) 前 5 行 / 后 5 行</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># 4) 列名清单</span>
+<span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+<span class="c1"># 5) 描述统计（数值列，≈ PROC MEANS）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+
+<span class="c1"># 6) 全列（含字符列）的概览</span>
+<span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="s2">"all"</span><span class="p">)</span>
+
+<span class="c1"># 7) 每列的缺失数量（QC 常看）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="c1"># 8) 唯一值个数与示例</span>
+<span class="n">df</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>把"体检"写成函数的习惯</strong>：在临床编程里，
+每次拿到新数据都该先体检一遍。建议写一个工具函数放在 <code>clinic/</code> 包里，
+每次调用 2 秒出结果。</p>
+</blockquote>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">profile</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"数据集"</span><span class="p">,</span> <span class="n">max_show</span><span class="o">=</span><span class="mi">12</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""快速数据体检（≈ PROC CONTENTS + PROC MEANS 摘要）。"""</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">：</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"dtype"</span><span class="p">:</span>    <span class="n">df</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"n_miss"</span><span class="p">:</span>   <span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+        <span class="s2">"pct_miss"</span><span class="p">:</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"n_unique"</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">nunique</span><span class="p">(),</span>
+        <span class="s2">"example"</span><span class="p">:</span>  <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+                     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">],</span>
+    <span class="p">})</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">max_show</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_show</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"... 还有 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">max_show</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">info</span>
+</code></pre></div></div>
+<hr />
+<h2 id="74-选列选行loc-与-iloc">7.4 选列、选行：<code>loc</code> 与 <code>iloc</code></h2>
+<p>这是 pandas 最核心的操作，<strong>必须分清 <code>loc</code> 和 <code>iloc</code></strong>：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>按什么选</th>
+<th>写法</th>
+<th>SAS 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>df.loc[...]</code></td>
+<td><strong>标签</strong>（列名、索引值）</td>
+<td><code>df.loc[:, ["AGE","SEX"]]</code></td>
+<td><code>keep</code> 语句</td>
+</tr>
+<tr>
+<td><code>df.iloc[...]</code></td>
+<td><strong>位置</strong>（第几行第几列）</td>
+<td><code>df.iloc[0:5, 0:3]</code></td>
+<td><code>obs=</code> / <code>firstobs=</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ---- 选列 ----</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span>                      <span class="c1"># 单列 → Series</span>
+<span class="n">df</span><span class="p">[[</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">]]</span>     <span class="c1"># 多列 → DataFrame（注意双层方括号！）</span>
+
+<span class="c1"># SAS: keep USUBJID AGE SEX;</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">]]</span>
+
+<span class="c1"># SAS: drop RACE;</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">])</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"SUPP"</span><span class="p">)])</span>
+
+<span class="c1"># ---- 选行 ----</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>                    <span class="c1"># SAS: (obs=10)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>                  <span class="c1"># 同上，位置切片</span>
+<span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span>                   <span class="c1"># 最后 5 行</span>
+<span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">9</span><span class="p">]</span>                    <span class="c1"># ⚠️ loc 的切片是"含两端"的（与 iloc 不同！）</span>
+
+<span class="c1"># ---- 同时选行列 ----</span>
+<span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">]]</span>        <span class="c1"># 前 5 行的两列</span>
+<span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>                      <span class="c1"># 前 5 行、前 2 列</span>
+<span class="n">df</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">]</span>                        <span class="c1"># 取单个值（快）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>                           <span class="c1"># 按位置取单个值</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>loc</code> 切片含两端</strong>：<code>df.loc[0:9]</code> 是 10 行，<code>df.iloc[0:10]</code> 也是 10 行。
+这是 pandas 的历史遗留设计，很容易搞错。<strong>建议统一用 <code>iloc</code> 做位置切片。</strong></p>
+</blockquote>
+<hr />
+<h2 id="75-条件筛选where-子句的替代">7.5 条件筛选：<code>where</code> 子句的替代</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data adsl_f; <span class="k">set</span> adsl;
+    <span class="k">where</span> SAFFL = <span class="s">'Y'</span> <span class="k">and</span> AGE &gt;= <span class="m">65</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 单条件</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span>
+
+<span class="c1"># 多条件：每个条件加括号，用 &amp; / | 连接</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">)]</span>
+
+<span class="c1"># 或关系</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Placebo"</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">)]</span>
+
+<span class="c1"># in 列表（对应 SAS 的 in (...)： where TRT01P in ('Placebo','Xanomeline High Dose')）</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">])]</span>
+
+<span class="c1"># 排除（对应 where TRT01P ne 'Placebo'）</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"Placebo"</span><span class="p">]</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="o">~</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s2">"Placebo"</span><span class="p">])]</span>         <span class="c1"># ~ 是取反</span>
+
+<span class="c1"># 缺失判断</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span>          <span class="c1"># 对应 where AGE is not missing</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"DTHFL"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>         <span class="c1"># 对应 where DTHFL is missing</span>
+
+<span class="c1"># 区间</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="mi">65</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]</span>                 <span class="c1"># 含两端</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="mi">65</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="n">inclusive</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)]</span>
+
+<span class="c1"># 字符串模糊匹配（对应 SAS 的 where aedecod like '%NAUSEA%' 或 index(...)&gt;0）</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"WHITE"</span><span class="p">,</span> <span class="n">na</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"W"</span><span class="p">,</span> <span class="n">na</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"NAUSEA"</span><span class="p">,</span> <span class="n">na</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>   <span class="c1"># 正则用 regex=True</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>三个必踩的坑</strong>：
+1. <strong>必须用 <code>&amp;</code> / <code>|</code>，不能用 <code>and</code> / <code>or</code></strong>
+2. <strong>每个条件必须加括号</strong>（<code>&amp;</code> 的优先级高于比较运算符）
+3. <strong><code>.str.contains()</code> 遇到缺失值会返回 NaN，必须加 <code>na=False</code></strong></p>
+<p>这三点是 pandas 新手 90% 的报错来源。</p>
+</blockquote>
+<h3 id="query更接近-sas-写法推荐用于复杂条件"><code>query()</code>：更接近 SAS 写法（推荐用于复杂条件）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 用 query，可读性大幅提升（不用括号，可用 and/or）</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y' and AGE &gt;= 65"</span><span class="p">)</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"TRT01P in ['Placebo', 'Xanomeline High Dose']"</span><span class="p">)</span>
+<span class="n">adsl_f</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"AGE &gt;= @min_age"</span><span class="p">)</span>          <span class="c1"># @ 引用外部 Python 变量</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>临床编程建议</strong>：条件复杂时（3 个以上）用 <code>query()</code>，
+因为<strong>它更接近 SAS 的 <code>where</code> 子句，QC 时更容易对照原始需求</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="76-增删改变量">7.6 增删改变量</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ---- 新增列（对应 SAS 的 data 步赋值）----</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"&gt;=65"</span><span class="p">,</span> <span class="s2">"&lt;65"</span><span class="p">)</span>
+
+<span class="c1"># 从现有列计算</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"BMI"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"WEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"HEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+<span class="c1"># 用函数派生（逐元素，等价于 SAS 调用函数）</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"SITEID"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="c1"># ---- 修改列 ----</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">({</span><span class="s2">"F"</span><span class="p">:</span> <span class="s2">"Female"</span><span class="p">,</span> <span class="s2">"M"</span><span class="p">:</span> <span class="s2">"Male"</span><span class="p">})</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>                  <span class="c1"># 'WHITE' → 'White'</span>
+
+<span class="c1"># ---- 重命名列（对应 SAS 的 rename= 选项）----</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"USUBJID"</span><span class="p">:</span> <span class="s2">"SUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">:</span> <span class="s2">"TRTP"</span><span class="p">})</span>
+
+<span class="c1"># 批量重命名（统一大写——处理来源混乱的变量名）</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+<span class="c1"># 批量加前缀（对应 SAS 的 rename=(x=y) 批量）</span>
+<span class="n">ae</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">add_prefix</span><span class="p">(</span><span class="s2">"AE_"</span><span class="p">)</span>
+
+<span class="c1"># ---- 删除列 ----</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"TEMP1"</span><span class="p">,</span> <span class="s2">"TEMP2"</span><span class="p">])</span>
+
+<span class="c1"># ---- 调整列顺序（对应 SAS 的 retain / keep 顺序）----</span>
+<span class="n">order</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">]</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">order</span> <span class="o">+</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">order</span><span class="p">]]</span>
+
+<span class="c1"># ---- 排序（对应 PROC SORT）----</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">)</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>   <span class="c1"># 混合升降序</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>      <span class="c1"># 重置行号（排序后行号会乱，建议重置）</span>
+</code></pre></div></div>
+<hr />
+<h2 id="77-复制视图-vs-副本最容易出-bug-的地方">7.7 复制：视图 vs 副本（最容易出 bug 的地方）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">sub</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span>         <span class="c1"># 这可能是"视图"，也可能是副本</span>
+<span class="n">sub</span><span class="p">[</span><span class="s2">"NEW"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>                            <span class="c1"># ⚠️ 可能触发 SettingWithCopyWarning</span>
+
+<span class="c1"># ✅ 正确做法：显式复制</span>
+<span class="n">sub</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">sub</span><span class="p">[</span><span class="s2">"NEW"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>                            <span class="c1"># 安全，不影响 adsl</span>
+
+<span class="c1"># ✅ 或者用 .loc 一步到位（在筛选的同时赋值）</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"NEW"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>心智模型</strong>：pandas 的赋值有"视图/副本"二义性，
+是它被诟病最多的地方。<strong>实践原则：</strong>
+1. 筛选后要改内容 → 一定加 <code>.copy()</code>
+2. 要在原数据上按条件赋值 → 用 <code>.loc[条件, 列名] = 值</code></p>
+</blockquote>
+<hr />
+<h2 id="78-实战一串完整的体检--筛选">7.8 实战：一串完整的"体检 + 筛选"</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"adsl.csv"</span><span class="p">)</span>
+
+<span class="c1"># 1) 体检</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ADSL: </span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"关键变量缺失情况："</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">adsl</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"SAFFL"</span><span class="p">]]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+<span class="c1"># 2) 主键唯一性校验（临床 QC 必做）</span>
+<span class="k">assert</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">is_unique</span><span class="p">,</span> <span class="s2">"ADSL 主键 USUBJID 不唯一！"</span>
+
+<span class="c1"># 3) 筛选安全性人群</span>
+<span class="n">saf</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1"># 4) 派生 AGEGR1（与 CDISC 惯例一致的边界：&lt;65 / 65-80 / &gt;80）</span>
+<span class="n">saf</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">saf</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">saf</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 5) 交叉验证：派生结果与原始 AGEGR1 是否一致（如果有）</span>
+<span class="k">if</span> <span class="s2">"AGEGR1"</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">mismatch</span> <span class="o">=</span> <span class="p">(</span><span class="n">saf</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">saf</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"与原始 AGEGR1 不一致的记录数：</span><span class="si">{</span><span class="n">mismatch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 6) 结果核对</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">saf</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+</code></pre></div></div>
+<hr />
+<h2 id="79-动手练习">7.9 动手练习</h2>
+<ol>
+<li>
+<p><strong>体检</strong>：读 <code>data/samples/adsl.csv</code>，输出：行数、列数、
+   每个变量的缺失数、AGE 的描述统计。</p>
+</li>
+<li>
+<p><strong>筛选</strong>：取出满足以下全部条件的受试者，并统计人数：
+   - SAFFL = 'Y'
+   - AGE &gt;= 65
+   - 非 Placebo 组</p>
+</li>
+<li>
+<p><strong>派生</strong>：用 <code>pd.cut</code> 从 AGE 派生 <code>AGEGR1</code>，标签为 <code>&lt;65</code> / <code>65-80</code> / <code>&gt;80</code>，
+   注意 <strong>65 应归入 <code>65-80</code></strong>（左闭右开）。然后与练习 2 的结果交叉制表。</p>
+</li>
+<li>
+<p><strong>列操作</strong>：把 ADSL 的列名全部转小写，然后只保留
+   <code>usubjid, trt01p, age, sex, race, saffl</code> 六列，输出前 10 行。</p>
+</li>
+<li>
+<p><strong>坑的练习</strong>：故意写一段
+   <code>x = adsl[adsl["AGE"] &gt;= 65 and adsl["SEX"]=="F"]</code>，
+   看报错信息并修正；再故意写一段不带 <code>na=False</code> 的
+   <code>.str.contains()</code>，观察结果差异。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="06.html">第 06 章 · NumPy 与向量化思维</a>
+<strong>下一章 →</strong> <a href="08.html">第 08 章 · 数据操作对照：DATA 步 / PROC SQL → pandas</a></p></article>
+<nav class="pager"><a class="pg-prev" href="06.html"><span class="pg-label">← 上一篇</span><span class="pg-title">NumPy 与向量化思维</span></a><a class="pg-next" href="08.html"><span class="pg-label">下一篇 →</span><span class="pg-title">数据操作对照：DATA 步 / PROC SQL</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

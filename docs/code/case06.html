@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 06 · 批处理自动化</title>
+<meta name="description" content="批处理自动化 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 06 · 批处理自动化">
+<meta property="og:description" content="批处理自动化 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case06.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 06 · 批处理自动化</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case06_%E6%89%B9%E5%A4%84%E7%90%86%E8%87%AA%E5%8A%A8%E5%8C%96.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case06_%E6%89%B9%E5%A4%84%E7%90%86%E8%87%AA%E5%8A%A8%E5%8C%96.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case06_批处理自动化.py</strong> · 336 行 · 13 KB<br>案例 06 · 文件与批处理自动化 =============================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 06 · 文件与批处理自动化</span>
+<span class="sd">=============================</span>
+
+<span class="sd">**目标**：把"一次处理一个数据集"变成"一次处理一批数据集"，</span>
+<span class="sd">并且**一个文件出错不影响其他文件**。</span>
+
+<span class="sd">**覆盖教程章节**：第 05 章（文件与批处理）、第 11 章（读取 XPT）、第 17 章（工程化）</span>
+
+<span class="sd">为什么值得单独写一个案例</span>
+<span class="sd">------------------------</span>
+<span class="sd">SAS 程序员做批处理通常靠 ``%macro`` + ``%do`` 循环 + ``dictionary.tables``。</span>
+<span class="sd">一旦某个数据集出错，SAS 会**中断整个程序** —— 你改完再跑，又从头开始。</span>
+<span class="sd">Python 里可以做到"逐个处理、逐个记录、出错继续"，</span>
+<span class="sd">这对"一批 50 个域文件的例行检查"是质的差别。</span>
+
+<span class="sd">本案例做三件事</span>
+<span class="sd">--------------</span>
+<span class="sd">1. **清点（inventory）**：扫描目录，逐个读进来体检，输出一张汇总表。</span>
+<span class="sd">2. **批量转换（convert）**：把 ``.xpt`` 批量转成 ``.csv``</span>
+<span class="sd">   （存在则跳过，``--force`` 才覆盖）—— 幂等、可重跑。</span>
+<span class="sd">3. **汇总导出**：把结果写成「一个域一个 sheet」的 Excel + 一份运行日志。</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case06_批处理自动化.py                      # 清点样本目录（默认）</span>
+<span class="sd">    python cases/case06_批处理自动化.py --action convert      # 批量 XPT → CSV</span>
+<span class="sd">    python cases/case06_批处理自动化.py --action all --force  # 清点 + 转换（覆盖）</span>
+<span class="sd">    python cases/case06_批处理自动化.py --dir data/raw --pattern "*.xpt"</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>              <span class="c1"># noqa: E402</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+<span class="c1"># 支持的文件类型（对应 SAS 里能 SET / 能 libname 的几种）</span>
+<span class="n">READABLE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">".csv"</span><span class="p">,</span> <span class="s2">".xpt"</span><span class="p">,</span> <span class="s2">".sas7bdat"</span><span class="p">,</span> <span class="s2">".xlsx"</span><span class="p">,</span> <span class="s2">".parquet"</span><span class="p">}</span>
+
+<span class="c1"># 清点时跳过的"巨型表"（想全量扫描时用 --no-skip-large）</span>
+<span class="n">LARGE_HINT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"advs"</span><span class="p">,</span> <span class="s2">"adlbc"</span><span class="p">,</span> <span class="s2">"adlb"</span><span class="p">,</span> <span class="s2">"adpc"</span><span class="p">,</span> <span class="s2">"adpp"</span><span class="p">,</span> <span class="s2">"sv"</span><span class="p">,</span> <span class="s2">"vs"</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_logger</span><span class="p">(</span><span class="n">log_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""同时往终端和文件写日志。</span>
+
+<span class="sd">    对应 SAS 里的 ``proc printto log='...';`` ——</span>
+<span class="sd">    但 pandas 的日志是**标准 logging**，可以和任何工具链（Airflow、</span>
+<span class="sd">    调度器、Kubernetes）对接，不用解析 SAS 的 .log 文本。</span>
+<span class="sd">    """</span>
+    <span class="n">log_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"batch"</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+    <span class="n">fmt</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s2">"</span><span class="si">%(asctime)s</span><span class="s2"> | </span><span class="si">%(levelname)-7s</span><span class="s2"> | </span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="n">datefmt</span><span class="o">=</span><span class="s2">"%H:%M:%S"</span><span class="p">)</span>
+    <span class="n">fh</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">fh</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="n">sh</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">section</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 1. 目录扫描 —— 对应 SAS 的 filename pipe + data _null_ 读取目录</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scan_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"*"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""扫描目录，返回所有可读文件（按文件名排序，保证结果可复现）。</span>
+
+<span class="sd">    ★ ``pathlib`` 与 SAS 的对比：</span>
+
+<span class="sd">    ===================================  =============================</span>
+<span class="sd">    SAS                                  Python</span>
+<span class="sd">    ===================================  =============================</span>
+<span class="sd">    ``filename d pipe "dir /b";``        ``Path(dir).glob("*.xpt")``</span>
+<span class="sd">    ``%sysfunc(fileexist(...))``         ``p.exists()``</span>
+<span class="sd">    ``dopen/dread`` 读目录                ``iterdir()`` / ``rglob()``</span>
+<span class="sd">    ``scan(path,-1,'.')`` 取扩展名        ``p.suffix``</span>
+<span class="sd">    ===================================  =============================</span>
+<span class="sd">    """</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">directory</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"目录不存在：</span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+                   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">READABLE</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">files</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 2. 单文件体检 —— 对应"一个数据集一个 PROC CONTENTS + PROC FREQ"</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">profile_one</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">nrows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""读一个文件并返回体检结果（绝不抛异常，失败也返回记录）。</span>
+
+<span class="sd">    ★ 这是批处理的关键设计：**把异常收在函数内部**，</span>
+<span class="sd">      让调用方永远拿到一条可记录的、结构一致的结果。</span>
+<span class="sd">      这样"某个文件坏了"就变成结果表里的一行，而不是整个程序崩掉。</span>
+<span class="sd">    """</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">rec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"文件"</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"格式"</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">),</span>
+           <span class="s2">"大小KB"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">"状态"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"行数"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="s2">"列数"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"缺失列数"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"耗时秒"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"备注"</span><span class="p">:</span> <span class="s2">""</span><span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"行数"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"列数"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">na</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"缺失列数"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">na</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"缺失列数"</span><span class="p">]:</span>
+            <span class="n">worst</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">rec</span><span class="p">[</span><span class="s2">"备注"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"缺失最多："</span> <span class="o">+</span> <span class="s2">"、"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">worst</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"状态"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"OK"</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>                      <span class="c1"># noqa: BLE001</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"状态"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"失败"</span>
+        <span class="n">rec</span><span class="p">[</span><span class="s2">"备注"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)[:</span><span class="mi">90</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">rec</span><span class="p">[</span><span class="s2">"耗时秒"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rec</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">inventory</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""批量体检整个目录。**一个文件失败不会中断整批。**"""</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">scan_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"扫描 </span><span class="si">%s</span><span class="s2"> → 找到 </span><span class="si">%d</span><span class="s2"> 个可读文件"</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">rec</span> <span class="o">=</span> <span class="n">profile_one</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s2">"✓"</span> <span class="k">if</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"状态"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"OK"</span> <span class="k">else</span> <span class="s2">"✗"</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  [</span><span class="si">%2d</span><span class="s2">/</span><span class="si">%2d</span><span class="s2">] </span><span class="si">%s</span><span class="s2"> </span><span class="si">%-22s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="n">flag</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"文件"</span><span class="p">],</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rec</span><span class="p">[</span><span class="s1">'行数'</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">rec</span><span class="p">[</span><span class="s1">'列数'</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span>
+                    <span class="k">if</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"状态"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"OK"</span> <span class="k">else</span> <span class="n">rec</span><span class="p">[</span><span class="s2">"备注"</span><span class="p">])</span>
+        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+    <span class="n">n_fail</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">df</span><span class="p">[</span><span class="s2">"状态"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"OK"</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"清点完成：成功 </span><span class="si">%d</span><span class="s2"> 个，失败 </span><span class="si">%d</span><span class="s2"> 个"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_fail</span><span class="p">,</span> <span class="n">n_fail</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 3. 批量转换 —— 对应 SAS 的 "批量 libname 转换 / PROC EXPORT"</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_batch</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+                  <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把 XPT / SAS7BDAT 批量转成 CSV。</span>
+
+<span class="sd">    **幂等设计**：已存在的目标文件默认跳过 —— 这样脚本可以随时重跑，</span>
+<span class="sd">    不会反复做无用功，也不会误删已有结果（除非显式 ``--force``）。</span>
+<span class="sd">    这是"可重跑（idempotent）"在数据管线里的基本要求。</span>
+<span class="sd">    """</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">scan_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+             <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".xpt"</span><span class="p">,</span> <span class="s2">".sas7bdat"</span><span class="p">)]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"待转换 </span><span class="si">%d</span><span class="s2"> 个 SAS 格式文件 → </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="n">out_dir</span><span class="p">)</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">.csv"</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"源文件"</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"目标"</span><span class="p">:</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"结果"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"行数"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"备注"</span><span class="p">:</span> <span class="s2">""</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">dst</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"跳过（已存在）"</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"行数"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dst</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  [</span><span class="si">%2d</span><span class="s2">/</span><span class="si">%2d</span><span class="s2">] ⏭  </span><span class="si">%-20s</span><span class="s2"> 已存在，跳过"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"已转换"</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"行数"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"  [</span><span class="si">%2d</span><span class="s2">/</span><span class="si">%2d</span><span class="s2">] ✓  </span><span class="si">%-20s</span><span class="s2"> → </span><span class="si">%-20s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> 行"</span><span class="p">,</span>
+                        <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dst</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>                  <span class="c1"># noqa: BLE001</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"失败"</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"备注"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)[:</span><span class="mi">80</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"  [</span><span class="si">%2d</span><span class="s2">/</span><span class="si">%2d</span><span class="s2">] ✗  </span><span class="si">%-20s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s2">"备注"</span><span class="p">])</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 4. 汇总导出：一个域一个 sheet</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_workbook</span><span class="p">(</span><span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">out_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+                    <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把清点结果写成多 sheet Excel（对应 SAS 的 ODS EXCEL + sheet_interval）。</span>
+
+<span class="sd">    注意：Excel 单个 sheet 名最长 31 字符、且不能含 ``[]:*?/\\``，</span>
+<span class="sd">    所以要对 sheet 名做清洗 —— 这类"看起来无关紧要"的限制</span>
+<span class="sd">    在批处理里天天会撞上。</span>
+<span class="sd">    """</span>
+    <span class="n">inv</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="n">summary</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"清点"</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">inv</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">out_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelWriter</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"openpyxl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s2">"汇总"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">inv</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"文件"</span><span class="p">]))</span><span class="o">.</span><span class="n">stem</span><span class="p">[:</span><span class="mi">28</span><span class="p">]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"_"</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="s1">'[]:*?/</span><span class="se">\\</span><span class="s1">'</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"sheet"</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"_路径"</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>                     <span class="c1"># noqa: BLE001</span>
+                <span class="k">continue</span>
+            <span class="c1"># 只写前 200 行，避免 Excel 被大表撑爆（真实报表另存 CSV）</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># 其余表（转换记录等）</span>
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">"清点"</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="n">summary</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">]</span> <span class="o">==</span> <span class="n">tag</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">sub</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="n">sub</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">tag</span><span class="p">)[:</span><span class="mi">28</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"已导出多 sheet 工作簿：</span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">out_path</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"临床数据文件批处理自动化"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--dir"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span><span class="p">),</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"要处理的数据目录（默认 data/samples）"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--pattern"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"*"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"文件通配符，如 '*.xpt'"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--outdir"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span><span class="p">),</span> <span class="n">help</span><span class="o">=</span><span class="s2">"输出目录"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--action"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"inventory"</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"inventory"</span><span class="p">,</span> <span class="s2">"convert"</span><span class="p">,</span> <span class="s2">"all"</span><span class="p">])</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"-f"</span><span class="p">,</span> <span class="s2">"--force"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"转换时覆盖已存在的目标文件（默认跳过）"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">src_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">setup_logger</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"case06_batch.log"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  案例 06 · 文件与批处理自动化"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  源目录：</span><span class="si">{</span><span class="n">src_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  通配符：</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">pattern</span><span class="si">}</span><span class="s2">     动作：</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">action</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  日志：  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'case06_batch.log'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">action</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"inventory"</span><span class="p">,</span> <span class="s2">"all"</span><span class="p">):</span>
+        <span class="n">section</span><span class="p">(</span><span class="s2">"1. 清点（inventory）—— 逐个体检，出错不影响其他"</span><span class="p">)</span>
+        <span class="n">inv</span> <span class="o">=</span> <span class="n">inventory</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inv</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">inv</span><span class="p">[</span><span class="s2">"_路径"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">scan_dir</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">pattern</span><span class="p">)]</span>
+            <span class="n">inv</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"清点"</span>
+            <span class="n">show</span> <span class="o">=</span> <span class="n">inv</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"_路径"</span><span class="p">,</span> <span class="s2">"_表"</span><span class="p">])</span>
+            <span class="nb">print</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">show</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inv</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  ★ 请注意「耗时秒」这一列：批量处理时，"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"    **你要先知道时间花在哪里**，再决定要不要优化。"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">action</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"convert"</span><span class="p">,</span> <span class="s2">"all"</span><span class="p">):</span>
+        <span class="n">section</span><span class="p">(</span><span class="s2">"2. 批量转换（convert）—— 幂等、可重跑"</span><span class="p">)</span>
+        <span class="n">con</span> <span class="o">=</span> <span class="n">convert_batch</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"converted"</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">force</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">con</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">con</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"转换"</span>
+            <span class="nb">print</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">con</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"_表"</span><span class="p">])</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">con</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  目标目录：</span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'converted'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  ★ 默认【跳过已存在】—— 这就是「幂等」："</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"    脚本可以随时重跑，不会重复劳动，也不会误删已有结果。"</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"3. 汇总导出"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parts</span><span class="p">:</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"case06_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"已导出汇总 CSV：</span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"case06_summary.csv"</span><span class="p">)</span>
+        <span class="n">export_workbook</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"case06_summary.xlsx"</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  汇总 CSV：  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'case06_summary.csv'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  多 sheet：  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'case06_summary.xlsx'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  运行日志：  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'case06_batch.log'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  总耗时 </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> 秒"</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"4. 从 SAS 到 Python：批处理这一块到底对应什么"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""  +--------------------------------------------------+------------------------------------------+</span>
+<span class="s2">  | SAS 里你会写                                      | Python 里对应什么                        |</span>
+<span class="s2">  +--------------------------------------------------+------------------------------------------+</span>
+<span class="s2">  | filename d pipe "dir /b *.xpt";                   | Path(dir).glob("*.xpt")                  |</span>
+<span class="s2">  | %macro loop(list); </span><span class="si">%d</span><span class="s2">o i=1 %to </span><span class="si">%s</span><span class="s2">ysfunc(countw);   | for f in files:  —— 不需要宏，直接循环    |</span>
+<span class="s2">  | data _null_; set sashelp.vtable; ...; run;        | pd.DataFrame(records) 收集结果           |</span>
+<span class="s2">  | proc printto log='run.log'; run;                  | logging.FileHandler("run.log")           |</span>
+<span class="s2">  | 一个 DATA 步出错 → 整个程序停下                    | try/except → 记一行"失败"继续跑           |</span>
+<span class="s2">  | proc export data=x outfile='x.csv'; run;          | df.to_csv(path, index=False)             |</span>
+<span class="s2">  | ods excel file=... options(sheet_interval=bygroup) | pd.ExcelWriter + 多个 sheet_name         |</span>
+<span class="s2">  +--------------------------------------------------+------------------------------------------+</span>
+
+<span class="s2">  ★ 三个真正拉开差距的地方：</span>
+<span class="s2">    1) **异常隔离**：SAS 里一个数据集坏了会中断整批；</span>
+<span class="s2">       Python 里用 try/except 把失败变成结果表的一行，</span>
+<span class="s2">       整批照常跑完，最后统一看哪几个失败了。</span>
+<span class="s2">    2) **幂等**：SAS 脚本通常"从头跑到尾"，Python 脚本要设计成</span>
+<span class="s2">       "跑几次结果都一样"（跳过已完成、结果可覆盖）。</span>
+<span class="s2">       这是能被调度器反复执行的前提。</span>
+<span class="s2">    3) **不依赖 SAS 环境**：这套脚本可以在没有装 SAS 的机器上、</span>
+<span class="s2">       在 CI（GitHub Actions）、在服务器上跑。</span>
+
+<span class="s2">  ★ 还要注意一个坑：Excel 的 sheet 名限制 31 字符、不能含 []:*?/</span><span class="se">\\</span><span class="s2">。</span>
+<span class="s2">    批处理时这类"格式限制"特别容易触发，务必做名字清洗。"""</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case05.html"><span class="pg-label">← 上一篇</span><span class="pg-title">ADSL 衍生与双编程验证</span></a><a class="pg-next" href="case07.html"><span class="pg-label">下一篇 →</span><span class="pg-title">临床数据 QC Agent</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 09 章 · 合并、重塑与分组汇总</title>
+<meta name="description" content="合并、重塑与分组汇总 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 09 章 · 合并、重塑与分组汇总">
+<meta property="og:description" content="合并、重塑与分组汇总 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/09.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第二阶段 · 数据操作</div><h1>第 09 章 · 合并、重塑与分组汇总</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/09-%E5%90%88%E5%B9%B6%E9%87%8D%E5%A1%91%E4%B8%8E%E5%88%86%E7%BB%84%E6%B1%87%E6%80%BB.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：掌握 <code>PROC TRANSPOSE</code> 的 pandas 对应物（<code>pivot</code> / <code>melt</code>），
+以及"从长表到宽表、从宽表到长表"的思维。
+这是临床报表生成的核心技能——<strong>几乎每一张 CSR 表格背后都是一次重塑</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="91-长表-vs-宽表先建立概念">9.1 长表 vs 宽表：先建立概念</h2>
+<p>临床数据有两种形态，理解它们的差异是本章的基础：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>长表（Long / 竖向）                宽表（Wide / 横向）
+─────────────────────────         ────────────────────────────────
+USUBJID        VISIT   AVAL       USUBJID        VISIT1 VISIT2 VISIT3
+01-701-1015    1       24.0       01-701-1015    24.0   22.0   20.0
+01-701-1015    2       22.0       01-701-1023    27.0   25.0   NaN
+01-701-1015    3       20.0
+01-701-1023    1       27.0
+01-701-1023    2       25.0
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>长表（SDTM/ADaM 的常见形态）</th>
+<th>宽表（报表/建模的常见形态）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特点</td>
+<td>每个测量占一行，变量少行多</td>
+<td>每个受试者一行，变量多</td>
+</tr>
+<tr>
+<td>CDISC 例子</td>
+<td>ADVS、ADLBC、ADAE</td>
+<td>ADSL</td>
+</tr>
+<tr>
+<td>SAS 里叫什么</td>
+<td>原始形态</td>
+<td><code>PROC TRANSPOSE</code> 之后</td>
+</tr>
+<tr>
+<td>pandas 里叫什么</td>
+<td><code>melt</code> 之后</td>
+<td><code>pivot</code> 之后</td>
+</tr>
+</tbody>
+</table>
+<p><strong>记忆口诀</strong>：
+- <strong><code>melt</code>（熔化）</strong>：宽 → 长（把列"熔"成行）
+- <strong><code>pivot</code>（旋转）</strong>：长 → 宽（把行"转"成列）</p>
+<hr />
+<h2 id="92-长--宽pivot-与-pivot_table">9.2 长 → 宽：<code>pivot()</code> 与 <code>pivot_table()</code></h2>
+<h3 id="对应-sas-的-proc-transpose">对应 SAS 的 PROC TRANSPOSE</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc transpose data=vs <span class="k">out</span>=vs_wide prefix=VISIT;
+    <span class="k">by</span> USUBJID;
+    id VISITNUM;
+    var SYSBP;
+<span class="kr">run;</span>
+<span class="c">/* 结果列：USUBJID VISIT1 VISIT2 ... */</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">vs_wide</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISITNUM"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"SYSBP"</span><span class="p">)</span>
+
+<span class="c1"># 加上前缀美化列名（对应 prefix=VISIT）</span>
+<span class="n">vs_wide</span> <span class="o">=</span> <span class="n">vs_wide</span><span class="o">.</span><span class="n">add_prefix</span><span class="p">(</span><span class="s2">"VISIT"</span><span class="p">)</span>
+<span class="n">vs_wide</span> <span class="o">=</span> <span class="n">vs_wide</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>          <span class="c1"># 把 USUBJID 从索引变回普通列</span>
+</code></pre></div></div>
+<h3 id="参数语义对照">参数语义对照</h3>
+<table>
+<thead>
+<tr>
+<th>SAS TRANSPOSE</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>by 变量</code></td>
+<td><code>index=</code></td>
+</tr>
+<tr>
+<td><code>id 变量</code></td>
+<td><code>columns=</code></td>
+</tr>
+<tr>
+<td><code>var 变量</code></td>
+<td><code>values=</code></td>
+</tr>
+<tr>
+<td><code>prefix=</code></td>
+<td><code>.add_prefix()</code> / <code>.add_suffix()</code></td>
+</tr>
+<tr>
+<td><code>suffix=</code></td>
+<td><code>.add_suffix()</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="pivot-vs-pivot_table什么时候用哪个"><code>pivot</code> vs <code>pivot_table</code>：什么时候用哪个</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>pivot()</code></th>
+<th><code>pivot_table()</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>要求</td>
+<td>每个 (index, columns) 组合<strong>唯一</strong></td>
+<td>允许重复，用 <code>aggfunc</code> 汇总</td>
+</tr>
+<tr>
+<td>重复组合</td>
+<td><strong>报错</strong> <code>ValueError: Index contains duplicate entries</code></td>
+<td>自动聚合</td>
+</tr>
+<tr>
+<td>用途</td>
+<td>结构性转置（如按 VISIT 转置）</td>
+<td>汇总统计表（表格里的"均值"格子）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 如果有重复组合，pivot 会报错</span>
+<span class="n">df</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">)</span>
+
+<span class="c1"># ✅ 用 pivot_table 聚合（默认 aggfunc='mean'）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">)</span>
+
+<span class="c1"># 临床报表最常用：统计每个治疗组在每个访视的均值（"表格"形态）</span>
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span>
+    <span class="n">index</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">],</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong><code>pivot_table</code> 的 <code>aggfunc</code> 参数就是专门为"生成报表表格"设计的</strong>。
+有了它，你不需要手工写 <code>groupby</code> + <code>unstack</code> 两步。
+但要注意 <strong><code>pivot_table</code> 默认会丢弃全为 NaN 的组合</strong>，临床报表要求"空组也要出现"时，
+需要额外处理（见 9.5）。</p>
+</blockquote>
+<h3 id="遇到重复时的三个处理策略">遇到重复时的三个处理策略</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 策略 1：先聚合再 pivot（推荐，语义最清晰）</span>
+<span class="n">agg</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISIT"</span><span class="p">],</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">agg</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">)</span>
+
+<span class="c1"># 策略 2：直接 pivot_table</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">)</span>
+
+<span class="c1"># 策略 3：找出重复（QC 用——为什么要重复？这是数据问题还是代码问题？）</span>
+<span class="n">dups</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">duplicated</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISIT"</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"有 </span><span class="si">{</span><span class="n">dups</span><span class="p">[</span><span class="s1">'USUBJID'</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="si">}</span><span class="s2"> 个受试者存在重复访视记录"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="93-宽--长melt">9.3 宽 → 长：<code>melt()</code></h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS 里宽转长比较别扭，通常要写宏或用 DATA 步 + 数组 */</span>
+<span class="kr">data </span>long;
+    <span class="k">set</span> wide;
+    <span class="k">array</span> v{<span class="m">3</span>} VISIT1-VISIT3;
+    <span class="k">do</span> i = <span class="m">1</span> to <span class="m">3</span>;
+        AVAL = v{i};
+        VISIT = i;
+        <span class="k">output</span>;
+    <span class="k">end</span>;
+    <span class="k">keep</span> USUBJID AVAL VISIT;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># pandas 一行搞定</span>
+<span class="n">long</span> <span class="o">=</span> <span class="n">wide</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+    <span class="n">id_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span>               <span class="c1"># 保持不变的列（对应 keep）</span>
+    <span class="n">value_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">"VISIT1"</span><span class="p">,</span> <span class="s2">"VISIT2"</span><span class="p">,</span> <span class="s2">"VISIT3"</span><span class="p">],</span>   <span class="c1"># 要"熔"成行的列</span>
+    <span class="n">var_name</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span>                  <span class="c1"># 新列：原来列名放这里</span>
+    <span class="n">value_name</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span>                 <span class="c1"># 新列：原来的值放这里</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<p><strong>参数对照</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>melt 参数</th>
+<th>含义</th>
+<th>省略时的默认</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id_vars</code></td>
+<td>作为标识保留的列</td>
+<td>无（则所有列都被熔化）</td>
+</tr>
+<tr>
+<td><code>value_vars</code></td>
+<td>要熔化的列</td>
+<td>除 id_vars 外的所有列</td>
+</tr>
+<tr>
+<td><code>var_name</code></td>
+<td>新"变量名"列的名字</td>
+<td><code>variable</code></td>
+</tr>
+<tr>
+<td><code>value_name</code></td>
+<td>新"值"列的名字</td>
+<td><code>value</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong><code>melt</code> 的高频用途</strong>：
+1. 从宽格式的 Excel 报表还原成可分析的表格
+2. 把多个结局变量（如 SYSBP/DIABP）一起熔化后统一分析
+3. 整理"手工维护的宽表"（很多临床试验都用 Excel 维护访视数据）</p>
+</blockquote>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 实用例：把多个结局变量一次性熔化</span>
+<span class="n">long</span> <span class="o">=</span> <span class="n">vs_wide</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+    <span class="n">id_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">],</span>
+    <span class="n">value_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">"SYSBP_V1"</span><span class="p">,</span> <span class="s2">"SYSBP_V2"</span><span class="p">,</span> <span class="s2">"DIABP_V1"</span><span class="p">,</span> <span class="s2">"DIABP_V2"</span><span class="p">],</span>
+    <span class="n">var_name</span><span class="o">=</span><span class="s2">"PARAM_VISIT"</span><span class="p">,</span> <span class="n">value_name</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># 再拆回两个变量（相当于 SAS 的 scan + 派生）</span>
+<span class="n">long</span><span class="p">[[</span><span class="s2">"PARAMCD"</span><span class="p">,</span> <span class="s2">"VISIT"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">long</span><span class="p">[</span><span class="s2">"PARAM_VISIT"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="94-多级列与多级索引multiindex">9.4 多级列与多级索引（MultiIndex）</h2>
+<p><code>pivot</code> 有多列 <code>values</code> 时会产生<strong>多级列</strong>，<code>groupby</code> 多键聚合会产生<strong>多级索引</strong>。
+这看起来很吓人，但处理套路很固定。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 多级列</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"VISIT"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"CHG"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+<span class="c1"># MultiIndex([('AVAL', 'VISIT1'), ('AVAL', 'VISIT2'), ('CHG', 'VISIT1'), ...])</span>
+
+<span class="c1"># 把多级列"压平"成单层（最常用的技巧）</span>
+<span class="n">wide</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+<span class="c1"># ['AVAL_VISIT1', 'AVAL_VISIT2', 'CHG_VISIT1', ...]</span>
+
+<span class="c1"># 或者更简单：</span>
+<span class="n">wide</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s2">"_"</span><span class="o">.</span><span class="n">join</span><span class="p">)</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 多级索引</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="c1"># TRT01P                  AGEGR1</span>
+<span class="c1"># Placebo                 &lt;65       62.5</span>
+<span class="c1">#                        65-80     72.1</span>
+<span class="c1"># ...</span>
+
+<span class="c1"># 压平成普通表格（报表几乎都要这一步）</span>
+<span class="n">flat</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+<span class="c1"># 转成宽表（等价 SAS PROC MEANS 输出的"交叉表"形态）</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"AGEGR1"</span><span class="p">)</span>
+<span class="n">wide</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">droplevel</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>     <span class="c1"># 去掉多余的层级</span>
+</code></pre></div></div>
+<h3 id="多级操作的四个常用方法">多级操作的四个常用方法</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">mi</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">])[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="n">mi</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>                        <span class="c1"># 多级索引 → 普通列（最常用）</span>
+<span class="n">mi</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s2">"SEX"</span><span class="p">)</span>                       <span class="c1"># 把某层"转"成列</span>
+<span class="n">mi</span><span class="o">.</span><span class="n">droplevel</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>                         <span class="c1"># 丢掉某一层</span>
+<span class="n">mi</span><span class="o">.</span><span class="n">swaplevel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>                      <span class="c1"># 交换两层</span>
+<span class="n">mi</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>                         <span class="c1"># 按索引层级排序</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>实用建议</strong>：pandas 的多级结构虽然强大，但<strong>容易让人迷失</strong>。
+临床场景推荐 <strong>"做完聚合立刻 <code>reset_index()</code>"</strong>，
+让数据一直保持"普通二维表"形态——这样列名清晰、便于核对，也更接近 SAS 的输出。</p>
+</blockquote>
+<hr />
+<h2 id="95-让空组也出现在结果里临床报表硬需求">9.5 让"空组"也出现在结果里（临床报表硬需求）</h2>
+<p><strong>这是从 SAS 转 pandas 时最容易出错的点。</strong></p>
+<p>SAS 的 <code>PROC MEANS ... COMPLETETYPES</code> 或 <code>PROC FREQ</code> 默认会显示"计数为 0 的组"；
+pandas 的 <code>groupby</code> <strong>只输出实际存在的组合</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：即使某个治疗组中某年龄段没有受试者，也会输出 0 行 */</span>
+<span class="kr">proc freq </span>data=adsl;
+    tables TRT01P * AGEGR1 / nocol norow nopercent;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># pandas：不存在的组合直接消失</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+<span class="c1"># 问题：Xanomeline Low Dose + &gt;80 这一组合不存在 → 整行消失</span>
+
+<span class="c1"># ✅ 解法 1：用 Categorical 声明完整取值 + crosstab（推荐）</span>
+<span class="n">trts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+<span class="n">agegrs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">]</span>
+
+<span class="n">tab</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">trts</span><span class="p">),</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">agegrs</span><span class="p">),</span>
+    <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># 结果：3×3 完整矩阵，空组显示 0</span>
+
+<span class="c1"># ✅ 解法 2：reindex 补齐</span>
+<span class="n">full_index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">trts</span><span class="p">,</span> <span class="n">agegrs</span><span class="p">],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">full_index</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>这是 CSR 表格"行数不对"问题的头号原因</strong>。
+记住：<strong>任何分组统计前，先想清楚"空组要不要出现"</strong>。
+要出现就用 <code>Categorical</code> 固定 categories（顺便解决输出顺序问题）。</p>
+</blockquote>
+<hr />
+<h2 id="96-窗口与滚动sas-里要写宏的东西">9.6 窗口与滚动：SAS 里要写宏的东西</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 累计（对应 retain + sum）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CUMSUM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CUMMAX"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">cummax</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CUMNUM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">cumcount</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+
+<span class="c1"># 滚动平均（移动窗口）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"MA3"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>                  <span class="c1"># 3 期移动平均</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"MA3_GRP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># 扩展窗口（从第一行累加到当前行）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"EXPAND_MEAN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">expanding</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="c1"># 指数加权（临床试验里偶尔用于趋势平滑）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"EWM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">ewm</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>groupby().rolling()</code> 会返回多级索引</strong>，
+记得 <code>.reset_index(0, drop=True)</code> 才能对齐回原 DataFrame。</p>
+</blockquote>
+<hr />
+<h2 id="97-逐行操作sas-的-maxof-a--c-等">9.7 逐行操作（SAS 的 <code>max(of a--c)</code> 等）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 逐行最大值/最小值（对应 SAS 的 max(of x1-x5)）</span>
+<span class="n">value_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SYSBP1"</span><span class="p">,</span> <span class="s2">"SYSBP2"</span><span class="p">,</span> <span class="s2">"SYSBP3"</span><span class="p">]</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"MAXBP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># axis=1 = 按行</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"MINBP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"MEANBP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"NBP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># 非缺失个数</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"N_MISS"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># 逐行求和（对应 SAS 的 sum(of x1-x5)，注意 SAS 把缺失当 0）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TOTAL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>   <span class="c1"># skipna=True ≈ SAS 行为</span>
+
+<span class="c1"># 逐行首/末非缺失值</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"FIRST_NN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">bfill</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"LAST_NN"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">value_cols</span><span class="p">]</span><span class="o">.</span><span class="n">ffill</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</code></pre></div></div>
+<blockquote>
+<p>📌 <strong><code>axis</code> 参数的方向</strong>（pandas 里最容易记混的）：
+- <code>axis=0</code>：沿行方向操作 → <strong>对每一列</strong>做聚合
+- <code>axis=1</code>：沿列方向操作 → <strong>对每一行</strong>做聚合</p>
+<p>记忆法：<code>axis=1</code> 表示"结果长度 = 1 行一条"，即逐行。
+（pandas 3.0 起推荐用 <code>axis="columns"</code> / <code>axis="index"</code> 更明确）</p>
+</blockquote>
+<hr />
+<h2 id="98-实战从-adae-生成ae-按-socpt-汇总表的数据">9.8 实战：从 ADAE 生成"AE 按 SOC/PT 汇总表"的数据</h2>
+<p>这是每个 CSR 都有的 TFL。原始长表 → 汇总宽表的完整流程：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">adae</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"adae.csv"</span><span class="p">)</span>
+
+<span class="c1"># --- 步骤 1：准备分析人群（安全性人群 + 治疗中出现的事件）---</span>
+<span class="n">saf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"adsl.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span>
+<span class="n">saf</span> <span class="o">=</span> <span class="n">saf</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">]]</span>
+<span class="n">adae</span> <span class="o">=</span> <span class="n">adae</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">saf</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"inner"</span><span class="p">)</span>
+
+<span class="c1"># 只保留治疗中出现的不良事件（TEAE）</span>
+<span class="n">teae</span> <span class="o">=</span> <span class="n">adae</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"TRTEMFL == 'Y'"</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="s2">"TRTEMFL"</span> <span class="ow">in</span> <span class="n">adae</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">adae</span>
+
+<span class="c1"># --- 步骤 2：受试者层级去重（同一受试者同一 PT 只算一次）---</span>
+<span class="c1"># 这是 AE 表的核心逻辑：分子是"受试者数"而不是"事件数"</span>
+<span class="n">subj_pt</span> <span class="o">=</span> <span class="n">teae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">])</span>
+
+<span class="c1"># --- 步骤 3：按 SOC + PT 计数 ---</span>
+<span class="n">n_by_group</span> <span class="o">=</span> <span class="n">saf</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>   <span class="c1"># 分母：各组人数</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="p">(</span><span class="n">subj_pt</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">])</span>
+                 <span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"N"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+
+<span class="c1"># --- 步骤 4：长 → 宽（每个治疗组一列）---</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span>
+    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="s2">"N"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+<span class="c1"># --- 步骤 5：算百分比并格式化成 "n (%)" ---</span>
+<span class="n">trt_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">wide</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">)]</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">trt_cols</span><span class="p">:</span>
+    <span class="n">wide</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">wide</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">n</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">n_by_group</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="s2">"0"</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">wide</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div></div>
+<p><strong>这段代码体现的临床编程要点</strong>：
+1. <strong>分母是"该治疗组的受试者数"</strong>，不是总人数。
+2. <strong>受试者层级去重</strong>：同一受试者同一 PT 发生 3 次，只算 1 个受试者。
+   （这是 AE 表和"事件数表"的根本区别，<strong>QC 时最容易出错</strong>）
+3. <strong>百分比保留 1 位小数</strong>，且通常用 <code>n (%)</code> 的合并格式。</p>
+<blockquote>
+<p>💡 完整可运行版本见 <a href="../code/case03.html"><code>cases/case03_不良事件汇总表.py</code></a>。</p>
+</blockquote>
+<hr />
+<h2 id="99-动手练习">9.9 动手练习</h2>
+<ol>
+<li>
+<p><strong>pivot</strong>：把 <code>data/samples/adtte.csv</code> 或 ADAE 按
+   <code>USUBJID</code> 为行、<code>PARAMCD</code> 为列、<code>AVAL</code> 为值做透视。</p>
+</li>
+<li>
+<p><strong>melt</strong>：把上面透视出来的宽表再 melt 回长表，
+   验证"pivot 再 melt"能还原成原来的数据（列顺序可能不同）。</p>
+</li>
+<li>
+<p><strong>空组处理</strong>：用 <code>pd.Categorical</code> 固定治疗组顺序为
+   <code>Placebo → Xanomeline Low Dose → Xanomeline High Dose</code>，
+   统计 ADSL 中各组的 AGEGR1 分布，确认<strong>三个组都出现且顺序正确</strong>。</p>
+</li>
+<li>
+<p><strong>多级索引</strong>：对 ADSL 做 <code>groupby(["TRT01P","AGEGR1","SEX"]).size()</code>，
+   然后分别用 <code>reset_index()</code>、<code>unstack()</code> 转成两种不同的表形态。</p>
+</li>
+<li>
+<p><strong>综合</strong>：把 9.8 节的 AE 汇总表脚本改成
+   <strong>"按 SOC 汇总"（不细分 PT）</strong> 的版本，并统计总受试者数。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="08.html">第 08 章 · 数据操作对照</a>
+<strong>下一章 →</strong> <a href="10.html">第 10 章 · 日期、缺失值、格式与数据质量</a></p></article>
+<nav class="pager"><a class="pg-prev" href="08.html"><span class="pg-label">← 上一篇</span><span class="pg-title">数据操作对照：DATA 步 / PROC SQL</span></a><a class="pg-next" href="10.html"><span class="pg-label">下一篇 →</span><span class="pg-title">日期、缺失值、格式与数据质量</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 14 章 · 统计分析与可视化</title>
+<meta name="description" content="统计分析与可视化 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 14 章 · 统计分析与可视化">
+<meta property="og:description" content="统计分析与可视化 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/14.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第三阶段 · 临床实战</div><h1>第 14 章 · 统计分析与可视化</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/14-%E7%BB%9F%E8%AE%A1%E5%88%86%E6%9E%90%E4%B8%8E%E5%8F%AF%E8%A7%86%E5%8C%96.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：用 Python 做描述统计、常见假设检验、生存分析与临床常用图形。
+<strong>注意</strong>：本章不追求"覆盖所有统计方法"，而是建立<strong>"知道有什么、知道去哪查"</strong>的能力，
+并强调<strong>跨软件结果一致性</strong>这一临床特有要求。</p>
+</blockquote>
+<hr />
+<h2 id="141-从-proc-到库该用什么工具">14.1 从 PROC 到库：该用什么工具</h2>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>SAS</th>
+<th>Python</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>描述统计</td>
+<td><code>PROC MEANS</code> / <code>UNIVARIATE</code></td>
+<td><code>pandas</code> + <code>scipy.stats</code></td>
+<td>pandas 覆盖 80%</td>
+</tr>
+<tr>
+<td>频数 / 交叉表</td>
+<td><code>PROC FREQ</code>（含 Fisher）</td>
+<td><code>pandas.crosstab</code> + <code>scipy.stats.fisher_exact</code></td>
+<td></td>
+</tr>
+<tr>
+<td>t 检验</td>
+<td><code>PROC TTEST</code></td>
+<td><code>scipy.stats.ttest_ind</code> / <code>ttest_rel</code></td>
+<td></td>
+</tr>
+<tr>
+<td>方差分析</td>
+<td><code>PROC ANOVA</code> / <code>GLM</code></td>
+<td><code>statsmodels</code> / <code>pingouin</code></td>
+<td></td>
+</tr>
+<tr>
+<td>非参数检验</td>
+<td><code>PROC NPAR1WAY</code></td>
+<td><code>scipy.stats.mannwhitneyu</code> 等</td>
+<td></td>
+</tr>
+<tr>
+<td>线性/逻辑回归</td>
+<td><code>PROC REG</code> / <code>LOGISTIC</code></td>
+<td><code>statsmodels</code> / <code>sklearn</code></td>
+<td>statsmodels 输出更接近 SAS</td>
+</tr>
+<tr>
+<td>混合模型 / MMRM</td>
+<td><code>PROC MIXED</code></td>
+<td><code>statsmodels.MixedLM</code> / <code>pymer4</code></td>
+<td>⚠️ 需仔细核对</td>
+</tr>
+<tr>
+<td>生存分析</td>
+<td><code>PROC LIFETEST</code> / <code>PHREG</code></td>
+<td><code>lifelines</code></td>
+<td>见 14.4</td>
+</tr>
+<tr>
+<td>重复测量</td>
+<td><code>PROC MIXED</code></td>
+<td><code>statsmodels</code></td>
+<td></td>
+</tr>
+<tr>
+<td>样本量/检验效能</td>
+<td><code>PROC POWER</code></td>
+<td><code>statsmodels.stats.power</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>pip<span class="w"> </span>install<span class="w"> </span>scipy<span class="w"> </span>statsmodels<span class="w"> </span>lifelines<span class="w"> </span>pingouin
+</code></pre></div></div>
+<blockquote>
+<p>📌 <strong>你的已有资产</strong>：你在 <code>jinbeiwang/mmrm-guide</code> 和 <code>lmm-notes</code> 里
+已经研究过 MMRM / LMM。Python 侧的对应实现是
+<code>statsmodels.MixedLM</code>（通用 LMM）与 <code>pymer4</code>（更接近 SAS 的 <code>PROC MIXED</code> 语法）。
+<strong>跨语言实现一致性</strong>可参考 PHUSE 的 <strong>CAMIS</strong> 项目
+（<a href="https://psiaims.github.io/CAMIS/">https://psiaims.github.io/CAMIS/</a>）——它专门比对 SAS/R/Python 的同一方法实现。</p>
+</blockquote>
+<hr />
+<h2 id="142-描述统计与假设检验">14.2 描述统计与假设检验</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adsl.csv"</span><span class="p">)</span>
+
+<span class="c1"># ---- 描述统计（对应 PROC MEANS）----</span>
+<span class="n">age</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"N=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">age</span><span class="p">)</span><span class="si">}</span><span class="s2">  Mean=</span><span class="si">{</span><span class="n">age</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  SD=</span><span class="si">{</span><span class="n">age</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  "</span>
+      <span class="sa">f</span><span class="s2">"Median=</span><span class="si">{</span><span class="n">age</span><span class="o">.</span><span class="n">median</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">  Min=</span><span class="si">{</span><span class="n">age</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">  Max=</span><span class="si">{</span><span class="n">age</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># ---- 分组描述统计（对应 PROC MEANS + CLASS）----</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">N</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">Mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">SD</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">Median</span><span class="o">=</span><span class="s2">"median"</span><span class="p">,</span> <span class="n">Min</span><span class="o">=</span><span class="s2">"min"</span><span class="p">,</span> <span class="n">Max</span><span class="o">=</span><span class="s2">"max"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># ---- 正态性检验（对应 PROC UNIVARIATE 的 NORMAL 选项）----</span>
+<span class="c1"># Shapiro-Wilk（SAS 里是 W 检验）</span>
+<span class="n">stat</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">shapiro</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Shapiro-Wilk W=</span><span class="si">{</span><span class="n">stat</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  "</span>
+      <span class="sa">f</span><span class="s2">"-&gt; </span><span class="si">{</span><span class="s1">'不符合正态分布'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.05</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'未发现偏离正态'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># ---- 两独立样本 t 检验（对应 PROC TTEST）----</span>
+<span class="n">g1</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<span class="n">g2</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+
+<span class="c1"># SAS 默认输出的是"合并方差 t"，R/Python 默认 Welch t —— 必须显式指定！</span>
+<span class="n">t_eq</span><span class="p">,</span> <span class="n">p_eq</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">ttest_ind</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">equal_var</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>     <span class="c1"># ≈ SAS 默认</span>
+<span class="n">t_w</span><span class="p">,</span> <span class="n">p_w</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">ttest_ind</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">equal_var</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>      <span class="c1"># Welch</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"合并方差 t=</span><span class="si">{</span><span class="n">t_eq</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p_eq</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Welch    t=</span><span class="si">{</span><span class="n">t_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p_w</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># ---- 非参数检验（对应 PROC NPAR1WAY WILCOXON）----</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">mannwhitneyu</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"two-sided"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mann-Whitney U=</span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># ---- 卡方 / Fisher（对应 PROC FREQ 的 CHISQ / EXACT）----</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">])</span>
+<span class="n">chi2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">dof</span><span class="p">,</span> <span class="n">expected</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Chi-square=</span><span class="si">{</span><span class="n">chi2</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, df=</span><span class="si">{</span><span class="n">dof</span><span class="si">}</span><span class="s2">, p=</span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 2x2 表用 Fisher 精确检验（对应 / exact 选项）</span>
+<span class="n">ct2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">],</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&gt;80"</span><span class="p">)</span>
+<span class="n">odds</span><span class="p">,</span> <span class="n">p_fisher</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">fisher_exact</span><span class="p">(</span><span class="n">ct2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fisher exact p=</span><span class="si">{</span><span class="n">p_fisher</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, OR=</span><span class="si">{</span><span class="n">odds</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>跨软件差异的三个经典陷阱</strong>（PHUSE CAMIS 专门在研究这些）：
+1. <strong>t 检验的方差假设</strong>：SAS <code>PROC TTEST</code> 默认合并方差；
+   R 的 <code>t.test</code> 和 <code>scipy</code> 默认 Welch。<strong>不指定就会得到不同结果。</strong>
+2. <strong>列联表的卡方</strong>：SAS 默认连续性校正（Yates），scipy 默认不校正
+   （<code>correction=True</code> 才是校正版）。
+3. <strong>分位数算法</strong>：SAS 与 numpy 的 <code>percentile</code> 在插值方式上有默认差异
+   （numpy 有 <code>method="linear"</code>/<code>"lower"</code>/<code>"higher"</code> 等多种，SAS 用其中一种）。</p>
+<p><strong>临床编程的应对</strong>：这些差异必须在 ADRG / ADRG-like 文档里
+<strong>明确定义并说明理由</strong>，不能"默认"。</p>
+</blockquote>
+<hr />
+<h2 id="143-回归分析statsmodels--sas-输出">14.3 回归分析：<code>statsmodels</code> ≈ SAS 输出</h2>
+<p>临床场景常用的是"输出一张系数表"，<code>statsmodels</code> 的 output 最接近 SAS。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">statsmodels.api</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">statsmodels.formula.api</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">smf</span>
+
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adsl.csv"</span><span class="p">)</span>
+
+<span class="c1"># ---- 线性回归（对应 PROC REG / PROC GLM）----</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">smf</span><span class="o">.</span><span class="n">ols</span><span class="p">(</span><span class="s2">"AGE ~ C(TRT01P) + C(SEX) + BMIBL"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">adsl</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+<span class="c1"># ---- 逻辑回归（对应 PROC LOGISTIC）----</span>
+<span class="c1"># 例：预测"是否出现严重不良事件"</span>
+<span class="n">adae</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adae.csv"</span><span class="p">)</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"HAS_SAE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
+    <span class="n">adae</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">adae</span><span class="p">[</span><span class="s2">"AESER"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">]</span>
+<span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+<span class="n">logit</span> <span class="o">=</span> <span class="n">smf</span><span class="o">.</span><span class="n">logit</span><span class="p">(</span><span class="s2">"HAS_SAE ~ AGE + C(SEX) + C(TRT01P)"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">adsl</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># ---- 输出 OR 与 95% CI（这是 CSR 里真正要的东西）----</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">"coef"</span><span class="p">:</span> <span class="n">logit</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+    <span class="s2">"se"</span><span class="p">:</span> <span class="n">logit</span><span class="o">.</span><span class="n">bse</span><span class="p">,</span>
+    <span class="s2">"p"</span><span class="p">:</span> <span class="n">logit</span><span class="o">.</span><span class="n">pvalues</span><span class="p">,</span>
+<span class="p">})</span>
+<span class="n">res</span><span class="p">[</span><span class="s2">"OR"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"coef"</span><span class="p">])</span>
+<span class="n">res</span><span class="p">[</span><span class="s2">"CI_low"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"coef"</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">res</span><span class="p">[</span><span class="s2">"se"</span><span class="p">])</span>
+<span class="n">res</span><span class="p">[</span><span class="s2">"CI_high"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"coef"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">res</span><span class="p">[</span><span class="s2">"se"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</code></pre></div></div>
+<blockquote>
+<p>📌 <strong>两个必须知道的差异</strong>：
+1. <strong>置信区间</strong>：SAS 的 <code>PROC LOGISTIC</code> <strong>默认用 Wald CI</strong>；
+   R 的 <code>glm</code> 默认 profile likelihood CI。
+   <code>statsmodels</code> 用 Wald，与 SAS 一致。
+2. <strong>参考水平</strong>：SAS 默认用<strong>字母序最大</strong>的类别作参考
+   （或 <code>REF=</code> 指定）；pandas 的 <code>C()</code> 默认也是最后一个。
+   <strong>但显式指定永远更安全</strong>：
+   <code>C(TRT01P, Treatment(reference='Placebo'))</code></p>
+</blockquote>
+<hr />
+<h2 id="144-生存分析lifelines">14.4 生存分析：<code>lifelines</code></h2>
+<p>ADTTE 数据集就是为这个准备的。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># pip install lifelines</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lifelines</span><span class="w"> </span><span class="kn">import</span> <span class="n">KaplanMeierFitter</span><span class="p">,</span> <span class="n">CoxPHFitter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lifelines.statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">logrank_test</span>
+
+<span class="n">adtte</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adtte.csv"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">adtte</span><span class="p">[</span><span class="s2">"PARAMCD"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"事件数: </span><span class="si">{</span><span class="p">(</span><span class="n">adtte</span><span class="p">[</span><span class="s1">'CNSR'</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">, 删失数: </span><span class="si">{</span><span class="p">(</span><span class="n">adtte</span><span class="p">[</span><span class="s1">'CNSR'</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 只分析 OS（总生存）</span>
+<span class="n">os_df</span> <span class="o">=</span> <span class="n">adtte</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"PARAMCD == 'OS'"</span><span class="p">)</span>
+
+<span class="c1"># ---- Kaplan-Meier（对应 PROC LIFETEST）----</span>
+<span class="n">kmf</span> <span class="o">=</span> <span class="n">KaplanMeierFitter</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">trt</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]:</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">os_df</span><span class="p">[</span><span class="n">os_df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="n">trt</span><span class="p">]</span>
+    <span class="n">kmf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">30.44</span><span class="p">,</span>          <span class="c1"># 天 → 月</span>
+            <span class="n">event_observed</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sub</span><span class="p">[</span><span class="s2">"CNSR"</span><span class="p">],</span>  <span class="c1"># ★ CNSR=1 是删失，所以事件 = 1-CNSR</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">trt</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">trt</span><span class="si">:</span><span class="s2">24s</span><span class="si">}</span><span class="s2"> 中位生存 = </span><span class="si">{</span><span class="n">kmf</span><span class="o">.</span><span class="n">median_survival_time_</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 月"</span><span class="p">)</span>
+
+<span class="c1"># ---- log-rank 检验（对应 PROC LIFETEST 的 STRATA）----</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">os_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"TRT01P == 'Placebo'"</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">os_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"TRT01P == 'Xanomeline High Dose'"</span><span class="p">)</span>
+<span class="n">lr</span> <span class="o">=</span> <span class="n">logrank_test</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">],</span>
+                  <span class="n">event_observed_A</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">a</span><span class="p">[</span><span class="s2">"CNSR"</span><span class="p">],</span>
+                  <span class="n">event_observed_B</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="s2">"CNSR"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"log-rank p = </span><span class="si">{</span><span class="n">lr</span><span class="o">.</span><span class="n">p_value</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># ---- Cox 比例风险（对应 PROC PHREG）----</span>
+<span class="n">cox_df</span> <span class="o">=</span> <span class="n">os_df</span><span class="p">[[</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"CNSR"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">cox_df</span><span class="p">[</span><span class="s2">"EVENT"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">cox_df</span><span class="p">[</span><span class="s2">"CNSR"</span><span class="p">]</span>           <span class="c1"># ★ 关键：CNSR 语义转换</span>
+<span class="n">cox_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">cox_df</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">drop_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">cph</span> <span class="o">=</span> <span class="n">CoxPHFitter</span><span class="p">()</span>
+<span class="n">cph</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">cox_df</span><span class="p">[[</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"EVENT"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"TRT01P_Xanomeline High Dose"</span><span class="p">]],</span>
+        <span class="n">duration_col</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="n">event_col</span><span class="o">=</span><span class="s2">"EVENT"</span><span class="p">)</span>
+<span class="n">cph</span><span class="o">.</span><span class="n">print_summary</span><span class="p">()</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong><code>CNSR</code> 的语义转换是生存分析最容易出错的地方</strong>：
+<strong>ADaM 里 <code>CNSR=1</code> 表示删失（censored），<code>CNSR=0</code> 表示发生事件。</strong>
+而 <code>lifelines</code> 的参数是 <code>event_observed</code>（True = 发生事件）。
+所以必须是 <code>event_observed = 1 - CNSR</code>。</p>
+<p><strong>如果忘了取反，你会得到一个"完全颠倒"的结果</strong>——
+而且它看起来完全正常（有中位生存时间、有 p 值），<strong>不会报错</strong>。
+这类"静默错误"是临床编程中最危险的。</p>
+<p><strong>防范方法</strong>：拟合后打印事件数，与数据核对：
+```python
+print(f"传给模型的事件数: {cox_df['EVENT'].sum()}，"
+      f"数据中的实际事件数: {(os_df['CNSR'] == 0).sum()}")</p>
+<h1 id="两个数字必须相等">两个数字必须相等</h1>
+<p>```</p>
+</blockquote>
+<h3 id="生存曲线km-plot">生存曲线（KM Plot）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="c1"># 中文字体（Windows）</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">"font.sans-serif"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Microsoft YaHei"</span><span class="p">,</span> <span class="s2">"SimHei"</span><span class="p">,</span> <span class="s2">"DejaVu Sans"</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">"axes.unicode_minus"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">5.5</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">trt</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">],</span>
+                      <span class="p">[</span><span class="s2">"#2E5C8A"</span><span class="p">,</span> <span class="s2">"#C0392B"</span><span class="p">,</span> <span class="s2">"#E67E22"</span><span class="p">]):</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">os_df</span><span class="p">[</span><span class="n">os_df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">==</span> <span class="n">trt</span><span class="p">]</span>
+    <span class="n">KaplanMeierFitter</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">30.44</span><span class="p">,</span>
+                            <span class="n">event_observed</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sub</span><span class="p">[</span><span class="s2">"CNSR"</span><span class="p">],</span>
+                            <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">trt</span><span class="si">}</span><span class="s2"> (n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span><span class="o">.</span><span class="n">plot_survival_function</span><span class="p">(</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">ci_show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"时间（月）"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"生存概率"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"图 1. 总生存期 Kaplan-Meier 曲线（安全性人群）"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">"upper right"</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"outputs/figure01_km_os.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="145-临床常用图形的-python-实现">14.5 临床常用图形的 Python 实现</h2>
+<h3 id="图形对照表">图形对照表</h3>
+<table>
+<thead>
+<tr>
+<th>CSR 图形</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KM 生存曲线</td>
+<td><code>PROC LIFETEST</code> + <code>SGPLOT</code></td>
+<td><code>lifelines</code> + matplotlib</td>
+</tr>
+<tr>
+<td>森林图</td>
+<td><code>SGPLOT</code> / 自绘</td>
+<td>matplotlib <code>errorbar</code> / <code>forestplot</code></td>
+</tr>
+<tr>
+<td>瀑布图（肿瘤）</td>
+<td><code>SGPLOT highlow</code></td>
+<td>matplotlib <code>barh</code></td>
+</tr>
+<tr>
+<td>泳道图 / Swimmer plot</td>
+<td><code>SGPLOT</code></td>
+<td>matplotlib <code>barh</code></td>
+</tr>
+<tr>
+<td>箱线图</td>
+<td><code>SGPLOT vbox</code></td>
+<td><code>seaborn.boxplot</code></td>
+</tr>
+<tr>
+<td>均值变化图（Mean±SE）</td>
+<td><code>SGPLOT series</code></td>
+<td>matplotlib <code>errorbar</code></td>
+</tr>
+<tr>
+<td>移位表热图</td>
+<td><code>PROC REPORT</code> + heatmap</td>
+<td><code>seaborn.heatmap</code></td>
+</tr>
+<tr>
+<td>AE 频率条形图</td>
+<td><code>SGPLOT hbar</code></td>
+<td>matplotlib <code>barh</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="例均值随访视变化的图mean--semmrm-类分析的标配图">例：均值随访视变化的图（Mean ± SE，MMRM 类分析的标配图）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">vs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/vs_bp.csv"</span><span class="p">)</span>
+<span class="n">sysbp</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"VSTESTCD == 'SYSBP'"</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">sysbp</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">sysbp</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+<span class="n">sysbp</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">sysbp</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+
+<span class="n">agg</span> <span class="o">=</span> <span class="p">(</span><span class="n">sysbp</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT_UNKNOWN"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">])</span> <span class="k">if</span> <span class="kc">False</span> <span class="k">else</span>
+       <span class="n">sysbp</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"VISITNUM"</span><span class="p">])[</span><span class="s2">"VSSTRESN"</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">sd</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">n</span><span class="o">=</span><span class="s2">"count"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+<span class="n">agg</span><span class="p">[</span><span class="s2">"se"</span><span class="p">]</span> <span class="o">=</span> <span class="n">agg</span><span class="p">[</span><span class="s2">"sd"</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">agg</span><span class="p">[</span><span class="s2">"n"</span><span class="p">])</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">agg</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">agg</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">],</span> <span class="n">yerr</span><span class="o">=</span><span class="mf">1.96</span> <span class="o">*</span> <span class="n">agg</span><span class="p">[</span><span class="s2">"se"</span><span class="p">],</span>
+            <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span> <span class="n">capsize</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#2E5C8A"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"访视"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"收缩压 (mmHg)，Mean ± 95% CI"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"图 2. 收缩压随访视的变化"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"outputs/figure02_sysbp_trend.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="例ae-发生频率的水平条形图">例：AE 发生频率的水平条形图</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">top_soc</span> <span class="o">=</span> <span class="p">(</span><span class="n">adae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">])</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"AEBODSYS"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mf">5.5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">barh</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">title</span><span class="p">()[:</span><span class="mi">42</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">top_soc</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">top_soc</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#C0392B"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"受试者数"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"图 3. 治疗中出现的不良事件（Top 10 SOC）"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">top_soc</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">v</span> <span class="o">+</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"outputs/figure03_ae_soc.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>Python 绘图相对 SAS 的真实优势</strong>：
+- 版式控制精细（<code>tight_layout</code>、<code>GridSpec</code> 多面板）
+- 主题统一容易（定义一次 <code>rcParams</code>）
+- 交互式输出（<code>plotly</code> 可生成可缩放 HTML，给 DMC 会议用极方便）
+- 批量出图简单（一个 <code>for</code> 循环出 50 张图，SAS 要写宏）</p>
+</blockquote>
+<hr />
+<h2 id="146-移位表shift-table-实验室vitals-的标准输出">14.6 移位表（Shift Table）—— 实验室/Vitals 的标准输出</h2>
+<p>移位表用于展示"基线 → 基线后"的状态迁移（如 Lab 的 LOW/NORMAL/HIGH）。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""case04_实验室移位表.py —— 生命体征移位表（同一代码可用于 ADLBC）"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">vs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/vs_bp.csv"</span><span class="p">)</span>
+<span class="n">vs</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">vs</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+<span class="n">vs</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">vs</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+
+<span class="c1"># 只分析收缩压</span>
+<span class="n">bp</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"VSTESTCD == 'SYSBP'"</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1"># ---- Step 1: 按临床惯例定义分级（对应 SAS 自定义 format）----</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">grade</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""SYSBP 分级：&lt;90 低 / 90-140 正常 / &gt;140 高（示例阈值，实际以 SAP 为准）"""</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mi">90</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"LOW"</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">140</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"NORMAL"</span>
+    <span class="k">return</span> <span class="s2">"HIGH"</span>
+
+<span class="n">bp</span><span class="p">[</span><span class="s2">"GRADE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">grade</span><span class="p">)</span>
+<span class="n">GRADE_ORDER</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"LOW"</span><span class="p">,</span> <span class="s2">"NORMAL"</span><span class="p">,</span> <span class="s2">"HIGH"</span><span class="p">]</span>
+
+<span class="c1"># ---- Step 2: 确定基线与基线后 ----</span>
+<span class="c1"># 数据集自带 VSBLFL='Y' 标记基线（优先用它）</span>
+<span class="n">baseline</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bp</span><span class="p">[</span><span class="s2">"VSBLFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"GRADE"</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"GRADE"</span><span class="p">:</span> <span class="s2">"GRADE_BL"</span><span class="p">})</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bp</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">post</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">baseline</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"inner"</span><span class="p">)</span>
+
+<span class="c1"># ---- Step 3: 交叉制表（基线 × 基线后），按受试者去重 ----</span>
+<span class="c1"># 每位受试者取最后一次基线后访视（惯例之一：END OF TREATMENT）</span>
+<span class="n">last_visit</span> <span class="o">=</span> <span class="n">post</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"VISITNUM"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"max"</span><span class="p">)</span>
+<span class="n">eot</span> <span class="o">=</span> <span class="n">post</span><span class="p">[</span><span class="n">post</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">]</span> <span class="o">==</span> <span class="n">last_visit</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+
+<span class="n">shift</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">eot</span><span class="p">[</span><span class="s2">"GRADE_BL"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">GRADE_ORDER</span><span class="p">),</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">eot</span><span class="p">[</span><span class="s2">"GRADE"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">GRADE_ORDER</span><span class="p">),</span>
+    <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ---- Step 4: 每个基线行内算百分比（行百分比）----</span>
+<span class="n">row_tot</span> <span class="o">=</span> <span class="n">shift</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">shift_pct</span> <span class="o">=</span> <span class="p">(</span><span class="n">shift</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">row_tot</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># ---- Step 5: 组装成 "n (%)" 格式 ----</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">shift</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">GRADE_ORDER</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">shift</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">shift</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">])</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">shift_pct</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span>
+                  <span class="k">if</span> <span class="n">row_tot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="s2">"-"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">shift</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+<span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">"基线"</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"表 3. 收缩压分级移位表（基线 vs 治疗结束）"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>移位表最容易搞错的三点</strong>：
+1. <strong>百分比的分母</strong>：是"该基线分类的行合计"还是"该治疗组总人数"？
+   <strong>两者都有，取决于 SAP</strong>，且必须写清楚。
+2. <strong>用哪一次"基线后"访视</strong>：末次访视？END OF TREATMENT？固定访视？
+3. <strong>同一受试者同一访视有多条记录</strong>（重复测量）→ 必须先定规则（取均值？取最后一次？）</p>
+</blockquote>
+<hr />
+<h2 id="147-动手练习">14.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>描述统计</strong>：对 ADSL 的 AGE / BMIBL 分别按治疗组计算
+   N / Mean / SD / Median / Min / Max，输出成表。</p>
+</li>
+<li>
+<p><strong>检验差异</strong>：用 t 检验比较 Placebo 与 Xanomeline High Dose 的基线 BMI，
+   分别报告合并方差与 Welch 的结果，说明差异。</p>
+</li>
+<li>
+<p><strong>回归</strong>：用逻辑回归分析 <code>AESER='Y'</code>（严重 AE）与 AGE、SEX、治疗组的关系，
+   输出 OR 与 95% CI（注意 SAE 只有 3 例，样本量不足——<strong>这本身就是个教学点：
+   何时应该放弃建模</strong>）。</p>
+</li>
+<li>
+<p><strong>生存分析</strong>：用 ADTTE 的 <code>PARAMCD='OS'</code> 分别画出三个治疗组的 KM 曲线，
+   做 log-rank 检验。<strong>务必验证事件数是否与数据一致。</strong></p>
+</li>
+<li>
+<p><strong>移位表</strong>：把 14.6 节的代码改成"按治疗组分别输出三张移位表"。</p>
+</li>
+<li>
+<p><strong>（进阶）</strong> 把 14.6 节的代码改写成适用于<strong>实验室数据</strong>的版本
+   （提示：需要先下载 ADLBC，按 <code>PARAMCD</code> 分组，
+   用 <code>ANRLO</code>/<code>ANRHI</code> 参考范围来定义 LOW/NORMAL/HIGH）。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="13.html">第 13 章 · ADaM 衍生与 TFL 报表生成</a>
+<strong>下一章 →</strong> <a href="15.html">第 15 章 · AI 辅助编程与 SAS→Python 迁移</a></p></article>
+<nav class="pager"><a class="pg-prev" href="13.html"><span class="pg-label">← 上一篇</span><span class="pg-title">ADaM 衍生与 TFL 报表生成</span></a><a class="pg-next" href="15.html"><span class="pg-label">下一篇 →</span><span class="pg-title">AI 辅助编程与代码迁移</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

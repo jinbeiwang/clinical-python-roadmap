@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 01 章 · 环境搭建与思维转换</title>
+<meta name="description" content="环境搭建与思维转换 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 01 章 · 环境搭建与思维转换">
+<meta property="og:description" content="环境搭建与思维转换 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/01.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第一阶段 · Python 基础</div><h1>第 01 章 · 环境搭建与思维转换</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/01-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E4%B8%8E%E6%80%9D%E7%BB%B4%E8%BD%AC%E6%8D%A2.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把 Python 环境跑起来（15 分钟），并完成最关键的一步——
+理解 Python 与你熟悉的 SAS 在<strong>执行模型</strong>上的根本差异。</p>
+</blockquote>
+<hr />
+<h2 id="11-环境搭建">1.1 环境搭建</h2>
+<h3 id="为什么-python-需要环境而-sas-不需要">为什么 Python 需要"环境"而 SAS 不需要</h3>
+<p>这是新手最困惑、也最容易踩坑的地方。差别来自分发模型：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>软件本体</td>
+<td>商业软件，一次安装，全公司统一版本</td>
+<td>开源，任何人都能发布"包"</td>
+</tr>
+<tr>
+<td>第三方库</td>
+<td>主要是 SAS 官方 + 少量宏</td>
+<td>有 <strong>50 万+</strong> 个第三方包，版本互相依赖</td>
+</tr>
+<tr>
+<td>冲突问题</td>
+<td>基本不存在</td>
+<td>普遍存在（A 包要 numpy 1.x，B 包要 2.x）</td>
+</tr>
+<tr>
+<td>解决方案</td>
+<td>无</td>
+<td><strong>虚拟环境（venv / conda）</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话结论</strong>：虚拟环境就是给每个项目配一个"SAS 版本 + 授权库"的独立沙箱，
+避免项目之间互相污染。<strong>每个项目一个环境，这是硬规矩。</strong></p>
+<h3 id="推荐方案官方-python--venv本项目采用">推荐方案：官方 Python + venv（本项目采用）</h3>
+<p>如果你还没装 Python：</p>
+<ol>
+<li>到 <a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a> 下载 <strong>Python 3.12 或 3.13</strong>
+   （临床场景建议不要用刚发布的奇数版本，等生态跟上）。</li>
+<li>安装时<strong>务必勾选</strong> <code>Add Python to PATH</code>。</li>
+<li>安装完成后在终端验证：</li>
+</ol>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>python<span class="w"> </span>--version
+#<span class="w"> </span>期望输出：Python<span class="w"> </span><span class="m">3</span>.12.x<span class="w"> </span>或<span class="w"> </span><span class="m">3</span>.13.x
+</code></pre></div></div>
+<p><strong>关于 Anaconda</strong>：Anaconda 自带 pandas/numpy/Jupyter，开箱即用，
+PharmaSUG 的论文里也常推荐它。但它体积大（3–5 GB）、会污染全局环境。
+本教程用更轻的 venv 方案；如果你的公司统一用 conda，把下面的
+<code>venv</code> 换成 <code>conda create</code> 即可，后续内容完全一致。</p>
+<h3 id="三步建立本项目环境">三步建立本项目环境</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code><span class="c1"># 1) 进入项目目录</span>
+<span class="nb">cd</span><span class="w"> </span>clinical-python-roadmap
+
+<span class="c1"># 2) 创建虚拟环境（会在当前目录生成 .venv 文件夹）</span>
+python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+
+<span class="c1"># 3) 激活环境</span>
+<span class="c1">#    Windows PowerShell:</span>
+.venv<span class="se">\S</span>cripts<span class="se">\A</span>ctivate.ps1
+<span class="c1">#    Windows CMD:</span>
+.venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate.bat
+<span class="c1">#    macOS / Linux:</span>
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+
+#<span class="w"> </span>激活成功后，命令行提示符前会出现<span class="w"> </span><span class="o">(</span>.venv<span class="o">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>Windows PowerShell 常见报错</strong>：
+<code>无法加载文件 ... Activate.ps1，因为在此系统上禁止运行脚本</code>
+解决：以管理员身份运行 PowerShell，执行
+<code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>，然后重试。</p>
+</blockquote>
+<h3 id="安装依赖">安装依赖</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code><span class="c1"># 确保已激活虚拟环境，然后：</span>
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c1"># 验证</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import pandas, numpy, pyreadstat; print('OK', pandas.__version__)"</span>
+</code></pre></div></div>
+<p><code>requirements.txt</code> 内容（本项目）：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>pandas&gt;=2.2       # 数据操作核心，等价于 DATA 步 + PROC SQL + PROC MEANS
+numpy&gt;=1.26       # 数值计算与向量化
+pyreadstat&gt;=1.2   # 读取 SAS 的 .xpt / .sas7bdat（关键！不用装 SAS）
+matplotlib&gt;=3.8   # 绘图
+openpyxl&gt;=3.1     # 读写 Excel
+requests&gt;=2.31    # HTTP 请求（Agent 章节要用）
+pytest&gt;=8.0       # 单元测试
+</code></pre></div></div>
+<h3 id="编辑器vs-code推荐">编辑器：VS Code（推荐）</h3>
+<p>临床程序员从 SAS Enterprise Guide / Display Manager 迁移过去，VS Code 的对应关系是：</p>
+<table>
+<thead>
+<tr>
+<th>SAS 里的东西</th>
+<th>VS Code 里的对应物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>资源管理器</td>
+<td>左侧 Explorer 面板</td>
+</tr>
+<tr>
+<td>提交代码 (F8 / Run)</td>
+<td>右上角 ▶ 按钮，或 <code>Shift+Enter</code> 执行当前单元格</td>
+</tr>
+<tr>
+<td>日志窗口</td>
+<td>底部 TERMINAL / JUPYTER 面板</td>
+</tr>
+<tr>
+<td>语法高亮</td>
+<td>内置，安装 Python 扩展后更强</td>
+</tr>
+<tr>
+<td>断点调试</td>
+<td>行号左侧点击打断点，<code>F5</code> 启动调试</td>
+</tr>
+<tr>
+<td>程序编辑器</td>
+<td><code>.py</code> 文件，或用 <strong>Jupyter Notebook</strong>（<code>.ipynb</code>，交互式，类似 EG）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>必装扩展</strong>：Python（Microsoft）、Jupyter（Microsoft）、Pylance、Ruff。</p>
+<blockquote>
+<p>💡 <strong>建议</strong>：学习阶段用 <strong>Jupyter Notebook</strong>，因为它像 SAS 的 EG——
+一段一段执行、结果即时可见、变量常驻内存；
+但<strong>最终交付的脚本一定要是 <code>.py</code></strong>，因为那才是可版本管理、可自动化的形态。</p>
+</blockquote>
+<hr />
+<h2 id="12-第一个程序不装-sas-也能读-sas-数据">1.2 第一个程序：不装 SAS 也能读 SAS 数据</h2>
+<p>在你敲完 <code>pip install</code> 之后，立刻做一件事——<strong>用 Python 打开一个真实的
+临床数据集</strong>。这个即时反馈非常重要。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># file: hello_clinical.py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+<span class="c1"># 读取 CDISC 试点项目的 SDTM DM 域（受试者人口学）</span>
+<span class="c1"># data/samples/ 里已备好转换后的 CSV；如果下载了 XPT，也可以直接读 .xpt</span>
+<span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"行数 = </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">，列数 = </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"前 5 个变量：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">变量标签：AGE -&gt; </span><span class="si">{</span><span class="n">meta</span><span class="o">.</span><span class="n">column_names_to_labels</span><span class="p">[</span><span class="s1">'AGE'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<p>如果你已经运行了 <code>python scripts/download_data.py --core</code>，输出会是：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>行数 = 306，列数 = 25
+前 5 个变量：['STUDYID', 'DOMAIN', 'USUBJID', 'SUBJID', 'RFSTDTC', 'RFENDTC', 'RFXSTRT']
+       USUBJID   AGE SEX   RACE
+0  01-701-1015  63.0   F  WHITE
+1  01-701-1023  64.0   M  WHITE
+2  01-701-1028  71.0   M  WHITE
+...
+变量标签：AGE -&gt; Age
+</code></pre></div></div>
+<p><strong>注意几个和 SAS 不同的点</strong>：</p>
+<ul>
+<li><code>df.shape</code> 返回 <code>(行数, 列数)</code>，等价于 <code>PROC CONTENTS</code> 里的观测数与变量数。</li>
+<li>变量名在 pandas 里是<strong>列名的字符串</strong>；需要用 <code>df["AGE"]</code> 这种写法取，而不是 <code>AGE</code>。</li>
+<li><strong>变量标签还在</strong>（<code>meta.column_names_to_labels</code>），这是 pyreadstat 帮你从 XPT 里带出来的。</li>
+</ul>
+<hr />
+<h2 id="13-思维转换sas-与-python-的五个根本差异">1.3 思维转换：SAS 与 Python 的五个根本差异</h2>
+<p>这一段比任何语法都重要。<strong>不完成这层转换，你会写出"用 Python 语法写的 SAS"。</strong></p>
+<h3 id="差异-1语句-vs-表达式谁在干活">差异 1：语句 vs 表达式——谁在干活？</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：过程作用在数据集上，数据集是被动的 */</span>
+<span class="kr">proc means </span>data=adsl n mean std;
+    var AGE;
+    class TRT01P;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python：数据自己会做事（方法调用），主语变了</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">])</span>
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语法形状</td>
+<td><code>动词 数据; 选项;</code></td>
+<td><code>数据.动作(参数)</code></td>
+</tr>
+<tr>
+<td>主体</td>
+<td>PROC 是主体，数据集是宾语</td>
+<td><strong>数据是主体</strong>，方法是动作</td>
+</tr>
+<tr>
+<td>思维</td>
+<td>"我要对 a 做 MEANS"</td>
+<td>"让 a 自己按组算均值"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>记忆口诀</strong>：SAS 是"<strong>过程驱动</strong>"，Python 是"<strong>对象驱动</strong>"。</p>
+<h3 id="差异-2全局环境-vs-局部作用域">差异 2：全局环境 vs 局部作用域</h3>
+<p>SAS 里你几乎永远在操作一个全局的 <code>WORK</code> 库；
+<code>data</code> 语句的输出数据集默认留在 WORK 里，下个步骤就能用。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data adsl2; <span class="k">set</span> adsl; <span class="k">where</span> SAFFL=<span class="s">'Y'</span>;<span class="kr"> run;</span>
+<span class="kr">proc means </span>data=adsl2;<span class="kr"> run;</span>   <span class="c">/* adsl2 还在 WORK 里 */</span>
+</code></pre></div></div>
+<p>Python 里<strong>没有自动留存的中间数据集</strong>——你必须在变量里显式接住结果：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">adsl2</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span>      <span class="c1"># 必须赋值给变量</span>
+<span class="n">adsl2</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>          <span class="c1"># 然后用这个变量</span>
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>这是最容易踩的坑</strong>：<code>adsl.dropna()</code> 写完发现数据没变——
+因为它<strong>返回新对象</strong>，不修改原对象。必须写 <code>adsl = adsl.dropna()</code>
+或 <code>adsl.dropna(inplace=True)</code>。</p>
+</blockquote>
+<h3 id="差异-3缺失值不是空白是多套机制">差异 3：缺失值不是"空白"，是多套机制</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值缺失</td>
+<td><code>.</code>（特殊数值）</td>
+<td><code>np.nan</code>（浮点 NaN）或 <code>pd.NA</code></td>
+</tr>
+<tr>
+<td>字符缺失</td>
+<td><code>''</code>（空串，SAS 里空串 = 缺失）</td>
+<td><code>None</code> 或 <code>np.nan</code>（<strong>空串 <code>''</code> 不等于缺失！</strong>）</td>
+</tr>
+<tr>
+<td>判断</td>
+<td><code>if age = .</code></td>
+<td><code>pd.isna(age)</code> 或 <code>age != age</code></td>
+</tr>
+<tr>
+<td>比较特性</td>
+<td>SAS 自动把 <code>.</code> 视为最小</td>
+<td><strong><code>np.nan</code> 参与任何比较都是 False</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>       <span class="c1"># False ！这在 SAS 里是不可思议的</span>
+<span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="o">&lt;</span> <span class="mi">10</span>            <span class="c1"># False</span>
+<span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>       <span class="c1"># True —— 正确的判断方式</span>
+</code></pre></div></div>
+<p><strong>关键教训</strong>：Python 里<strong>永远不要用 <code>==</code> 判断缺失</strong>，用 <code>pd.isna()</code>。
+另外，SAS 里 <code>if name = '' then</code> 能捕获缺失字符，Python 里空串是合法的非缺失值，
+必须清洗时显式处理 <code>""</code> 和 <code>NaN</code> 两种情况。详见第 10 章。</p>
+<h3 id="差异-4逐行-vs-向量化性能的量级差异">差异 4：逐行 vs 向量化——性能的量级差异</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS 的 DATA 步天然逐行：这是它的优势，简单直观 */</span>
+<span class="kr">data </span>want;
+    <span class="k">set</span> have;
+    <span class="k">if</span> age &gt;= <span class="m">65</span> <span class="k">then</span> agegrp = <span class="s">'&gt;=65'</span>;
+    <span class="k">else</span> agegrp = <span class="s">'&lt;65'</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 写法 A：逐行循环（"用 Python 写 SAS"）——慢，且不推荐</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)):</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"AGEGRP"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"&gt;=65"</span> <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span> <span class="k">else</span> <span class="s2">"&lt;65"</span>
+
+<span class="c1"># 写法 B：向量化（Python 的正道）——快百倍，代码更短</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGEGRP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"&gt;=65"</span><span class="p">,</span> <span class="s2">"&lt;65"</span><span class="p">)</span>
+
+<span class="c1"># 写法 C：多条件（对应 SAS 的 select/when 或嵌套 if）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGEGRP"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<p>在 306 行数据上你感觉不到差别；在 58,700 行的 ADLBC 上，
+循环写法要几秒，向量化是毫秒级。<strong>第 06 章整章都在训练这个思维。</strong></p>
+<h3 id="差异-5日志自动滚动-vs-异常立即中断">差异 5：日志自动滚动 vs 异常立即中断</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>出错表现</td>
+<td>日志里出现 ERROR/WARNING，程序<strong>继续跑完</strong>（或按选项停）</td>
+<td>抛异常，程序<strong>在该行中断</strong></td>
+</tr>
+<tr>
+<td>排查方式</td>
+<td>肉眼看日志</td>
+<td>读 Traceback（从下往上读！）</td>
+</tr>
+<tr>
+<td>主动输出</td>
+<td><code>%put</code></td>
+<td><code>print()</code> / <code>logging</code></td>
+</tr>
+<tr>
+<td>需要"继续跑"</td>
+<td>默认行为</td>
+<td>必须 <code>try/except</code> 显式处理</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS 思维：想检查一行就 put，然后继续</span>
+<span class="c1"># Python 思维：直接让程序崩，读 Traceback 定位</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"data/raw/not_exist.xpt"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"文件不存在，请先运行 download_data.py"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong>读 Traceback 的方法</strong>（这是新手最需要练的技能）：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>Traceback (most recent call last):
+  File "case02.py", line 47, in &lt;module&gt;     ← 最后一行才是真正出错的位置
+    tbl = df.groupby("TRT01P")["AGEGR1"].value_counts()
+  File ".../pandas/core/groupby.py", line 1234, in ...
+KeyError: 'AGEGRP1'                          ← 最后一行是错误原因：列名拼错了
+</code></pre></div></div>
+<blockquote>
+<p><strong>读法：从最下面一行往上读</strong>。最后一行告诉你"什么错"，
+倒数第二段告诉你"错在自己代码的哪一行"。中间那些是库的内部调用，先忽略。</p>
+</blockquote>
+<hr />
+<h2 id="14-sas-与-python-的环境对照速查">1.4 SAS 与 Python 的"环境对照速查"</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>库 / 目录</td>
+<td><code>LIBNAME adsl 'C:\data';</code></td>
+<td>普通文件夹路径 / <code>pathlib.Path</code></td>
+</tr>
+<tr>
+<td>数据集</td>
+<td><code>adsl.sas7bdat</code></td>
+<td><code>DataFrame</code> 对象（内存）+ CSV/Parquet/xpt（磁盘）</td>
+</tr>
+<tr>
+<td>一次分析单元</td>
+<td>一个 <code>.sas</code> 程序</td>
+<td>一个 <code>.py</code> 脚本 / 一个 <code>.ipynb</code> 笔记本</td>
+</tr>
+<tr>
+<td>跨程序共享</td>
+<td>永久数据集 / 宏变量</td>
+<td>模块 <code>import</code> / 函数返回值 / 中间文件</td>
+</tr>
+<tr>
+<td>版本管理</td>
+<td>通常无（或手写 <code>_v2.sas</code>）</td>
+<td><strong>Git</strong>（第 17 章）</td>
+</tr>
+<tr>
+<td>复用代码</td>
+<td><code>%INCLUDE</code> / <code>%MACRO</code></td>
+<td><code>import</code> 自己的 <code>.py</code> 模块</td>
+</tr>
+<tr>
+<td>环境隔离</td>
+<td>基本不需要</td>
+<td><strong>虚拟环境</strong>（必须）</td>
+</tr>
+<tr>
+<td>官方文档</td>
+<td>support.sas.com</td>
+<td>docs.python.org + pandas.pydata.org</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="15-动手练习">1.5 动手练习</h2>
+<ol>
+<li>完成环境搭建，<code>python -c "import pandas; print(pandas.__version__)"</code> 能输出版本号。</li>
+<li>运行 <code>python scripts/download_data.py --core</code> 下载数据（或在 <code>data/samples/</code> 里用 CSV）。</li>
+<li>运行 1.2 节的 <code>hello_clinical.py</code>，确认输出 306 行。</li>
+<li><strong>（思维转换练习）</strong> 把下面这段 SAS 用 Python 写出来，先不管优雅与否：
+   <code>sas
+   data adsl2;
+       set adsl;
+       if AGE &gt;= 65 then AGEGRP = '&gt;=65';
+       else AGEGRP = '&lt;65';
+       if SAFFL = 'Y';
+   run;</code>
+   提示：你需要一个 <code>np.where</code>（或列表推导式）和一个布尔索引。</li>
+</ol>
+<hr />
+<h2 id="16-常见问题">1.6 常见问题</h2>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python</code> 不是内部或外部命令</td>
+<td>安装时未勾选 Add to PATH</td>
+<td>重装并勾选，或手动加 PATH</td>
+</tr>
+<tr>
+<td><code>ModuleNotFoundError: No module named 'pandas'</code></td>
+<td>忘了激活虚拟环境 / 装到了别的环境</td>
+<td>看命令行前面有没有 <code>(.venv)</code></td>
+</tr>
+<tr>
+<td><code>Activate.ps1 无法加载</code></td>
+<td>PowerShell 执行策略</td>
+<td><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></td>
+</tr>
+<tr>
+<td>中文输出乱码</td>
+<td>Windows 控制台编码</td>
+<td>在脚本首行加 <code># -*- coding: utf-8 -*-</code>；或 <code>PYTHONUTF8=1</code></td>
+</tr>
+<tr>
+<td><code>pip install</code> 极慢</td>
+<td>默认源在国外</td>
+<td><code>pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></td>
+</tr>
+<tr>
+<td>读取 XPT 报 <code>does not exist</code></td>
+<td>路径写法不对（尤其 Git Bash 的 <code>/tmp</code>）</td>
+<td>用 Windows 绝对路径 <code>r"G:\...\dm.xpt"</code>，或 <code>pathlib.Path</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>上一章 ←</strong> <a href="00.html">第 00 章 · 学习路线图</a>
+<strong>下一章 →</strong> <a href="02.html">第 02 章 · 基础语法速通</a></p></article>
+<nav class="pager"><a class="pg-prev" href="00.html"><span class="pg-label">← 上一篇</span><span class="pg-title">学习路线图与如何使用本项目</span></a><a class="pg-next" href="02.html"><span class="pg-label">下一篇 →</span><span class="pg-title">基础语法速通（SAS 对照）</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

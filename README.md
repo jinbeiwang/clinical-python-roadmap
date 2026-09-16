@@ -10,6 +10,12 @@
 ![cases](https://img.shields.io/badge/%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-7%20%E4%B8%AA-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
+### 📖 [在线阅读（GitHub Pages）](https://jinbeiwang.github.io/clinical-python-roadmap/)
+
+带侧边栏导航、全文搜索、代码高亮与深浅色主题的完整文档站，
+比在 GitHub 上逐页点 Markdown 舒服得多 —— 18 章正文、速查表、资料索引、
+以及全部案例与工具包的**源码阅读页**都在里面。
+
 ---
 
 ## 这个项目解决什么问题
@@ -69,6 +75,11 @@ python scripts/make_samples.py            # 重新生成样本 CSV
 ```
 clinical-python-roadmap/
 ├── docs/                     # 18 章教程正文（00-17）
+│   ├── *.md                  #   教程源文件（Markdown，GitHub 上可直接读）
+│   ├── index.html            #   ★ 在线文档站首页（由 scripts/build_site.py 生成）
+│   ├── guide/  code/         #   生成的章节页与源码阅读页
+│   ├── assets/               #   站点样式、脚本与搜索索引
+│   └── .nojekyll             #   关闭 Jekyll（文档里有 Liquid 会误解析的代码块）
 ├── cases/                    # 7 个可运行实战案例 ★ 核心
 ├── clinic/                   # 可复用的临床数据工具包
 │   ├── io.py                 #   读 XPT/sas7bdat，保留标签，清洗伪缺失
@@ -79,10 +90,31 @@ clinical-python-roadmap/
 ├── cheatsheets/              # SAS → Python 速查表 ★ 高频查阅
 ├── resources/                # 精选资料索引（GitHub / CDISC / PHUSE / 论文）
 ├── ci/                       # GitHub Actions 工作流模板（见 ci/README.md）
-├── scripts/                  # 数据下载与样本生成
+├── scripts/                  # 数据下载、样本生成、文档站构建
+│   ├── download_data.py      #   多通道下载 CDISC 公开 XPT
+│   ├── make_samples.py       #   裁剪成入库的小体积样本 CSV
+│   └── build_site.py         #   把 Markdown 与源码构建成 docs/ 下的静态站点
 ├── data/samples/             # 约 5MB 样本数据（已提交，离线可用）
 └── outputs/                  # 运行结果（每次运行重新生成）
 ```
+
+### 本地预览文档站
+
+站点是**纯静态、零外部依赖**的（不引任何 CDN），克隆后用任意静态服务器打开即可：
+
+```bash
+python scripts/build_site.py --clean     # 重新生成 docs/
+python -m http.server -d docs 8000       # 然后访问 http://localhost:8000
+```
+
+`build_site.py` 做三件事：Markdown → HTML（表格、代码块、脚注）、
+仓库内相对链接重写（能指向站内的就指向站内，否则指向 GitHub）、
+以及生成侧边栏与搜索索引（356 条小节级条目，按 `/` 或 `Ctrl+K` 唤起）。
+
+> 为什么不直接用 Jekyll：教程正文的代码块里有 `${{ matrix.python-version }}`
+> 这类 GitHub Actions 语法，会被 Jekyll 当 Liquid 标签解析而**构建失败**；
+> 且仓库里全是中文文件名，Jekyll 的 permalink 会生成一串百分号编码的可分享 URL。
+> 自己生成 HTML 更简单也更可控。
 
 ---
 
@@ -105,7 +137,7 @@ clinical-python-roadmap/
 |---|---|---|
 | [06](docs/06-NumPy与向量化思维.md) | NumPy 与向量化思维 | ★ **理解广播，就再也不会写行循环** |
 | [07](docs/07-pandas入门-DataFrame就是数据集.md) | pandas 入门：DataFrame 就是数据集 | `DataFrame` ↔ dataset 的完整映射 |
-| [08](docs/08-数据操作对照-DATA步与PROC SQL.md) | 数据操作对照：DATA 步与 PROC SQL | 逐句对照表 |
+| [08](docs/08-数据操作对照-DATA步与PROC%20SQL.md) | 数据操作对照：DATA 步与 PROC SQL | 逐句对照表 |
 | [09](docs/09-合并重塑与分组汇总.md) | 合并、重塑与分组汇总 | `merge` 的三个致命差异 |
 | [10](docs/10-日期缺失值格式与数据质量.md) | 日期、缺失值、格式与数据质量 | ★ **差异最集中的一章** |
 

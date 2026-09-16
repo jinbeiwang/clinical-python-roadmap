@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 04 · 实验室移位表</title>
+<meta name="description" content="实验室移位表 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 04 · 实验室移位表">
+<meta property="og:description" content="实验室移位表 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case04.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 04 · 实验室移位表</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case04_%E5%AE%9E%E9%AA%8C%E5%AE%A4%E7%A7%BB%E4%BD%8D%E8%A1%A8.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case04_%E5%AE%9E%E9%AA%8C%E5%AE%A4%E7%A7%BB%E4%BD%8D%E8%A1%A8.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case04_实验室移位表.py</strong> · 245 行 · 9 KB<br>案例 04 · 实验室检查移位表（Shift Table） ==========================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 04 · 实验室检查移位表（Shift Table）</span>
+<span class="sd">==========================================</span>
+
+<span class="sd">**目标**：生成"基线 → 基线后"的实验室分级迁移表。</span>
+<span class="sd">这是每个 CSR 都有的安全性表，用来展示治疗是否导致实验室指标恶化。</span>
+
+<span class="sd">**覆盖教程章节**：第 09 章（透视/重塑）、第 13 章（报表）、第 14 章（统计）</span>
+
+<span class="sd">移位表最容易搞错的四件事（本案例逐一显式处理）</span>
+<span class="sd">----------------------------------------------</span>
+<span class="sd">1. **分级阈值从哪里来？**</span>
+<span class="sd">   优先用数据集自带的 ``ANRLO`` / ``ANRHI``（参考范围下限/上限）</span>
+<span class="sd">   和 ``ANRIND`` / ``BNRIND``（分析/基线时的正常性指示符）。</span>
+<span class="sd">   **不要自己硬编码阈值** —— 那会与 define.xml 的声明不一致。</span>
+<span class="sd">2. **百分比的分母是什么？**</span>
+<span class="sd">   行百分比（分母 = 该基线分类的合计）还是列百分比（分母 = 该基线后分类的合计）？</span>
+<span class="sd">   **两者都有，必须按 SAP 规定**。本案例默认行百分比，并提供参数切换。</span>
+<span class="sd">3. **用哪一次"基线后"访视？**</span>
+<span class="sd">   末次访视？END OF TREATMENT？固定访视？</span>
+<span class="sd">   本案例默认用 **End of Treatment**，并演示如何改用其他访视。</span>
+<span class="sd">4. **同一受试者同一次访视有多条记录怎么办？**</span>
+<span class="sd">   必须先定规则（取最后一次 / 取均值 / 取最差）。</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case04_实验室移位表.py</span>
+<span class="sd">    python cases/case04_实验室移位表.py --param ALB        # 只看白蛋白</span>
+<span class="sd">    python cases/case04_实验室移位表.py --pct col          # 列百分比</span>
+<span class="sd">    python cases/case04_实验室移位表.py --visit "Week 24"  # 改用其他访视</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>          <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">report</span> <span class="k">as</span> <span class="n">rpt</span>      <span class="c1"># noqa: E402</span>
+
+<span class="n">TRT_LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+
+<span class="c1"># 正常性指示符的取值（CDISC 惯例）</span>
+<span class="c1"># N = Normal / L = Low / H = High / A = Abnormal（部分项目会用）</span>
+<span class="n">RIND_ORDER</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"L"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">]</span>
+<span class="n">RIND_LABEL</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"L"</span><span class="p">:</span> <span class="s2">"低于正常范围"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">:</span> <span class="s2">"正常范围"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">:</span> <span class="s2">"高于正常范围"</span><span class="p">}</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">section</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">84</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">84</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_lab</span><span class="p">(</span><span class="n">data_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""载入实验室数据（优先用 ADLBC，退回到裁剪样本）。"""</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"adlbc.csv"</span><span class="p">,</span> <span class="s2">"adlbc_shift.csv"</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">data_dir</span> <span class="o">/</span> <span class="n">name</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"已载入 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">df</span>
+    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+        <span class="s2">"找不到实验室数据。请先运行：</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"    python scripts/download_data.py --core</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"    python scripts/make_samples.py"</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pick_post_visit</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">visit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""选择"基线后"的访视。</span>
+
+<span class="sd">    默认规则：每位受试者取 **End of Treatment**；</span>
+<span class="sd">    若某受试者没有 EOT，则退回到其最后一次有记录的访视（末次观测结转 LOCF 的简化版）。</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">visit</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">==</span> <span class="n">visit</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">eot</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"End of Treatment"</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">eot</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="c1"># 对这些受试者，取最后一次访视（按 AVISITN 最大）</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"AVISITN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"AVISITN"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"Baseline"</span><span class="p">]</span>
+        <span class="n">last_idx</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVISITN"</span><span class="p">]</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()</span>
+        <span class="n">fallback</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">last_idx</span><span class="p">]</span>
+        <span class="n">fallback</span> <span class="o">=</span> <span class="n">fallback</span><span class="p">[</span><span class="n">fallback</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">missing</span><span class="p">)]</span>
+        <span class="n">eot</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">eot</span><span class="p">,</span> <span class="n">fallback</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位受试者无 End of Treatment 记录，"</span>
+              <span class="sa">f</span><span class="s2">"改取其末次可用访视（LOCF 简化版）"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">eot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_shift</span><span class="p">(</span><span class="n">lab</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">post_visit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""为单个实验室参数构造"受试者 × (基线, 基线后)"的配对表。"""</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">lab</span><span class="p">[</span><span class="n">lab</span><span class="p">[</span><span class="s2">"PARAMCD"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># ---- 基线：优先用 ABLFL='Y'；否则用 AVISIT='Baseline' ----</span>
+    <span class="n">d</span><span class="p">[</span><span class="s2">"ABLFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ABLFL"</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">d</span><span class="p">[(</span><span class="n">d</span><span class="p">[</span><span class="s2">"ABLFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Baseline"</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># 同一受试者多条基线记录 → 取最后一次（规则必须写死）</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"AVISITN"</span> <span class="k">if</span> <span class="s2">"AVISITN"</span> <span class="ow">in</span> <span class="n">bl</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="s2">"AVAL"</span><span class="p">)</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+
+    <span class="c1"># 基线分类：优先用数据集自带的 BNRIND，否则用 ANRIND</span>
+    <span class="n">bl_ind_col</span> <span class="o">=</span> <span class="s2">"BNRIND"</span> <span class="k">if</span> <span class="s2">"BNRIND"</span> <span class="ow">in</span> <span class="n">bl</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">bl</span><span class="p">[</span><span class="s2">"BNRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"ANRIND"</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRTP"</span><span class="p">,</span> <span class="n">bl_ind_col</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">bl_ind_col</span><span class="p">:</span> <span class="s2">"IND_BL"</span><span class="p">})</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">bl</span><span class="p">[</span><span class="s2">"IND_BL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[</span><span class="s2">"IND_BL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="c1"># ---- 基线后 ----</span>
+    <span class="n">post</span> <span class="o">=</span> <span class="n">pick_post_visit</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">post_visit</span><span class="p">)</span>
+    <span class="n">post</span> <span class="o">=</span> <span class="n">post</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"ANRIND"</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">post</span><span class="p">[</span><span class="s2">"IND_POST"</span><span class="p">]</span> <span class="o">=</span> <span class="n">post</span><span class="p">[</span><span class="s2">"ANRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="c1"># 同一受试者多条 → 取最差的（L/H 优先于 N）—— 安全性分析的保守做法</span>
+    <span class="n">post</span><span class="p">[</span><span class="s2">"_rank"</span><span class="p">]</span> <span class="o">=</span> <span class="n">post</span><span class="p">[</span><span class="s2">"IND_POST"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"N"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"L"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">post</span> <span class="o">=</span> <span class="n">post</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_rank"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 配对 ----</span>
+    <span class="n">paired</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">post</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"IND_POST"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"inner"</span><span class="p">)</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"IND_BL"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">RIND_ORDER</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"IND_POST"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">RIND_ORDER</span><span class="p">)</span>
+    <span class="n">n_drop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="o">~</span><span class="n">valid</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">n_drop</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  排除 </span><span class="si">{</span><span class="n">n_drop</span><span class="si">}</span><span class="s2"> 条基线或基线后分级缺失的记录"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">paired</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"实验室检查移位表"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--param"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"只分析某个 PARAMCD，如 ALB / ALT / CREAT"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--pct"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"row"</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"row"</span><span class="p">,</span> <span class="s2">"col"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">],</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"百分比口径：row=行百分比（默认）/ col=列百分比 / total=总计"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--visit"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"指定基线后访视，如 'Week 24'"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--top"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"默认分析多少个参数（按记录数）"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span>
+    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">84</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  案例 04 · 实验室检查移位表"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">84</span><span class="p">)</span>
+
+    <span class="n">lab</span> <span class="o">=</span> <span class="n">load_lab</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"1. 确定分析参数"</span><span class="p">)</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">lab</span><span class="p">[</span><span class="s2">"PARAMCD"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">param</span><span class="p">]</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">param</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">top</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"共 </span><span class="si">{</span><span class="n">counts</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="kc">False</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个参数，"</span>
+          <span class="sa">f</span><span class="s2">"本案例分析 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个：</span><span class="si">{</span><span class="n">params</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="sa">f</span><span class="s2">"2. 移位表（百分比口径：</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">pct</span><span class="si">}</span><span class="s2">）"</span>
+            <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"，访视：</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">visit</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">visit</span> <span class="k">else</span> <span class="s2">"，访视：End of Treatment"</span><span class="p">))</span>
+
+    <span class="n">all_tables</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'-'</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">84</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"参数 </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'-'</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">84</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="n">paired</span> <span class="o">=</span> <span class="n">build_shift</span><span class="p">(</span><span class="n">lab</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">visit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">paired</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  无可配对的记录，跳过"</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># 按治疗组分别出表</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">trt</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="n">paired</span><span class="p">[</span><span class="n">paired</span><span class="p">[</span><span class="s2">"TRTP"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="n">trt</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">rpt</span><span class="o">.</span><span class="n">crosstab_shift</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"IND_BL"</span><span class="p">],</span> <span class="n">sub</span><span class="p">[</span><span class="s2">"IND_POST"</span><span class="p">],</span> <span class="n">RIND_ORDER</span><span class="p">,</span> <span class="n">pct</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">pct</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">bl_ind</span> <span class="ow">in</span> <span class="n">RIND_ORDER</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">bl_ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tbl</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"治疗组"</span><span class="p">:</span> <span class="n">trt</span> <span class="k">if</span> <span class="n">bl_ind</span> <span class="o">==</span> <span class="n">RIND_ORDER</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
+                       <span class="s2">"基线"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bl_ind</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">RIND_LABEL</span><span class="p">[</span><span class="n">bl_ind</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span><span class="p">}</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">RIND_ORDER</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"合计"</span><span class="p">]:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">RIND_LABEL</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">RIND_LABEL</span>
+                           <span class="k">else</span> <span class="n">col</span><span class="p">)</span>
+                    <span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bl_ind</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="n">all_tables</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># 恶化率汇总（临床最关心的一列）</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  【恶化率】基线正常(N) → 基线后异常(L/H) 的比例："</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">trt</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="n">paired</span><span class="p">[(</span><span class="n">paired</span><span class="p">[</span><span class="s2">"TRTP"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="n">trt</span><span class="p">)</span>
+                         <span class="o">&amp;</span> <span class="p">(</span><span class="n">paired</span><span class="p">[</span><span class="s2">"IND_BL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"N"</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">n_worse</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">sub</span><span class="p">[</span><span class="s2">"IND_POST"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s2">"L"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">]))</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">trt</span><span class="si">:</span><span class="s2">26s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">n_worse</span><span class="si">:</span><span class="s2">&gt;4</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;4</span><span class="si">}</span><span class="s2">"</span>
+                  <span class="sa">f</span><span class="s2">"  (</span><span class="si">{</span><span class="n">n_worse</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">5.1f</span><span class="si">}</span><span class="s2">%)"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"3. 输出文件"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">all_tables</span><span class="p">:</span>
+        <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">参数</span><span class="o">=</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_tables</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">combined</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table03_lab_shift.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+        <span class="n">rpt</span><span class="o">.</span><span class="n">to_html</span><span class="p">(</span><span class="n">combined</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table03_lab_shift.html"</span><span class="p">,</span>
+                    <span class="n">title</span><span class="o">=</span><span class="s2">"表 3. 实验室检查分级移位表"</span><span class="p">,</span>
+                    <span class="n">subtitle</span><span class="o">=</span><span class="p">(</span><span class="s2">"基线 vs 治疗结束（End of Treatment）；"</span>
+                              <span class="sa">f</span><span class="s2">"单元格为 n (</span><span class="si">{</span><span class="s1">'行'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">args</span><span class="o">.</span><span class="n">pct</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'row'</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'列'</span><span class="si">}</span><span class="s2">百分比)"</span><span class="p">),</span>
+                    <span class="n">footnote</span><span class="o">=</span><span class="p">(</span><span class="s2">"分级依据数据集自带的分析正常性指示符（ANRIND / BNRIND）。"</span>
+                              <span class="s2">"N=正常范围，L=低于正常范围，H=高于正常范围。"</span>
+                              <span class="s2">"数据来源：CDISC 试点项目 CDISCPILOT01（公开数据）。"</span><span class="p">),</span>
+                    <span class="n">label_cols</span><span class="o">=</span><span class="p">(</span><span class="s2">"参数"</span><span class="p">,</span> <span class="s2">"治疗组"</span><span class="p">,</span> <span class="s2">"基线"</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"已输出：</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'table03_lab_shift.csv'</span><span class="si">}</span><span class="s2">"</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'table03_lab_shift.html'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"4. QC 提示"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ① 分母口径：本案例用行百分比（分母=该基线分类合计）。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"     若 SAP 要求列百分比（分母=该基线后分类合计），用 --pct col。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ② 基线定义：优先用 ABLFL='Y'；没有该标记时才用 AVISIT='Baseline'。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ③ 基线后访视：默认 End of Treatment；无 EOT 的受试者取末次可用访视。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ④ 同一受试者多次记录：基线取最后一次；基线后取最差等级（保守做法）。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"     这些规则都必须与 SAP 一致，并在 ADRG 中说明。"</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case03.html"><span class="pg-label">← 上一篇</span><span class="pg-title">不良事件汇总表</span></a><a class="pg-next" href="case05.html"><span class="pg-label">下一篇 →</span><span class="pg-title">ADSL 衍生与双编程验证</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

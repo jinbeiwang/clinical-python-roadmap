@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 05 · ADSL 衍生与双编程验证</title>
+<meta name="description" content="ADSL 衍生与双编程验证 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 05 · ADSL 衍生与双编程验证">
+<meta property="og:description" content="ADSL 衍生与双编程验证 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case05.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 05 · ADSL 衍生与双编程验证</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case05_ADSL%E8%A1%8D%E7%94%9F.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case05_ADSL%E8%A1%8D%E7%94%9F.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case05_ADSL衍生.py</strong> · 738 行 · 30 KB<br>案例 05 · 从 SDTM 衍生 ADSL（受试者水平分析数据集） ====================================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 05 · 从 SDTM 衍生 ADSL（受试者水平分析数据集）</span>
+<span class="sd">====================================================</span>
+
+<span class="sd">**目标**：把多个 SDTM 域（DM / EX / DS / VS / ADAE）合并成一张</span>
+<span class="sd">**受试者水平（one record per subject）** 的分析数据集 ADSL ——</span>
+<span class="sd">这是所有 TFL 报表的分母来源，也是 ADaM 生产的第一道工序。</span>
+
+<span class="sd">**覆盖教程章节**：第 09 章（合并重塑）、第 12 章（SDTM）、第 13 章（ADaM）</span>
+
+<span class="sd">为什么这是 SAS 程序员转 Python 的"分水岭"</span>
+<span class="sd">------------------------------------------</span>
+<span class="sd">SAS 里做 ADSL 是一长串 ``DATA`` 步 + ``MERGE`` + ``RETAIN`` + ``BY``，</span>
+<span class="sd">Python 里对应的是 ``groupby().agg()`` + ``merge()``。</span>
+<span class="sd">表面看是语法差异，真正的坑全在**口径**上 —— 本案例会把这些坑一个个挖出来：</span>
+
+<span class="sd">1. **治疗结束日怎么定？** EX 里最后一条记录的 ``EXENDTC`` 经常是空的</span>
+<span class="sd">   （治疗还在进行 / 记录未闭合）。三种合理口径给出 **248 / 254 / 127** 三个不同答案。</span>
+<span class="sd">2. **TRT01A（实际治疗组）到底按什么定？** 抄 ``DM.ACTARM`` 会错 12 个人 ——</span>
+<span class="sd">   他们随机化到高剂量，但在滴定期就退出了，从没吃到 81 mg。</span>
+<span class="sd">3. **完成 8/16/24 周的标记靠什么判？** 按"治疗时长 ≥ 56 天"和按</span>
+<span class="sd">   "完成第 8 周访视"是完全不同的两件事。</span>
+<span class="sd">4. **精度丢失的顺序会影响结果。** BMI 用未舍入的体重算得 28.2，</span>
+<span class="sd">   用舍入到 1 位的体重算得 28.1 —— 参考 ADSL 用的是后者。</span>
+<span class="sd">5. **DM 里根本没有身高体重。** 它们来自 VS 域。</span>
+<span class="sd">   ADSL 从来不是"从 DM 一步得来"的，而是多域合并的产物。</span>
+
+<span class="sd">最后一步是**双编程验证（Double Programming）**：</span>
+<span class="sd">把自己派生的 ADSL 与已知的参考 ADSL 逐变量比对，输出匹配率。</span>
+<span class="sd">这不是"多此一举"，而是 ADaM 生产流程的核心环节 ——</span>
+<span class="sd">**你的派生结果必须能被第二套独立实现复现。**</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case05_ADSL衍生.py</span>
+<span class="sd">    python cases/case05_ADSL衍生.py --end-rule ex        # 只看 EX 的直接口径</span>
+<span class="sd">    python cases/case05_ADSL衍生.py --end-rule ref       # 放弃 EX，直接用参考结束日</span>
+<span class="sd">    python cases/case05_ADSL衍生.py --trt01a-rule actarm # 实际治疗组改抄 DM.ACTARM</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>              <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">report</span> <span class="k">as</span> <span class="n">rpt</span>          <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>               <span class="c1"># noqa: E402</span>
+    <span class="n">derive_agegr1</span><span class="p">,</span>
+    <span class="n">sas_round_series</span><span class="p">,</span>
+    <span class="n">to_categorical</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">220</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.max_columns"</span><span class="p">,</span> <span class="mi">90</span><span class="p">)</span>
+
+<span class="c1"># 治疗组顺序 &amp; 编码（**按 SAP 指定，绝不能依赖字母序**）</span>
+<span class="n">TRT_LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+<span class="n">TRT_CODE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Placebo"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">:</span> <span class="mi">54</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">:</span> <span class="mi">81</span><span class="p">}</span>
+<span class="n">EXCLUDED_ARMS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Screen Failure"</span><span class="p">,</span> <span class="s2">"Not Assigned"</span><span class="p">,</span> <span class="s2">"Not Randomized"</span><span class="p">}</span>
+<span class="n">RACEN_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"WHITE"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">"BLACK OR AFRICAN AMERICAN"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">"AMERICAN INDIAN OR ALASKA NATIVE"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s2">"ASIAN"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">"NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># 完成 8/16/24 周治疗 ↔ 最后一次疗效访视号（VISITNUM）</span>
+<span class="c1"># 对照访视计划：4=WEEK2, 5=WEEK4, 7=WEEK6, 8=WEEK8, 9=WEEK12, 10=WEEK16,</span>
+<span class="c1">#               11=WEEK20, 12=WEEK24, 13=WEEK26（研究结束随访）</span>
+<span class="n">COMP_VISIT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"COMP8FL"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"COMP16FL"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">"COMP24FL"</span><span class="p">:</span> <span class="mi">12</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">section</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 1. 载入 SDTM 源数据</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_sources</span><span class="p">(</span><span class="n">data_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""载入 ADSL 派生所需的全部源域。</span>
+
+<span class="sd">    注意 ``vs_anthrop``（VS 的身高/体重子集）与 ``vs_bp`` 都是**必需**的：</span>
+<span class="sd">    DM 里没有身高体重，BMI 必须从 VS 派生；访视号也要从 VS 取。</span>
+<span class="sd">    """</span>
+    <span class="n">need</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"vs_anthrop"</span><span class="p">,</span> <span class="s2">"vs_bp"</span><span class="p">]</span>
+    <span class="n">src</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">need</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">data_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv"</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"找不到 </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">。请先运行：</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"    python scripts/download_data.py --core</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"    python scripts/make_samples.py"</span>
+            <span class="p">)</span>
+        <span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">src</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 2. 暴露（Exposure）：治疗起始日 / 结束日 / 时长</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_exposure</span><span class="p">(</span><span class="n">ex</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">end_rule</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                    <span class="n">ref_end</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""从 EX 域派生 TRTSDT / TRTEDT / TRTDUR。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ex : EX 域（一次给药记录一行）</span>
+<span class="sd">    end_rule : 治疗结束日口径</span>
+
+<span class="sd">        =========  =====================================================</span>
+<span class="sd">        ``'ex'``   ``TRTEDT = max(EXENDTC)`` —— 最"字面"的做法</span>
+<span class="sd">        ``'imp'``  缺失的 ``EXENDTC`` 用「下一条记录的起始日 − 1 天」补全；</span>
+<span class="sd">                   **末次记录仍未闭合**（治疗仍在进行）时取参考结束日</span>
+<span class="sd">                   ``RFENDTC`` —— 这是本项目的实际口径</span>
+<span class="sd">        ``'ref'``  ``TRTEDT = RFENDTC``（完全放弃 EX 信息）</span>
+<span class="sd">        =========  =====================================================</span>
+
+<span class="sd">    ref_end : ``Series``，index 为 USUBJID，值为参考结束日</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    ``TRTDUR`` 的计算是 ``(TRTEDT - TRTSDT) + 1``：**首尾都算**。</span>
+<span class="sd">    这与 SAS 里 ``TRTDUR = TRTEDT - TRTSDT + 1;`` 完全一致 ——</span>
+<span class="sd">    少写那个 ``+1`` 是极常见的 diff 来源。</span>
+<span class="sd">    """</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">x</span><span class="p">[</span><span class="s2">"_STDTC"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">"EXSTDTC"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">[</span><span class="s2">"_ENDTC"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">"EXENDTC"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">[</span><span class="s2">"_SEQ"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"EXSEQ"</span><span class="p">),</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"_SEQ"</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">end_rule</span> <span class="o">==</span> <span class="s2">"ref"</span><span class="p">:</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">TRTSDT</span><span class="o">=</span><span class="p">(</span><span class="s2">"_STDTC"</span><span class="p">,</span> <span class="s2">"min"</span><span class="p">),</span>
+                                     <span class="n">n_ex</span><span class="o">=</span><span class="p">(</span><span class="s2">"_SEQ"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">))</span>
+        <span class="n">g</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref_end</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="k">if</span> <span class="n">ref_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">end_rule</span> <span class="o">==</span> <span class="s2">"ex"</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">[</span><span class="s2">"_END_C"</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s2">"_ENDTC"</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># imp</span>
+            <span class="c1"># 下一条给药记录的起始日 − 1 天，就是本条的结束日</span>
+            <span class="n">nxt</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_STDTC"</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">[</span><span class="s2">"_END_C"</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s2">"_ENDTC"</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">nxt</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">g</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">TRTSDT</span><span class="o">=</span><span class="p">(</span><span class="s2">"_STDTC"</span><span class="p">,</span> <span class="s2">"min"</span><span class="p">),</span>
+            <span class="n">TRTEDT</span><span class="o">=</span><span class="p">(</span><span class="s2">"_END_C"</span><span class="p">,</span> <span class="s2">"max"</span><span class="p">),</span>
+            <span class="n">n_ex</span><span class="o">=</span><span class="p">(</span><span class="s2">"_SEQ"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">end_rule</span> <span class="o">==</span> <span class="s2">"imp"</span><span class="p">:</span>
+            <span class="c1"># ★ 关键一步：末次给药记录**没有结束日**时，"最后一次给药"是</span>
+            <span class="c1">#   max(_END_C) 算不出来的（它只会给出倒数第二条的结束日）。</span>
+            <span class="c1">#   这种人意味着"治疗仍在进行"，正确做法是取参考结束日。</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+            <span class="n">still_open</span> <span class="o">=</span> <span class="n">last</span><span class="p">[</span><span class="s2">"_ENDTC"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">still_open</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span> <span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">ref_end</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">index</span><span class="p">)[</span><span class="n">still_open</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)]</span>
+
+    <span class="n">g</span><span class="p">[</span><span class="s2">"TRTDUR"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">])</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">g</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_actual_trt</span><span class="p">(</span><span class="n">ex</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""派生 TRT01A（实际治疗组）。</span>
+
+<span class="sd">    ============  ==================================================</span>
+<span class="sd">    ``'arm'``     直接取随机化臂（DM.ARM）—— 本项目 ADSL 的口径</span>
+<span class="sd">    ``'actarm'``  取 DM.ACTARM（申办方已按实际给药派生好的值）</span>
+<span class="sd">    ``'maxdose'`` 按受试者实际接受的**最高剂量**判断</span>
+<span class="sd">    ============  ==================================================</span>
+
+<span class="sd">    ★ 三者会给出**不同答案**，本案例的 12 位受试者就是活教材：</span>
+<span class="sd">      随机化到 Xanomeline High Dose，但在滴定期（第 1–14 天）就退出了，</span>
+<span class="sd">      全程只吃到 54 mg。于是：</span>
+
+<span class="sd">      - 随机化臂 / 我们的 'arm' 口径 → High Dose（254/254 与参考一致）</span>
+<span class="sd">      - DM.ACTARM                  → Low Dose（242/254）</span>
+<span class="sd">      - 最高剂量                   → Low Dose</span>
+
+<span class="sd">      **两种口径都说得通**，但必须与 SAP 一致，并写进 ADRG。</span>
+<span class="sd">      这也是"实际治疗组"这个变量在不同项目里含义不同的原因。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">rule</span> <span class="o">==</span> <span class="s2">"maxdose"</span><span class="p">:</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">e</span><span class="p">[</span><span class="s2">"_D"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"EXDOSE"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">mx</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_D"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">mx</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="mf">0.0</span><span class="p">:</span> <span class="s2">"Placebo"</span><span class="p">,</span> <span class="mf">54.0</span><span class="p">:</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span>
+                       <span class="mf">81.0</span><span class="p">:</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">})</span>
+    <span class="k">return</span> <span class="kc">None</span>                    <span class="c1"># 'arm' / 'actarm' 走主流程里的直接映射</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 3. 处置（Disposition）：停药原因 / 死亡</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_disposition</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""从 DS 域派生 DCDECOD / DSRAEFL。</span>
+
+<span class="sd">    关键点一：DS 里同时有 ``DISPOSITION EVENT``（处置事件）和</span>
+<span class="sd">    ``OTHER EVENT``（访视记录）。**只取处置事件**才算得对，</span>
+<span class="sd">    否则会把 "FINAL LAB VISIT" 之类当成停药原因。</span>
+
+<span class="sd">    关键点二：``DSRAEFL`` 不是"有没有停药原因"，而是</span>
+<span class="sd">    **"是否因不良事件而停药"**。本项目口径是 ``DCDECOD == 'ADVERSE EVENT'``</span>
+<span class="sd">    （92 人）。若按"DCDECOD 非缺失就置 Y"来写会得到 144 人 ——</span>
+<span class="sd">    这不是"差一点"，而是**口径完全错了**。</span>
+
+<span class="sd">    关键点三（pandas 专属陷阱）：``out.loc[mask, col] = value`` 里</span>
+<span class="sd">    如果 mask 定位到的行**根本不在 out 的索引里**（比如"完成研究"的受试者</span>
+<span class="sd">    压根没进非完成子集），这条赋值会**静默失效**，不报任何错。</span>
+<span class="sd">    SAS 里你至少会看到一个 note。所以这里先 ``reindex`` 补齐索引。</span>
+<span class="sd">    """</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">ds</span><span class="p">[</span><span class="s2">"DSCAT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"DISPOSITION EVENT"</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">non_dc</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"COMPLETED"</span><span class="p">,</span> <span class="s2">"SCREEN FAILURE"</span><span class="p">}</span>          <span class="c1"># 非"停药事件"</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">disp</span><span class="p">[</span><span class="o">~</span><span class="n">disp</span><span class="p">[</span><span class="s2">"DSDECOD"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">non_dc</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">DCDECOD</span><span class="o">=</span><span class="p">(</span><span class="s2">"DSDECOD"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span>
+                                  <span class="n">_DCDTC</span><span class="o">=</span><span class="p">(</span><span class="s2">"DSDTC"</span><span class="p">,</span> <span class="s2">"max"</span><span class="p">))</span>
+    <span class="c1"># ★ 先补全索引，否则下面的 .loc 赋值会静默丢失</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">))</span>
+
+    <span class="n">comp</span> <span class="o">=</span> <span class="n">disp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">disp</span><span class="p">[</span><span class="s2">"DSDECOD"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"COMPLETED"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">comp</span><span class="p">),</span> <span class="s2">"DCDECOD"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"COMPLETED"</span>
+
+    <span class="n">out</span><span class="p">[</span><span class="s2">"DSRAEFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="s2">"DCDECOD"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ADVERSE EVENT"</span><span class="p">,</span> <span class="s2">"DSRAEFL"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Y"</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_death</span><span class="p">(</span><span class="n">dm</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">ds</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""DTHFL：DS 里出现 DEATH 处置事件即为 'Y'。</span>
+
+<span class="sd">    DM 里也有 ``DTHFL``，但**权威来源是 DS 的处置事件**；</span>
+<span class="sd">    两者不一致时应以 DS 为准并记录 QC 问题。</span>
+<span class="sd">    """</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">ds</span><span class="p">[</span><span class="s2">"DSCAT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"DISPOSITION EVENT"</span><span class="p">]</span>
+    <span class="n">died</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">disp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">disp</span><span class="p">[</span><span class="s2">"DSDECOD"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"DEATH"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">])</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dm</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">))</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">"DTHFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">died</span><span class="p">),</span> <span class="s2">"DTHFL"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Y"</span>
+    <span class="c1"># 与 DM 的声明值交叉核对（QC）</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">"_DM_DTHFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dm</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"DTHFL"</span><span class="p">]</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 4. 访视派生：VISNUMEN / 完成周标记</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_visits</span><span class="p">(</span><span class="n">vs_bp</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">subj</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""从访视数据派生 ``VISNUMEN``（最后一次计划访视的编号）。</span>
+
+<span class="sd">    ★ 这里要说清一件很要紧的事：</span>
+<span class="sd">      **ADSL 里的 VISNUMEN 不是"最后一次访视的编号"那么简单。**</span>
+<span class="sd">      本项目的定义是"最后一次**疗效评估**访视的编号"，</span>
+<span class="sd">      它依赖疗效数据集（ADAS-Cog），而那份数据**不在本案例可用的域里**。</span>
+<span class="sd">      所以这里只能做**最佳努力的近似**：取计划访视（VISITNUM 1–12）的最大值。</span>
+<span class="sd">      结果 234/254 与参考一致 —— 另外 20 位是提前终止的受试者，</span>
+<span class="sd">      他们的 ADSL 值比访视数据大 1（终止访视单独计数）。</span>
+
+<span class="sd">      ★ 结论：当你需要的数据不在手上时，正确做法是**去要数据**，</span>
+<span class="sd">        而不是用一个"看起来像"的近似值悄悄顶上。</span>
+<span class="sd">        本案例会把这个差异**明确报告出来**，而不是掩盖它。</span>
+<span class="sd">    """</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">vs_bp</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">v</span><span class="p">[</span><span class="s2">"_V"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="s2">"_V"</span><span class="p">]</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">)]</span>                     <span class="c1"># 只看在治疗期内的计划访视</span>
+    <span class="n">mx</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_V"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"VISNUMEN"</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">subj</span><span class="p">)})</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 5. 主派生流程</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_adsl</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">end_rule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"imp"</span><span class="p">,</span>
+               <span class="n">trt01a_rule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"arm"</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="n">dm</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">adae</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="s2">"dm"</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="s2">"ex"</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="s2">"adae"</span><span class="p">]</span>
+
+    <span class="c1"># ---- 第一步：确定分析人群 -------------------------------------------</span>
+    <span class="c1"># ADSL 只放"随机化"的受试者（Screen Failure 不进分析人群）</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">dm</span><span class="p">[</span><span class="o">~</span><span class="n">dm</span><span class="p">[</span><span class="s2">"ARM"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">EXCLUDED_ARMS</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  DM 共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dm</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位受试者；排除 Screen Failure 后 "</span>
+              <span class="sa">f</span><span class="s2">"进入 ADSL 的：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">base</span><span class="p">)</span><span class="si">}</span><span class="s2"> 位"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  （对照：参考 ADSL 共 254 位 —— 数字一致说明人群口径对了）"</span><span class="p">)</span>
+
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">base</span><span class="p">[[</span><span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"SUBJID"</span><span class="p">,</span> <span class="s2">"SITEID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"AGEU"</span><span class="p">,</span>
+                 <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">,</span> <span class="s2">"ETHNIC"</span><span class="p">,</span> <span class="s2">"COUNTRY"</span><span class="p">,</span>
+                 <span class="s2">"RFSTDTC"</span><span class="p">,</span> <span class="s2">"RFENDTC"</span><span class="p">,</span> <span class="s2">"ACTARM"</span><span class="p">,</span> <span class="s2">"ARM"</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># ---- 第二步：治疗组（计划 vs 实际）---------------------------------</span>
+    <span class="c1"># ★ 报表里**通常用 TRT01P**（分母是随机化人群，用实际治疗会自相矛盾）。</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"ARM"</span><span class="p">]</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01PN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">TRT_CODE</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">trt01a_rule</span> <span class="o">==</span> <span class="s2">"arm"</span><span class="p">:</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01A"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"ARM"</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">trt01a_rule</span> <span class="o">==</span> <span class="s2">"actarm"</span><span class="p">:</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01A"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"ACTARM"</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>                                    <span class="c1"># maxdose</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">derive_actual_trt</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="s2">"maxdose"</span><span class="p">)</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01A"</span><span class="p">]</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01AN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01A"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">TRT_CODE</span><span class="p">)</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_categorical</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">TRT_LEVELS</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第三步：暴露 ---------------------------------------------------</span>
+    <span class="n">ref_end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"RFENDTC"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">expo</span> <span class="o">=</span> <span class="n">derive_exposure</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">end_rule</span><span class="p">,</span> <span class="n">ref_end</span><span class="p">)</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">expo</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第四步：人群标记 ----------------------------------------------</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+    <span class="c1"># ITTFL：随机化即入组（本项目里与 SAFFL 完全一致，但要分开写 ——</span>
+    <span class="c1"># 一旦出现"随机化后未给药"的受试者，两者立刻分叉）</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"ITTFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">])</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">TRT_LEVELS</span><span class="p">),</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+    <span class="c1"># EFFFL：需要"基线 + 至少一次基线后疗效评估"，依赖 ADAS-Cog 数据。</span>
+    <span class="c1"># ★ 不在可用域里 → 显式置为缺失，并在验证环节标注"不可派生"。</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"EFFFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">adsl</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"object"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第五步：处置 / 死亡 -------------------------------------------</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">derive_disposition</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">disp</span><span class="p">[[</span><span class="s2">"DCDECOD"</span><span class="p">,</span> <span class="s2">"DSRAEFL"</span><span class="p">]],</span>
+                      <span class="n">left_on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+    <span class="n">death</span> <span class="o">=</span> <span class="n">derive_death</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">death</span><span class="p">[[</span><span class="s2">"DTHFL"</span><span class="p">,</span> <span class="s2">"_DM_DTHFL"</span><span class="p">]],</span>
+                      <span class="n">left_on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第六步：访视 → VISNUMEN → 完成周标记 ---------------------------</span>
+    <span class="n">vis</span> <span class="o">=</span> <span class="n">derive_visits</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="s2">"vs_bp"</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()))</span>
+    <span class="n">vis</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"VISNUMEN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">vis</span><span class="p">[</span><span class="s2">"VISNUMEN"</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">flag</span><span class="p">,</span> <span class="n">vnum</span> <span class="ow">in</span> <span class="n">COMP_VISIT</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="n">flag</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"VISNUMEN"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">vnum</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第七步：基线值（身高 / 体重 → BMI）----------------------------</span>
+    <span class="c1"># ★ DM 里根本没有身高体重 —— 它们来自 VS 域。</span>
+    <span class="c1"># ★ 另一个坑：VS.VSSTRESN 是"标准单位下的全精度值"，</span>
+    <span class="c1">#   体重 120 LB → 54.43 kg；而 ADSL 的 WEIGHTBL 是 ROUND(., 0.1) 的 54.4。</span>
+    <span class="c1">#   直接拿 VSSTRESN 去比会 250/254 不一致 —— **先舍入再比**。</span>
+    <span class="n">anth</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"vs_anthrop"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">anth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">anth</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">a</span><span class="p">[</span><span class="s2">"_N"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"VSSTRESN"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">a</span><span class="p">[</span><span class="s2">"_CODE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">"VSTESTCD"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">a</span><span class="p">[</span><span class="s2">"_VISITN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">blfl</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">"VSBLFL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">a</span><span class="p">[</span><span class="s2">"_BLFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">blfl</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">blfl</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"nan"</span><span class="p">,</span> <span class="s2">"None"</span><span class="p">,</span> <span class="s2">"&lt;NA&gt;"</span><span class="p">]))</span>
+
+        <span class="c1"># 身高：本研究只在筛选期测一次 → 取该受试者的唯一（最后一次）记录</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s2">"_CODE"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"HEIGHT"</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_VISITN"</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_N"</span><span class="p">])</span>
+        <span class="c1"># 体重：优先取基线访视（VSBLFL='Y'）；没有该标记时退回最早访视</span>
+        <span class="n">w_bl</span> <span class="o">=</span> <span class="n">a</span><span class="p">[(</span><span class="n">a</span><span class="p">[</span><span class="s2">"_CODE"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"WEIGHT"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"_BLFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w_bl</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">w_bl</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_N"</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s2">"_CODE"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"WEIGHT"</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_VISITN"</span><span class="p">)</span>
+                   <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"_N"</span><span class="p">])</span>
+
+        <span class="n">anc</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"_H"</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span> <span class="s2">"_W"</span><span class="p">:</span> <span class="n">w</span><span class="p">})</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+        <span class="n">anc</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">index</span>
+        <span class="c1"># 报表里这两列按 1 位小数呈现（与 ADSL 的口径一致）</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"HEIGHTBL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">anc</span><span class="p">[</span><span class="s2">"_H"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"WEIGHTBL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">anc</span><span class="p">[</span><span class="s2">"_W"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># ★ BMI 的精度顺序：</span>
+        <span class="c1">#   本项目参考 ADSL 是「先舍入到 1 位的 W/H，再算 BMI，最后再舍入」，</span>
+        <span class="c1">#   与"用全精度 W/H 算完再舍入"会差 25 个人。</span>
+        <span class="c1">#   两种都"没错"，但结果不同 —— 这就是为什么口径要写死在 ADRG 里。</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"BMIBL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sas_round_series</span><span class="p">(</span>
+            <span class="n">adsl</span><span class="p">[</span><span class="s2">"WEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"HEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"HEIGHTBL"</span><span class="p">,</span> <span class="s2">"WEIGHTBL"</span><span class="p">,</span> <span class="s2">"BMIBL"</span><span class="p">):</span>
+            <span class="n">adsl</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"BMIBLGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"BMIBL"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">25</span><span class="p">,</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"BMIBL"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">],</span> <span class="p">[</span><span class="s2">"&lt;25"</span><span class="p">,</span> <span class="s2">"25-&lt;30"</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;=30"</span><span class="p">)</span>
+    <span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"BMIBL"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">"BMIBLGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+
+    <span class="c1"># ---- 第八步：年龄分组（复用 clinic.derive 里显式写死边界的实现）------</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">derive_agegr1</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">age_var</span><span class="o">=</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="n">out_var</span><span class="o">=</span><span class="s2">"AGEGR1"</span><span class="p">,</span> <span class="n">num_var</span><span class="o">=</span><span class="s2">"AGEGR1N"</span><span class="p">)</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_categorical</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">])</span>
+    <span class="n">adsl</span><span class="p">[</span><span class="s2">"RACEN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">RACEN_MAP</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第九步：安全性补充（首次 TEAE = 治疗中出现的不良事件）----------</span>
+    <span class="k">if</span> <span class="s2">"TRTEMFL"</span> <span class="ow">in</span> <span class="n">adae</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">teae</span> <span class="o">=</span> <span class="n">adae</span><span class="p">[</span><span class="n">adae</span><span class="p">[</span><span class="s2">"TRTEMFL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">teae</span><span class="p">[</span><span class="s2">"_ASTDT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">teae</span><span class="p">[</span><span class="s2">"ASTDT"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="n">teae</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">TRTEMFL_first</span><span class="o">=</span><span class="p">(</span><span class="s2">"_ASTDT"</span><span class="p">,</span> <span class="s2">"min"</span><span class="p">),</span> <span class="n">TRTEMFL_n</span><span class="o">=</span><span class="p">(</span><span class="s2">"_ASTDT"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">))</span>
+        <span class="n">adsl</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+        <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRTEMFL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRTEMFL_first"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 排序列（模拟 SAS 的 KEEP 顺序）--------------------------------</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"STUDYID"</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"SUBJID"</span><span class="p">,</span> <span class="s2">"SITEID"</span><span class="p">,</span> <span class="s2">"COUNTRY"</span><span class="p">,</span>
+        <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"AGEU"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">,</span> <span class="s2">"AGEGR1N"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">,</span> <span class="s2">"RACEN"</span><span class="p">,</span> <span class="s2">"ETHNIC"</span><span class="p">,</span>
+        <span class="s2">"ARM"</span><span class="p">,</span> <span class="s2">"ACTARM"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"TRT01PN"</span><span class="p">,</span> <span class="s2">"TRT01A"</span><span class="p">,</span> <span class="s2">"TRT01AN"</span><span class="p">,</span>
+        <span class="s2">"TRTSDT"</span><span class="p">,</span> <span class="s2">"TRTEDT"</span><span class="p">,</span> <span class="s2">"TRTDUR"</span><span class="p">,</span>
+        <span class="s2">"SAFFL"</span><span class="p">,</span> <span class="s2">"ITTFL"</span><span class="p">,</span> <span class="s2">"EFFFL"</span><span class="p">,</span> <span class="s2">"COMP8FL"</span><span class="p">,</span> <span class="s2">"COMP16FL"</span><span class="p">,</span> <span class="s2">"COMP24FL"</span><span class="p">,</span>
+        <span class="s2">"DCDECOD"</span><span class="p">,</span> <span class="s2">"DSRAEFL"</span><span class="p">,</span> <span class="s2">"DTHFL"</span><span class="p">,</span>
+        <span class="s2">"RFSTDTC"</span><span class="p">,</span> <span class="s2">"RFENDTC"</span><span class="p">,</span> <span class="s2">"VISNUMEN"</span><span class="p">,</span>
+        <span class="s2">"WEIGHTBL"</span><span class="p">,</span> <span class="s2">"HEIGHTBL"</span><span class="p">,</span> <span class="s2">"BMIBL"</span><span class="p">,</span> <span class="s2">"BMIBLGR1"</span><span class="p">,</span>
+        <span class="s2">"TRTEMFL"</span><span class="p">,</span> <span class="s2">"TRTEMFL_n"</span><span class="p">,</span> <span class="s2">"TRTEMFL_first"</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">adsl</span><span class="p">[[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">order</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">columns</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 6. 双编程验证：与参考 ADSL 逐变量比对</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_norm</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把值标准化后再比 —— 否则 ``'2013-07-14'`` 与 ``Timestamp`` 会被判为不等。</span>
+
+<span class="sd">    ★ 这里埋着一个很典型的坑 ★</span>
+
+<span class="sd">    ``clinic.io.clean_missing()`` 会把所有字符列转成 pandas 的</span>
+<span class="sd">    **StringDtype**，而**不是** ``object``。如果判断 dtype 时只写</span>
+<span class="sd">    ``s.dtype == "object"``，这些列就会掉进 ``pd.to_numeric`` 分支 ——</span>
+<span class="sd">    整列变成 NaN，比对报告显示"100% 不一致"，但数据其实完全正确。</span>
+
+<span class="sd">    教训：**比对工具本身也需要被验证**。看到"全表 0% 匹配"时，</span>
+<span class="sd">    第一反应应该是"我的比对代码有问题"，而不是"我的派生逻辑有问题"。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_bool_dtype</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_datetime64_any_dtype</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">({</span><span class="s2">""</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span><span class="p">})</span>
+
+
+<span class="c1"># 这些变量**无法**从本案例可用的域派生出来，必须单独标注，</span>
+<span class="c1"># 否则报告里会显示成"0% 匹配"，看起来像是实现错了。</span>
+<span class="n">NON_DERIVABLE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"EFFFL"</span><span class="p">:</span> <span class="s2">"需疗效数据（ADAS-Cog）：基线 + 至少一次基线后评估，本案例无此数据"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># 口径正确、但**所需源数据不完整**，只能做最佳努力近似。</span>
+<span class="c1"># ★ 这类差异必须显式报告出来，绝不能悄悄放过。</span>
+<span class="n">LIMITED</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"VISNUMEN"</span><span class="p">:</span> <span class="s2">"需疗效评估访视数据（ADAS-Cog）；本案例用计划访视 VISITNUM 1–12 近似"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="n">derived</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+             <span class="n">check_vars</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""逐变量比对派生结果与参考实现，返回匹配率表。</span>
+
+<span class="sd">    这是**双编程（Double Programming）**的最小可用版本：</span>
+<span class="sd">    独立实现 → 比对 → 逐变量报告匹配率 → 定位差异根因。</span>
+
+<span class="sd">    判定分四档，**不要把所有不一致都当成 bug**：</span>
+
+<span class="sd">    ==================  ====================================================</span>
+<span class="sd">    ``一致``            完全一致</span>
+<span class="sd">    ``近似``            匹配率 ≥ 95%，口径正确但有边界差异，需记录</span>
+<span class="sd">    ``近似·数据受限``   口径正确，但所需源数据不在手上，只能逼近</span>
+<span class="sd">    ``不可派生``        所需源数据完全缺失，**不应给出任何值**</span>
+<span class="sd">    ``不一致``          必须定位根因并修复</span>
+<span class="sd">    ==================  ====================================================</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">derived</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span> <span class="n">r</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">check_vars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"变量"</span><span class="p">:</span> <span class="n">var</span><span class="p">,</span> <span class="s2">"匹配数"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"总数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span>
+                         <span class="s2">"匹配率"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">"判定"</span><span class="p">:</span> <span class="s2">"不可比"</span><span class="p">,</span> <span class="s2">"说明"</span><span class="p">:</span> <span class="s2">"变量缺失"</span><span class="p">})</span>
+            <span class="k">continue</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">_norm</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">var</span><span class="p">]),</span> <span class="n">_norm</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
+        <span class="n">both_na</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">b</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>          <span class="c1"># 两边同为缺失 → 算一致</span>
+        <span class="n">n_eq</span><span class="p">,</span> <span class="n">n_tot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="o">|</span> <span class="n">both_na</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="n">n_eq</span> <span class="o">/</span> <span class="n">n_tot</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">NON_DERIVABLE</span><span class="p">:</span>
+            <span class="n">verdict</span><span class="p">,</span> <span class="n">note</span> <span class="o">=</span> <span class="s2">"不可派生"</span><span class="p">,</span> <span class="n">NON_DERIVABLE</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">LIMITED</span><span class="p">:</span>
+            <span class="n">verdict</span><span class="p">,</span> <span class="n">note</span> <span class="o">=</span> <span class="s2">"近似·数据受限"</span><span class="p">,</span> <span class="n">LIMITED</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">n_eq</span> <span class="o">==</span> <span class="n">n_tot</span><span class="p">:</span>
+            <span class="n">verdict</span><span class="p">,</span> <span class="n">note</span> <span class="o">=</span> <span class="s2">"一致"</span><span class="p">,</span> <span class="s2">""</span>
+        <span class="k">elif</span> <span class="n">rate</span> <span class="o">&gt;=</span> <span class="mi">95</span><span class="p">:</span>
+            <span class="n">verdict</span><span class="p">,</span> <span class="n">note</span> <span class="o">=</span> <span class="s2">"近似"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_tot</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">n_eq</span><span class="si">}</span><span class="s2"> 条不一致（见根因分析）"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">verdict</span><span class="p">,</span> <span class="n">note</span> <span class="o">=</span> <span class="s2">"不一致"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_tot</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">n_eq</span><span class="si">}</span><span class="s2"> 条不一致（见根因分析）"</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"变量"</span><span class="p">:</span> <span class="n">var</span><span class="p">,</span> <span class="s2">"匹配数"</span><span class="p">:</span> <span class="n">n_eq</span><span class="p">,</span> <span class="s2">"总数"</span><span class="p">:</span> <span class="n">n_tot</span><span class="p">,</span>
+                     <span class="s2">"匹配率"</span><span class="p">:</span> <span class="n">rate</span><span class="p">,</span> <span class="s2">"判定"</span><span class="p">:</span> <span class="n">verdict</span><span class="p">,</span> <span class="s2">"说明"</span><span class="p">:</span> <span class="n">note</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">show_mismatch</span><span class="p">(</span><span class="n">derived</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                  <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把不一致的记录打出来 —— 定位差异根因的唯一办法。"""</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">derived</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">),</span> <span class="n">reference</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">_norm</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">idx</span><span class="p">)[</span><span class="n">var</span><span class="p">]),</span> <span class="n">_norm</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">idx</span><span class="p">)[</span><span class="n">var</span><span class="p">])</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="o">~</span><span class="p">((</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">b</span><span class="o">.</span><span class="n">isna</span><span class="p">()))</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"USUBJID"</span><span class="p">:</span> <span class="n">idx</span><span class="p">[</span><span class="n">bad</span><span class="p">],</span>
+                        <span class="s2">"派生值"</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">bad</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+                        <span class="s2">"参考值"</span><span class="p">:</span> <span class="n">b</span><span class="p">[</span><span class="n">bad</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()})</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  … 另有 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">limit</span><span class="si">}</span><span class="s2"> 条"</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># main</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"从 SDTM 衍生 ADSL 并做双编程验证"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--end-rule"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"imp"</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"imp"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">],</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"治疗结束日口径：ex=直接用 EXENDTC / imp=补全缺失（默认）/ ref=参考结束日"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--trt01a-rule"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"arm"</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"arm"</span><span class="p">,</span> <span class="s2">"actarm"</span><span class="p">,</span> <span class="s2">"maxdose"</span><span class="p">],</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"实际治疗组口径：arm=随机化臂（默认）/ actarm=DM.ACTARM / maxdose=最高剂量"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--no-validate"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"跳过双编程验证"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span>
+    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  案例 05 · 从 SDTM 衍生 ADSL（受试者水平分析数据集）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">88</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"1. 载入源数据"</span><span class="p">)</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">load_sources</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">6d</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  ★ 注意 DM 有 306 行，但 ADSL 只应该有 254 行 —— 因为 ADSL 是"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"    **分析人群**，Screen Failure 不进分析人群。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ★ 还要注意：DM 里**没有**身高体重 —— BMI 得从 VS 域派生。"</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="sa">f</span><span class="s2">"2. 派生 ADSL（结束日口径=</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">end_rule</span><span class="si">}</span><span class="s2">，实际治疗组口径=</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">trt01a_rule</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">build_adsl</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">end_rule</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">trt01a_rule</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  派生完成：</span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  治疗组分布（TRT01P）："</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">TRT_LEVELS</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">k</span><span class="si">:</span><span class="s2">24s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">dur</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRTDUR"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  治疗暴露：TRTSDT 非缺失 </span><span class="si">{</span><span class="n">adsl</span><span class="p">[</span><span class="s1">'TRTSDT'</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> 位，"</span>
+          <span class="sa">f</span><span class="s2">"TRTEDT 非缺失 </span><span class="si">{</span><span class="n">adsl</span><span class="p">[</span><span class="s1">'TRTEDT'</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> 位"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"             TRTDUR 中位数 </span><span class="si">{</span><span class="n">dur</span><span class="o">.</span><span class="n">median</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> 天，"</span>
+          <span class="sa">f</span><span class="s2">"最短 </span><span class="si">{</span><span class="n">dur</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> 天，最长 </span><span class="si">{</span><span class="n">dur</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> 天"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 三种结束日口径的对照（本案例第 1 个教学点）---------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"3. 三种治疗结束日口径 = 三个不同答案"</span><span class="p">)</span>
+    <span class="n">ref_adsl</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"adsl.csv"</span><span class="p">)</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">ref_adsl</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+    <span class="n">ref_end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="s2">"dm"</span><span class="p">]</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"RFENDTC"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">refT</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="s1">'口径'</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}{</span><span class="s1">'说明'</span><span class="si">:</span><span class="s2">&lt;46</span><span class="si">}{</span><span class="s1">'与参考 TRTEDT 一致'</span><span class="si">:</span><span class="s2">&gt;20</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">76</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"TRTEDT = max(EXENDTC)（字面做法）"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"imp"</span><span class="p">,</span> <span class="s2">"缺失 EXENDTC→下一条起始日−1；末条未闭合→RFENDTC"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"TRTEDT = RFENDTC（完全放弃 EX）"</span><span class="p">),</span>
+    <span class="p">]:</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">derive_exposure</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="s2">"ex"</span><span class="p">],</span> <span class="n">rule</span><span class="p">,</span> <span class="n">ref_end</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">refT</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">a</span> <span class="o">==</span> <span class="n">refT</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">refT</span><span class="o">.</span><span class="n">isna</span><span class="p">()))</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="n">mark</span> <span class="o">=</span> <span class="s2">"   ← 本项目口径"</span> <span class="k">if</span> <span class="n">rule</span> <span class="o">==</span> <span class="s2">"imp"</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">rule</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}{</span><span class="n">desc</span><span class="si">:</span><span class="s2">&lt;46</span><span class="si">}{</span><span class="n">n</span><span class="si">:</span><span class="s2">&gt;10d</span><span class="si">}</span><span class="s2"> / 254</span><span class="si">{</span><span class="n">mark</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  ★ 差的都是同一种人：**EX 末次给药记录没有 EXENDTC**（治疗仍在进行 / 记录未闭合）。</span>
+<span class="s2">    照字面 max(EXENDTC) 会把他们的治疗时长严重截断。</span>
+<span class="s2">    'ref' 口径看起来"最省事"，但它等于把 EX 域整个丢掉 —— 127/254。</span>
+
+<span class="s2">  ★ 这就是为什么 ADaM 派生必须写清规则，并且**必须双编程验证**：</span>
+<span class="s2">    "我把 TRTEDT 算出来了" 这句话，离开口径就没有意义。"""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 实际治疗组口径对照（第 2 个教学点）-----------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"4. 三种 TRT01A 口径：同一批人，三个身份"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="s1">'口径'</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}{</span><span class="s1">'说明'</span><span class="si">:</span><span class="s2">&lt;40</span><span class="si">}{</span><span class="s1">'与参考 TRT01A 一致'</span><span class="si">:</span><span class="s2">&gt;20</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">76</span><span class="p">)</span>
+    <span class="n">refA</span> <span class="o">=</span> <span class="n">ref</span><span class="p">[</span><span class="s2">"TRT01A"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">"arm"</span><span class="p">,</span> <span class="s2">"取随机化臂 DM.ARM"</span><span class="p">),</span>
+                       <span class="p">(</span><span class="s2">"actarm"</span><span class="p">,</span> <span class="s2">"取 DM.ACTARM（申办方已派生的实际治疗）"</span><span class="p">),</span>
+                       <span class="p">(</span><span class="s2">"maxdose"</span><span class="p">,</span> <span class="s2">"按实际接受的最高剂量判断"</span><span class="p">)]:</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">build_adsl</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="s2">"imp"</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"TRT01A"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">refA</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">a</span> <span class="o">==</span> <span class="n">refA</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="n">mark</span> <span class="o">=</span> <span class="s2">"   ← 本项目口径"</span> <span class="k">if</span> <span class="n">rule</span> <span class="o">==</span> <span class="s2">"arm"</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">rule</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}{</span><span class="n">desc</span><span class="si">:</span><span class="s2">&lt;40</span><span class="si">}{</span><span class="n">n</span><span class="si">:</span><span class="s2">&gt;10d</span><span class="si">}</span><span class="s2"> / 254</span><span class="si">{</span><span class="n">mark</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  ★ 不一致的 12 位受试者是这样的：</span>
+<span class="s2">    随机化到 Xanomeline High Dose（应服 81 mg），但在**滴定期**内退出了</span>
+<span class="s2">    （最短 1 天、最长 14 天），全程只吃到 54 mg 的起始剂量。</span>
+<span class="s2">      · 随机化臂口径 → High Dose（本项目参考 ADSL 的做法）</span>
+<span class="s2">      · ACTARM / 最高剂量口径 → Low Dose</span>
+<span class="s2">    两种都说得通，**但必须与 SAP 一致并写进 ADRG**。</span>
+<span class="s2">    这也是"实际治疗组"这个变量在不同项目里含义不同的根本原因。"""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 双编程验证 ----------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"5. 双编程验证（与参考 ADSL 逐变量比对）"</span><span class="p">)</span>
+    <span class="n">rep</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">no_validate</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  已跳过（--no-validate）"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># 口径对齐：验证时统一用与参考一致的口径，</span>
+        <span class="c1"># 否则差异来自"口径不同"而不是"实现不同"，比对就失去意义</span>
+        <span class="n">py_adsl</span> <span class="o">=</span> <span class="n">build_adsl</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="s2">"imp"</span><span class="p">,</span> <span class="s2">"arm"</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">check_vars</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">,</span> <span class="s2">"AGEGR1N"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">,</span> <span class="s2">"RACEN"</span><span class="p">,</span> <span class="s2">"ETHNIC"</span><span class="p">,</span>
+            <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"TRT01PN"</span><span class="p">,</span> <span class="s2">"TRT01A"</span><span class="p">,</span> <span class="s2">"TRT01AN"</span><span class="p">,</span>
+            <span class="s2">"TRTSDT"</span><span class="p">,</span> <span class="s2">"TRTEDT"</span><span class="p">,</span> <span class="s2">"TRTDUR"</span><span class="p">,</span>
+            <span class="s2">"SAFFL"</span><span class="p">,</span> <span class="s2">"ITTFL"</span><span class="p">,</span> <span class="s2">"EFFFL"</span><span class="p">,</span> <span class="s2">"COMP8FL"</span><span class="p">,</span> <span class="s2">"COMP16FL"</span><span class="p">,</span> <span class="s2">"COMP24FL"</span><span class="p">,</span>
+            <span class="s2">"DCDECOD"</span><span class="p">,</span> <span class="s2">"DSRAEFL"</span><span class="p">,</span> <span class="s2">"DTHFL"</span><span class="p">,</span> <span class="s2">"VISNUMEN"</span><span class="p">,</span>
+            <span class="s2">"WEIGHTBL"</span><span class="p">,</span> <span class="s2">"HEIGHTBL"</span><span class="p">,</span> <span class="s2">"BMIBL"</span><span class="p">,</span> <span class="s2">"BMIBLGR1"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">rep</span> <span class="o">=</span> <span class="n">validate</span><span class="p">(</span><span class="n">py_adsl</span><span class="p">,</span> <span class="n">ref_adsl</span><span class="p">,</span> <span class="n">check_vars</span><span class="p">)</span>
+        <span class="n">show</span> <span class="o">=</span> <span class="n">rep</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">show</span><span class="p">[</span><span class="s2">"匹配率"</span><span class="p">]</span> <span class="o">=</span> <span class="n">show</span><span class="p">[</span><span class="s2">"匹配率"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">"-"</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">show</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+        <span class="n">cnt</span> <span class="o">=</span> <span class="n">rep</span><span class="p">[</span><span class="s2">"判定"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="n">order_v</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"一致"</span><span class="p">,</span> <span class="s2">"近似"</span><span class="p">,</span> <span class="s2">"近似·数据受限"</span><span class="p">,</span> <span class="s2">"不可派生"</span><span class="p">,</span> <span class="s2">"不一致"</span><span class="p">,</span> <span class="s2">"不可比"</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  汇总："</span> <span class="o">+</span> <span class="s2">" ｜ "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cnt</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">order_v</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cnt</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"   （共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个变量）"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  ★ 报告口径：'近似' 和 '数据受限' 不是 bug，但**必须写进 ADRG**；"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"    只有 '不一致' 才代表实现有问题。"</span><span class="p">)</span>
+
+        <span class="c1"># ---- 逐项根因分析 ----</span>
+        <span class="c1"># TRTEDT 用 'ex' 口径来演示，才能把差异"演"出来 —— 这正是</span>
+        <span class="c1"># 双编程验证的价值：它把口径问题变成了**可量化的差异**。</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  【根因分析 · TRTEDT】下面故意换成 'ex' 字面口径，看差异长什么样"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+        <span class="n">bad_ex</span> <span class="o">=</span> <span class="n">build_adsl</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"arm"</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">show_mismatch</span><span class="p">(</span><span class="n">bad_ex</span><span class="p">,</span> <span class="n">ref_adsl</span><span class="p">,</span> <span class="s2">"TRTEDT"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  这 6 位的共同点：**EX 末次给药记录没有 EXENDTC**（治疗仍在进行）。</span>
+<span class="s2">    · 01-704-1233 / 01-705-1031 / 01-705-1303 / 01-705-1377</span>
+<span class="s2">      → 最后一条给药记录只填了开始日，没填结束日</span>
+<span class="s2">    · 01-705-1018 / 01-705-1382</span>
+<span class="s2">      → 只有一条给药记录，且结束日为空</span>
+<span class="s2">  照字面 max(EXENDTC) 会拿到"倒数第二条"的结束日，把治疗时长严重截断</span>
+<span class="s2">  （例如 01-704-1233：字面口径 15 天 vs 实际 116 天）。</span>
+<span class="s2">  改用 'imp' 口径后 → 254/254 完全一致。"""</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  【根因分析 · VISNUMEN / COMP8FL】"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+        <span class="n">show_mismatch</span><span class="p">(</span><span class="n">py_adsl</span><span class="p">,</span> <span class="n">ref_adsl</span><span class="p">,</span> <span class="s2">"COMP8FL"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  VISNUMEN 在本项目里是"最后一次**疗效评估**访视的编号"，</span>
+<span class="s2">  依赖 ADAS-Cog 数据集 —— **不在本案例可用的域里**。</span>
+<span class="s2">  本案例只能从访视数据做最佳努力近似（234/254）。</span>
+<span class="s2">  不一致的 20 位全是提前终止的受试者，其 ADSL 值比访视数据大 1</span>
+<span class="s2">  （终止访视单独计数）。</span>
+
+<span class="s2">  COMP8FL 的口径同样值得记一笔：</span>
+<span class="s2">    · 本案例（正确口径）＝ 最后一次疗效访视号 &gt;= 8</span>
+<span class="s2">    · "治疗时长 &gt;= 56 天"（直觉口径）→ 只有 183 人，比参考少 7 人</span>
+<span class="s2">      例如 01-704-1241 只治疗了 46 天，但他完成了第 8 周访视 → 参考是 Y。</span>
+<span class="s2">    ★ 在临床统计里，"完成 8 周治疗"通常指**完成了第 8 周访视**，</span>
+<span class="s2">      不是"活了 56 天"。凭直觉写代码在这里一定会错。</span>
+
+<span class="s2">  ★ 当你需要的数据不在手上时，正确做法是**去要数据**，</span>
+<span class="s2">    而不是用一个"看起来像"的近似值悄悄顶上。</span>
+<span class="s2">    一个编出来的标记比一个空值危险得多。"""</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"6. 输出文件"</span><span class="p">)</span>
+    <span class="n">stamp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M"</span><span class="p">)</span>
+    <span class="n">out_csv</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"adsl_derived.csv"</span>
+    <span class="n">adsl</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_csv</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  派生 ADSL：</span><span class="si">{</span><span class="n">out_csv</span><span class="si">}</span><span class="s2">  （</span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> 行 × </span><span class="si">{</span><span class="n">adsl</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> 列）"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rep_out</span> <span class="o">=</span> <span class="n">rep</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">rep_out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"生成时间"</span><span class="p">,</span> <span class="n">stamp</span><span class="p">)</span>
+        <span class="n">rep_out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"结束日口径"</span><span class="p">,</span> <span class="s2">"imp"</span><span class="p">)</span>
+        <span class="n">rep_out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">"TRT01A口径"</span><span class="p">,</span> <span class="s2">"arm"</span><span class="p">)</span>
+        <span class="n">rp</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"adsl_validation.csv"</span>
+        <span class="n">rep_out</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">rp</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+        <span class="n">rpt</span><span class="o">.</span><span class="n">to_html</span><span class="p">(</span>
+            <span class="n">rep_out</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"adsl_validation.html"</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">"ADSL 双编程验证报告（Python 派生 vs 参考实现）"</span><span class="p">,</span>
+            <span class="n">subtitle</span><span class="o">=</span><span class="sa">f</span><span class="s2">"生成时间：</span><span class="si">{</span><span class="n">stamp</span><span class="si">}</span><span class="s2">；逐变量比对受试者水平数据集（254 位受试者）"</span><span class="p">,</span>
+            <span class="n">footnote</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"匹配率 = 值完全一致（含【两边同为缺失】的情形）的受试者比例。"</span>
+                <span class="s2">"标注为【不可派生】的变量表示所需源数据不在本次可用的域中，"</span>
+                <span class="s2">"这**不是**实现错误。其余任何 &amp;lt; 100% 的变量都必须定位根因并记录在 ADRG 中。"</span>
+            <span class="p">),</span>
+            <span class="n">label_cols</span><span class="o">=</span><span class="p">(</span><span class="s2">"变量"</span><span class="p">,),</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  验证报告：</span><span class="si">{</span><span class="n">rp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  HTML 版本：</span><span class="si">{</span><span class="n">out_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'adsl_validation.html'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"7. 从 SAS 到 Python：这一段到底对应什么"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""  下面这张表是给"写惯了 SAS 的人"看的 —— 左侧是你脑子里想的东西。</span>
+
+<span class="s2">  +------------------------------------------------------------+----------------------------------------+</span>
+<span class="s2">  | SAS 里你会写                                                | Python 里对应什么                      |</span>
+<span class="s2">  +------------------------------------------------------------+----------------------------------------+</span>
+<span class="s2">  | DATA ADSL; SET DM; IF ARM NOT IN (...);                     | dm[~dm["ARM"].isin(EXCLUDED_ARMS)]     |</span>
+<span class="s2">  | PROC SORT DATA=EX; BY USUBJID EXSEQ;                        | ex.sort_values(["USUBJID","EXSEQ"])    |</span>
+<span class="s2">  | RETAIN TRTSDT; TRTSDT=MIN(TRTSDT,EXSTDTC);                  | groupby("USUBJID").agg(min, max)       |</span>
+<span class="s2">  |   TRTEDT=MAX(TRTEDT,EXENDTC);                               |   ← 不需要 RETAIN，聚合一步到位        |</span>
+<span class="s2">  | TRTDUR = TRTEDT - TRTSDT + 1;                               | (TRTEDT-TRTSDT).dt.days + 1            |</span>
+<span class="s2">  | MERGE ADSL(IN=A) _EX; BY USUBJID; IF A;                     | adsl.merge(expo, how="left")           |</span>
+<span class="s2">  | CLASS 顺序靠 order= / preloadfmt                            | pd.Categorical(categories=TRT_LEVELS)  |</span>
+<span class="s2">  | ROUND(BMI, 0.1)                                             | sas_round_series(BMI, 1) ★不是 round() |</span>
+<span class="s2">  | PROC COMPARE BASE=ADSL COMPARE=ADSL_PY;                     | validate() —— 见本案例第 5 节          |</span>
+<span class="s2">  +------------------------------------------------------------+----------------------------------------+</span>
+
+<span class="s2">  ★ 四个最容易踩的坑：</span>
+<span class="s2">    1) SAS 的 ROUND(x, 0.1) 是「按单位舍入 + 四舍五入」，</span>
+<span class="s2">       Python 的 round(x, 1) 是「按小数位 + 银行家舍入」——</span>
+<span class="s2">       round(2.5) 会给 2。必须用 clinic.derive.sas_round_series。</span>
+<span class="s2">    2) SAS 里空字符串就是缺失，IF X = '' 能命中；</span>
+<span class="s2">       pandas 里空串是合法值，必须 clean_missing()。</span>
+<span class="s2">    3) SAS 的 MERGE 按 BY 值匹配且**自动去重主键**；</span>
+<span class="s2">       pandas 的 merge 是"笛卡尔积后再取"——</span>
+<span class="s2">       右表主键有重复时行数会**成倍膨胀**，必须先 drop_duplicates。</span>
+<span class="s2">    4) pandas 的 .loc[mask, col] = value 在 mask 定位到</span>
+<span class="s2">       **不存在的索引标签**时会**静默失效**，不报错。</span>
+<span class="s2">       SAS 至少会给你一个 note。做"补齐后再赋值"时一定要先 reindex。"""</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case04.html"><span class="pg-label">← 上一篇</span><span class="pg-title">实验室移位表</span></a><a class="pg-next" href="case06.html"><span class="pg-label">下一篇 →</span><span class="pg-title">批处理自动化</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

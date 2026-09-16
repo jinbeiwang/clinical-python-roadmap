@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>临床统计程序员的 Python 进阶路线图 · 从 SAS 到 Python 与 AI Agent</title>
+<meta name="description" content="面向「熟 SAS、Python 只会一点点」的临床统计程序员：18 章教程 + 7 个可运行案例，全部基于 CDISC 公开真实数据（SDTM/ADaM），从语法速通到 AI Agent 开发。">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="临床统计程序员的 Python 进阶路线图 · 从 SAS 到 Python 与 AI Agent">
+<meta property="og:description" content="面向「熟 SAS、Python 只会一点点」的临床统计程序员：18 章教程 + 7 个可运行案例，全部基于 CDISC 公开真实数据（SDTM/ADaM），从语法速通到 AI Agent 开发。">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="" data-page="index.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<div class="hero">
+  <h1>临床统计程序员的 Python 进阶路线图</h1>
+  <p class="lede">给「熟 SAS、Python 只会一点点」的临床统计程序员。<br>
+     从语法速通到能开发 AI Agent —— 全程用<strong>真实的公开临床数据</strong>，
+     所有代码<strong>实测可跑通</strong>，所有数字<strong>来自真实数据而非编造</strong>。</p>
+  <div class="hero-badges">
+    <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+">
+    <img src="https://img.shields.io/badge/pandas-2.x%20%7C%203.x-150458?logo=pandas&logoColor=white" alt="pandas">
+    <img src="https://img.shields.io/badge/CDISC-SDTM%20%7C%20ADaM-005A9C" alt="CDISC">
+    <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
+  </div>
+  <div class="hero-stats">
+    <div class="hs"><b>18</b><span>章系统教程</span></div>
+    <div class="hs"><b>7</b><span>个可运行案例</span></div>
+    <div class="hs"><b>254</b><span>真实受试者</span></div>
+    <div class="hs"><b>28</b><span>个 ADSL 变量双编程验证</span></div>
+  </div>
+  <h2 style="font-size:19px;margin:30px 0 12px">章节总览</h2>
+  <div class="card-grid"><a class="card" href="guide/00.html"><div class="c-num">CHAPTER 00</div><div class="c-title">学习路线图与如何使用本项目</div></a><a class="card" href="guide/01.html"><div class="c-num">CHAPTER 01</div><div class="c-title">环境搭建与思维转换</div></a><a class="card" href="guide/02.html"><div class="c-num">CHAPTER 02</div><div class="c-title">基础语法速通（SAS 对照）</div></a><a class="card" href="guide/03.html"><div class="c-num">CHAPTER 03</div><div class="c-title">核心数据结构 list / dict / str</div></a><a class="card" href="guide/04.html"><div class="c-num">CHAPTER 04</div><div class="c-title">控制流、函数、模块与异常</div></a><a class="card" href="guide/05.html"><div class="c-num">CHAPTER 05</div><div class="c-title">文件与批处理自动化</div></a><a class="card" href="guide/06.html"><div class="c-num">CHAPTER 06</div><div class="c-title">NumPy 与向量化思维</div></a><a class="card" href="guide/07.html"><div class="c-num">CHAPTER 07</div><div class="c-title">pandas 入门：DataFrame 就是数据集</div></a><a class="card" href="guide/08.html"><div class="c-num">CHAPTER 08</div><div class="c-title">数据操作对照：DATA 步 / PROC SQL</div></a><a class="card" href="guide/09.html"><div class="c-num">CHAPTER 09</div><div class="c-title">合并、重塑与分组汇总</div></a><a class="card" href="guide/10.html"><div class="c-num">CHAPTER 10</div><div class="c-title">日期、缺失值、格式与数据质量</div></a><a class="card" href="guide/11.html"><div class="c-num">CHAPTER 11</div><div class="c-title">读取 XPT / SAS7BDAT 与临床数据结构</div></a><a class="card" href="guide/12.html"><div class="c-num">CHAPTER 12</div><div class="c-title">SDTM 数据处理实战</div></a><a class="card" href="guide/13.html"><div class="c-num">CHAPTER 13</div><div class="c-title">ADaM 衍生与 TFL 报表生成</div></a><a class="card" href="guide/14.html"><div class="c-num">CHAPTER 14</div><div class="c-title">统计分析与可视化</div></a><a class="card" href="guide/15.html"><div class="c-num">CHAPTER 15</div><div class="c-title">AI 辅助编程与代码迁移</div></a><a class="card" href="guide/16.html"><div class="c-num">CHAPTER 16</div><div class="c-title">Agent 开发入门：临床 QC Agent</div></a><a class="card" href="guide/17.html"><div class="c-num">CHAPTER 17</div><div class="c-title">工程化与后续进阶</div></a></div>
+</div><article class="markdown" id="content"><h2 id="这个项目解决什么问题">这个项目解决什么问题</h2>
+<p>SAS 程序员的 Python 学习材料到处都是，但<strong>几乎都对不上你的工作</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>常见教材</th>
+<th>你的实际需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教你写爬虫、Django、机器学习</td>
+<td>你要的是"把跑了一年的 SAS 程序用 Python 重写"</td>
+</tr>
+<tr>
+<td>用 Titanic / 鸢尾花数据集</td>
+<td>你要的是 SDTM / ADaM 数据集</td>
+</tr>
+<tr>
+<td>讲 <code>list</code> / <code>dict</code> / 面向对象</td>
+<td>你要的是 <code>PROC MEANS</code> 的对应写法</td>
+</tr>
+<tr>
+<td>不讲缺失值、不讲舍入、不讲分组顺序</td>
+<td><strong>这些恰好就是差异最大的地方</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>本项目反过来：从你已经懂的业务出发，用真实数据把 Python 讲透。</strong></p>
+<hr />
+<h2 id="适合谁">适合谁</h2>
+<p>✅ <strong>临床统计程序员 / 生物统计师</strong>，SAS 用得熟，Python 学过但半忘
+✅ <strong>数据管理 / 统计编程相关岗位</strong>，想转向 Python 技术栈
+✅ <strong>想了解 AI Agent 在临床数据场景怎么落地</strong>的人
+✅ 有编程基础、想了解 CDISC 数据结构的开发者</p>
+<p>❌ 不适合：完全零编程基础的人（建议先补编程入门）</p>
+<hr />
+<h2 id="快速开始3-条命令">快速开始（3 条命令）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jinbeiwang/clinical-python-roadmap.git
+<span class="nb">cd</span><span class="w"> </span>clinical-python-roadmap
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c1"># 直接跑（data/samples/ 里已有约 5MB 的样本数据，无需联网）</span>
+python<span class="w"> </span>cases/case01_数据体检.py
+</code></pre></div></div>
+<p><strong>不需要装 SAS，不需要下载几十 MB 的 XPT，不需要 API Key。</strong></p>
+<p>想用<strong>完整原始数据</strong>（含 254 位受试者的全部 SDTM/ADaM 域）：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>python<span class="w"> </span>scripts/download_data.py<span class="w"> </span>--core<span class="w">    </span><span class="c1"># 从 CDISC 公开仓库下载 XPT</span>
+python<span class="w"> </span>scripts/make_samples.py<span class="w">            </span>#<span class="w"> </span>重新生成样本<span class="w"> </span>CSV
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>Agent 案例也能离线跑</strong>：<code>python cases/case07_临床数据QC_Agent.py</code>
+默认是 <strong>Mock 模式</strong>，不联网、不需要 API Key，但工具执行的是<strong>真实逻辑</strong>。
+设置 <code>OPENAI_API_KEY</code> 即自动切换到真实 LLM 模式。</p>
+</blockquote>
+<hr />
+<h2 id="目录结构">目录结构</h2>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>clinical-python-roadmap/
+├── docs/                     # 18 章教程正文（00-17）
+├── cases/                    # 7 个可运行实战案例 ★ 核心
+├── clinic/                   # 可复用的临床数据工具包
+│   ├── io.py                 #   读 XPT/sas7bdat，保留标签，清洗伪缺失
+│   ├── derive.py             #   SAS 语义的舍入、年龄分组、日期处理
+│   ├── report.py             #   TFL 报表构造件（n (%)、Mean (SD)、移位表）
+│   ├── qc.py                 #   数据质量检查、跨域一致性、PROC COMPARE 等价物
+│   └── agent_tools.py        #   暴露给 LLM Agent 的工具集
+├── cheatsheets/              # SAS → Python 速查表 ★ 高频查阅
+├── resources/                # 精选资料索引（GitHub / CDISC / PHUSE / 论文）
+├── ci/                       # GitHub Actions 工作流模板（见 ci/README.md）
+├── scripts/                  # 数据下载与样本生成
+├── data/samples/             # 约 5MB 样本数据（已提交，离线可用）
+└── outputs/                  # 运行结果（每次运行重新生成）
+</code></pre></div></div>
+<hr />
+<h2 id="18-章学习路线">18 章学习路线</h2>
+<p><strong>阶段一：打通基础（你已经有编程底子，这部分要快）</strong></p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>标题</th>
+<th>关键收获</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide/00.html">00</a></td>
+<td>学习路线图与如何使用本项目</td>
+<td>怎么用这个仓库，别从头读到尾</td>
+</tr>
+<tr>
+<td><a href="guide/01.html">01</a></td>
+<td>环境搭建与思维转换</td>
+<td>★ <strong>"SAS 逐行思考" → "pandas 整列思考"</strong></td>
+</tr>
+<tr>
+<td><a href="guide/02.html">02</a></td>
+<td>基础语法速通（SAS 对照）</td>
+<td>用 SAS 作锚点，最快过一遍语法</td>
+</tr>
+<tr>
+<td><a href="guide/03.html">03</a></td>
+<td>核心数据结构 list/dict/str</td>
+<td>什么时候该用哪个</td>
+</tr>
+<tr>
+<td><a href="guide/04.html">04</a></td>
+<td>控制流、函数、模块与异常</td>
+<td>函数取代 <code>%macro</code>；异常取代 <code>%abort</code></td>
+</tr>
+<tr>
+<td><a href="guide/05.html">05</a></td>
+<td>文件与批处理自动化</td>
+<td><code>pathlib</code> 取代 <code>filename pipe</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>阶段二：数据操作（核心中的核心）</strong></p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>标题</th>
+<th>关键收获</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide/06.html">06</a></td>
+<td>NumPy 与向量化思维</td>
+<td>★ <strong>理解广播，就再也不会写行循环</strong></td>
+</tr>
+<tr>
+<td><a href="guide/07.html">07</a></td>
+<td>pandas 入门：DataFrame 就是数据集</td>
+<td><code>DataFrame</code> ↔ dataset 的完整映射</td>
+</tr>
+<tr>
+<td><a href="guide/08.html">08</a></td>
+<td>数据操作对照：DATA 步与 PROC SQL</td>
+<td>逐句对照表</td>
+</tr>
+<tr>
+<td><a href="guide/09.html">09</a></td>
+<td>合并、重塑与分组汇总</td>
+<td><code>merge</code> 的三个致命差异</td>
+</tr>
+<tr>
+<td><a href="guide/10.html">10</a></td>
+<td>日期、缺失值、格式与数据质量</td>
+<td>★ <strong>差异最集中的一章</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>阶段三：临床数据实战</strong></p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>标题</th>
+<th>关键收获</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide/11.html">11</a></td>
+<td>读取 XPT 与临床数据结构</td>
+<td>不装 SAS 也能读 <code>.xpt</code> / <code>.sas7bdat</code></td>
+</tr>
+<tr>
+<td><a href="guide/12.html">12</a></td>
+<td>SDTM 数据处理实战</td>
+<td>真实 SDTM 域的读取与检查</td>
+</tr>
+<tr>
+<td><a href="guide/13.html">13</a></td>
+<td>ADaM 衍生与 TFL 报表生成</td>
+<td>★ <strong>ADSL 派生 + 双编程验证</strong></td>
+</tr>
+<tr>
+<td><a href="guide/14.html">14</a></td>
+<td>统计分析与可视化</td>
+<td><code>PROC TTEST/REG/LOGISTIC</code> 的对应</td>
+</tr>
+</tbody>
+</table>
+<p><strong>阶段四：进阶与智能化</strong></p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>标题</th>
+<th>关键收获</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide/15.html">15</a></td>
+<td>AI 辅助编程与代码迁移</td>
+<td>★ 用 LLM 迁移 SAS 代码，<strong>但你要能判断对错</strong></td>
+</tr>
+<tr>
+<td><a href="guide/16.html">16</a></td>
+<td>Agent 开发入门</td>
+<td>★ <strong>LLM + 工具 + 循环</strong>，含离线兜底</td>
+</tr>
+<tr>
+<td><a href="guide/17.html">17</a></td>
+<td>工程化与后续进阶</td>
+<td>Git、虚拟环境、pytest、CI；合规红线</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-个实战案例全部实测可跑通">7 个实战案例（全部实测可跑通）</h2>
+<p>每个案例都对应<strong>你工作里真实存在的表或任务</strong>，
+并且<strong>刻意把最容易出错的口径问题摆在明面上</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>案例</th>
+<th>做什么</th>
+<th>你会学到（以及会踩的坑）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="code/case01.html">case01 数据体检</a></td>
+<td>一批域的自动体检 + 问题分级</td>
+<td>为什么 <code>DM</code> 有 306 人而 <code>ADSL</code> 只有 254 人 —— <strong>这是正常的，不是数据错误</strong></td>
+</tr>
+<tr>
+<td><a href="code/case02.html">case02 人口学表</a></td>
+<td>按治疗组出 Table 1</td>
+<td>★ <code>AGEGR1</code> 的<strong>边界</strong>：65 归 <code>&lt;65</code> 还是 <code>65-80</code>？<code>pd.cut</code> 的默认区间会给你<strong>错误答案</strong>；SAS 的 <code>ROUND</code> ≠ Python 的 <code>round</code></td>
+</tr>
+<tr>
+<td><a href="code/case03.html">case03 不良事件汇总表</a></td>
+<td>TEAE 按 SOC/PT 汇总</td>
+<td>★ <strong>分子是受试者数不是事件数</strong>（事件数 1126 → 受试者数 218，差 5 倍）；空组必须显示 <code>0</code>；治疗组顺序不能靠字母序</td>
+</tr>
+<tr>
+<td><a href="code/case04.html">case04 实验室移位表</a></td>
+<td>基线 → 基线的分级迁移表</td>
+<td>分级阈值必须来自 <code>ANRLO</code>/<code>ANRHI</code> 而不是硬编码；行百分比 vs 列百分比；同一受试者多条记录取最差等级</td>
+</tr>
+<tr>
+<td><a href="code/case05.html">case05 ADSL 衍生</a></td>
+<td>★ 多域合并衍生 ADSL + <strong>双编程验证</strong></td>
+<td><strong>三种 "治疗结束日" 口径 → 248 / 254 / 127 三个不同答案</strong>；<code>TRT01A</code> 抄 <code>DM.ACTARM</code> 会错 12 人（滴定期退出的受试者）；BMI 的<strong>精度顺序</strong>会改变结果；<code>VISNUMEN</code> 需要的数据不在手上时<strong>怎么办</strong></td>
+</tr>
+<tr>
+<td><a href="code/case06.html">case06 批处理自动化</a></td>
+<td>目录清点 + 批量 XPT→CSV + 多 sheet 汇总</td>
+<td>异常隔离（一个文件坏了不中断整批）；<strong>幂等</strong>（可反复重跑）；Excel sheet 名的 31 字符限制</td>
+</tr>
+<tr>
+<td><a href="code/case07.html">case07 临床数据 QC Agent</a></td>
+<td>★ LLM + 工具 + 循环，8 个临床数据工具</td>
+<td>Agent 与脚本的分水岭；<strong>安全边界必须写在代码里而不是提示词里</strong>；transcript 可审计；★ <strong>Mock 模式离线跑通</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="案例的输出">案例的输出</h3>
+<p>跑完会在 <code>outputs/</code> 生成可直接查看的产物：</p>
+<ul>
+<li><code>table01_demographics.html</code> —— Table 1（带样式）</li>
+<li><code>table03_lab_shift.html</code> —— 实验室移位表</li>
+<li><code>adsl_derived.csv</code> + <code>adsl_validation.html</code> —— ★ <strong>双编程验证报告</strong></li>
+<li><code>case06_summary.xlsx</code> —— 多 sheet 汇总</li>
+<li><code>agent_report.md</code> + <code>agent_transcript.json</code> —— Agent 的报告与可审计对话记录</li>
+</ul>
+<h3 id="case05-的验证结果真实的不是宣称的">case05 的验证结果（真实的，不是宣称的）</h3>
+<p>派生 ADSL 与 CDISC 官方参考实现逐变量比对 28 个变量：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>一致 23 个 ｜ 近似 3 个 ｜ 近似·数据受限 1 个 ｜ 不可派生 1 个
+</code></pre></div></div>
+<p><strong>每一个不是 100% 的变量，都定位到了具体根因并写在程序的输出里。</strong>
+例如：<code>TRTEDT</code> 的 254/254 一致，靠的是正确识别出
+"EX 末次给药记录未闭合（治疗仍在进行）时，应取参考结束日 <code>RFENDTC</code>"。</p>
+<hr />
+<h2 id="这个仓库和别人的有什么不同">这个仓库和别人的有什么不同</h2>
+<h3 id="1-所有数字都来自真实数据没有任何编造">1. 所有数字都来自真实数据，没有任何编造</h3>
+<p>教程里出现的每一个计数、每一个匹配率，都是从
+<a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">CDISC SDTM/ADaM Pilot Project</a>
+（CDISCPILOT01，2007 年阿尔茨海默症试验，306 位筛选 / 254 位随机化）
+实际跑出来的。<strong>你可以自己复现每一个数字。</strong></p>
+<h3 id="2-刻意暴露口径问题而不是藏起来">2. 刻意暴露"口径问题"，而不是藏起来</h3>
+<p>绝大多数教程只会说"这样做就对了"。本项目会告诉你：</p>
+<ul>
+<li>同一个"治疗结束日"，三种合理口径给出 <strong>248 / 254 / 127</strong> 三个答案</li>
+<li>同一个"实际治疗组"，抄 <code>DM.ACTARM</code> 会错 12 个人</li>
+<li>"完成 8 周治疗"按"治疗时长 ≥ 56 天"算会少 7 个人</li>
+</ul>
+<p><strong>这些不是 bug，这就是临床统计编程的本质工作。</strong></p>
+<h3 id="3-有一个真实可用的工具包">3. 有一个真实可用的工具包</h3>
+<p><code>clinic/</code> 不是教学玩具，是能直接用到项目里的：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="n">sas_round_series</span><span class="p">,</span> <span class="n">derive_agegr1</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.report</span><span class="w"> </span><span class="kn">import</span> <span class="n">summarize_continuous</span><span class="p">,</span> <span class="n">crosstab_shift</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.qc</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_dataset</span><span class="p">,</span> <span class="n">compare_frames</span>
+
+<span class="n">dm</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_xpt</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">)</span>          <span class="c1"># 保留变量标签</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"BMIBL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"BMI"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># 与 SAS 一致的四舍五入</span>
+</code></pre></div></div>
+<h3 id="4-agent-模块能离线跑">4. Agent 模块能离线跑</h3>
+<p><code>case07</code> 默认 Mock 模式：<strong>不联网、不需要 API Key</strong>，
+用确定性决策序列调用工具，但<strong>工具执行的是真实逻辑</strong>。
+这解决了一个很现实的问题 —— 内网/合规环境没法调外部 LLM，
+但你又想先验证流程。</p>
+<hr />
+<h2 id="只记-5-个坑的话记这-5-个">只记 5 个坑的话，记这 5 个</h2>
+<p>如果你的时间只够记几条，就记这些（每一条都有对应的可运行代码）：</p>
+<h3 id="1-round-不是-sas-的-round">1. <code>round()</code> 不是 SAS 的 <code>ROUND()</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nb">round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>          <span class="c1"># 2   ← 银行家舍入</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">2.675</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>     <span class="c1"># 2.67（浮点误差）</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># 3.0  ✅ SAS 语义：四舍五入</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.675</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>  <span class="c1"># 2.68 ✅</span>
+</code></pre></div></div>
+<p>→ <code>clinic/derive.py</code> · <code>cases/case02</code></p>
+<h3 id="2-std-和-npstd-不一样">2. <code>.std()</code> 和 <code>np.std()</code> 不一样</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>      <span class="c1"># ddof=1 —— 与 SAS 的 STD 一致 ✅</span>
+<span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>    <span class="c1"># ddof=0 —— 与 SAS **不一致** ❌</span>
+</code></pre></div></div>
+<h3 id="3-空字符串在-pandas-里不是缺失值">3. 空字符串在 pandas 里<strong>不是</strong>缺失值</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">if</span> <span class="n">x</span> <span class="o">=</span> <span class="s1">''</span> <span class="n">then</span> <span class="o">...</span>      <span class="o">/*</span> <span class="n">SAS</span><span class="err">：</span><span class="n">能命中</span> <span class="o">*/</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>          <span class="c1"># pandas：空串不算缺失 ❌</span>
+<span class="n">cio</span><span class="o">.</span><span class="n">clean_missing</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>   <span class="c1"># ✅ 先统一清洗</span>
+</code></pre></div></div>
+<p>→ <code>clinic/io.py</code> · <code>cases/case01</code></p>
+<h3 id="4-groupby-默认按字母序排且会丢掉空组">4. <code>groupby</code> 默认按字母序排，且会<strong>丢掉空组</strong></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>                 <span class="c1"># ❌ High Dose 跑到 Low Dose 前面</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">TRT</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="c1"># ✅ 按 SAP 指定顺序，空组显示 0</span>
+</code></pre></div></div>
+<p>→ <code>cases/case02</code> · <code>cases/case03</code></p>
+<h3 id="5-merge-右表主键重复会静默成倍膨胀">5. <code>merge</code> 右表主键重复会<strong>静默成倍膨胀</strong></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">)</span>   <span class="c1"># 右表有重复 → 行数悄悄变多，不报错</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="n">b</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>   <span class="c1"># ✅ 先断言</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">n0</span>        <span class="c1"># ✅ 合并后必查行数</span>
+</code></pre></div></div>
+<p>→ <code>cases/case05</code></p>
+<p>完整的 20 个坑见 <strong><a href="guide/cheatsheet.html">SAS → Python 速查表</a></strong>。</p>
+<hr />
+<h2 id="数据来源与许可">数据来源与许可</h2>
+<p><strong>数据</strong>：来自 <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">CDISC SDTM/ADaM Pilot Project</a>
+（CDISCPILOT01）。这是唯一被 FDA 审阅过的公开完整数据集，
+包含 SDTM + ADaM + <strong>原始 TFL 输出</strong> ——
+所以你可以拿自己的结果去和官方输出逐个数字对。</p>
+<p><strong>代码</strong>：MIT License。可以自由用于学习、公司内部培训，乃至商业项目。</p>
+<hr />
+<h2 id="合规提醒重要">合规提醒（重要）</h2>
+<p>⚠️ 这是一个<strong>学习项目</strong>，不是监管文件，也不构成合规建议。</p>
+<p>在药企 / CRO 环境里使用 Python 或任何开源工具前，请务必注意：</p>
+<table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GxP 验证</strong></td>
+<td>开源工具通常需要走内部验证流程。见 <a href="https://github.com/cdisc-org/COSMoS">CDISC COSMoS</a></td>
+</tr>
+<tr>
+<td><strong>数据出境</strong></td>
+<td>患者数据<strong>不能</strong>发给云端 LLM。Agent 场景优先用本地模型（Ollama + Qwen / DeepSeek）</td>
+</tr>
+<tr>
+<td><strong>21 CFR Part 11</strong></td>
+<td>Agent / 自动化工具<strong>不应</strong>直接签署或修改源数据</td>
+</tr>
+<tr>
+<td><strong>可追溯性</strong></td>
+<td>保存完整的执行记录 + 依赖版本 + 模型版本</td>
+</tr>
+<tr>
+<td><strong>口径依据</strong></td>
+<td>本项目演示的口径仅用于教学。<strong>实际项目以 SAP + 公司 SOP + 监管指南为准</strong></td>
+</tr>
+<tr>
+<td><strong>编码字典</strong></td>
+<td>MedDRA / WHODrug 需要授权，不得绕过许可使用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🧠 <strong>务实的落地路径</strong>：
+先把 Python / Agent 用在不接触患者数据的场景 ——
+代码迁移、程序审查、从规范文档找答案、生成程序骨架。
+这些<strong>价值高、风险低</strong>，是最现实的切入点。</p>
+</blockquote>
+<hr />
+<h2 id="精选资料索引">精选资料索引</h2>
+<table>
+<thead>
+<tr>
+<th>索引</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide/res-01.html">GitHub 权威仓库</a></td>
+<td>CDISC / PHUSE / Atorus 核心仓库（含实测星标数）</td>
+</tr>
+<tr>
+<td><a href="guide/res-02.html">标准与规范</a></td>
+<td>SDTMIG / ADaM / 受控术语 / 试点数据集 / PHUSE 工作组</td>
+</tr>
+<tr>
+<td><a href="guide/res-03.html">论文与技术资料</a></td>
+<td>会议论文去哪找、怎么搜、该读哪些主题</td>
+</tr>
+<tr>
+<td><a href="guide/res-04.html">Python 学习资源与工具链</a></td>
+<td>官方文档、开发环境、8 周学习路径</td>
+</tr>
+</tbody>
+</table>
+<p><strong>如果只打开 3 个链接：</strong></p>
+<ol>
+<li><a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">CDISC 试点数据</a> —— 本项目的数据来源</li>
+<li><a href="https://github.com/phuse-org/OSTCDA">PHUSE OSTCDA</a> —— SAS/R/Python 方法学对照</li>
+<li><a href="https://github.com/cdisc-org/cdisc-rules-engine">CDISC CORE</a> —— 官方开源一致性规则引擎</li>
+</ol>
+<hr />
+<h2 id="常见问题">常见问题</h2>
+<p><strong>Q: 我 SAS 很熟，需要从头学 Python 语法吗？</strong>
+不用。看<a href="guide/02.html">第 02 章</a>快速过一遍，
+然后直接从<a href="guide/06.html">第 06-07 章</a>（向量化与 DataFrame）切入。
+<strong>难点从来不在语法，在思维方式。</strong></p>
+<p><strong>Q: 会不会学了 Python 就不用 SAS 了？</strong>
+不是替代关系。现实里 Python 和 SAS <strong>长期共存</strong>。
+本项目的目标是让你能<strong>用 Python 做 SAS 现在做的事</strong>，
+并在某些场景（自动化、Agent、大文件处理、元数据驱动）做得更好。</p>
+<p><strong>Q: 没有 SAS 环境能跑通吗？</strong>
+可以。全部案例只需要 Python 就能跑，读 XPT 用 <code>pyreadstat</code>，不需要装 SAS。</p>
+<p><strong>Q: 需要联网吗？</strong>
+不需要。<code>data/samples/</code> 里已有约 5MB 样本数据，克隆后直接就能跑。
+只有想用完整原始数据时才需要 <code>scripts/download_data.py</code>。</p>
+<p><strong>Q: 案例的数字我能对得上官方输出吗？</strong>
+能，而且你应该去对。
+建议拿 <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project">CDISC 试点项目的原始 TFL 输出</a>
+（仓库里有 PDF/RTF）自己比一遍 —— <strong>对不上的地方就是你要学的地方</strong>。</p>
+<p><strong>Q: 学完能做什么？</strong>
+- 把现有的 SAS 程序用 Python 重写并做双编程验证
+- 搭建自动化的数据体检 / QC 流水线
+- 用元数据驱动的思路替代手写映射
+- 开发辅助性的 Agent（代码审查、文档检索、程序骨架生成）</p>
+<hr />
+<h2 id="参与贡献">参与贡献</h2>
+<p>欢迎提 Issue 和 PR，特别是：</p>
+<ul>
+<li>🐛 <strong>发现的错误</strong>：任何数字对不上、代码跑不通、口径写错了</li>
+<li>💡 <strong>补充真实案例</strong>：你工作里的表型，脱敏后可以作为案例</li>
+<li>📚 <strong>补充资料</strong>：新的权威仓库、有价值的论文</li>
+<li>🌐 <strong>翻译</strong>：英文版会很有价值</li>
+</ul>
+<p>提 PR 前请确认：<strong>代码实测可跑通</strong>，<strong>数字能从真实数据复现</strong>。</p>
+<hr />
+<h2 id="许可">许可</h2>
+<p>代码：<a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/LICENSE">MIT License</a>
+数据：见 <a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/LICENSE">LICENSE</a> 末尾的数据声明 —— 来自 CDISC 公开项目，
+再分发时请遵守原始许可。</p>
+<hr />
+<p><strong>如果这个项目帮你省下了摸索的时间，欢迎 Star ⭐ —— 也欢迎告诉身边的同行。</strong></p></article>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="assets/nav-data.js"></script>
+<script src="assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

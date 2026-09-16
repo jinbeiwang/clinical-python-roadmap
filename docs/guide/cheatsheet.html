@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAS → Python 速查表（临床统计编程版）</title>
+<meta name="description" content="SAS → Python 速查表 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SAS → Python 速查表（临床统计编程版）">
+<meta property="og:description" content="SAS → Python 速查表 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/cheatsheet.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>SAS → Python 速查表（临床统计编程版）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cheatsheets/SAS-to-Python%E9%80%9F%E6%9F%A5%E8%A1%A8.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>面向<strong>有 SAS 经验、正在转 Python</strong> 的临床统计程序员。
+不是通用 Python 教程 —— 只收录<strong>临床数据操作中真正会用到的对照</strong>，
+以及那些"看起来一样、结果不同"的坑。</p>
+<p>验证环境：Python 3.13 / pandas 3.0 / numpy 2.5（但写法对 pandas 2.x 同样适用）。</p>
+</blockquote>
+<p><strong>目录</strong></p>
+<ul>
+<li><a href="#0-心智模型先转换脑子再转换代码">0. 心智模型：先转换脑子，再转换代码</a></li>
+<li><a href="#1-数据类型与缺失值">1. 数据类型与缺失值</a></li>
+<li><a href="#2-读入与写出">2. 读入与写出</a></li>
+<li><a href="#3-变量操作data-步对照">3. 变量操作（DATA 步对照）</a></li>
+<li><a href="#4-条件逻辑if-then-else">4. 条件逻辑（IF-THEN-ELSE）</a></li>
+<li><a href="#5-排序与去重">5. 排序与去重</a></li>
+<li><a href="#6-合并merge">6. 合并（MERGE）</a></li>
+<li><a href="#7-分组汇总by-组处理--proc-means--freq--tabulate">7. 分组汇总（BY 组处理 / PROC MEANS / FREQ / TABULATE）</a></li>
+<li><a href="#8-转置与重塑">8. 转置与重塑</a></li>
+<li><a href="#9-日期与时间">9. 日期与时间</a></li>
+<li><a href="#10-字符串函数">10. 字符串函数</a></li>
+<li><a href="#11-数学舍入与统计">11. 数学、舍入与统计</a></li>
+<li><a href="#12-格式与标签format--label">12. 格式与标签（FORMAT / LABEL）</a></li>
+<li><a href="#13-宏循环与批处理">13. 宏、循环与批处理</a></li>
+<li><a href="#14-常见坑-top-20">14. 常见坑 Top 20</a></li>
+</ul>
+<hr />
+<h2 id="0-心智模型先转换脑子再转换代码">0. 心智模型：先转换脑子，再转换代码</h2>
+<p>这是<strong>唯一</strong>比你记语法更重要的一节。</p>
+<table>
+<thead>
+<tr>
+<th>SAS 概念</th>
+<th>pandas 对应</th>
+<th>关键差异</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据集（dataset）</td>
+<td><code>DataFrame</code></td>
+<td>结构类似，但 pandas 有<strong>索引（index）</strong>，SAS 没有</td>
+</tr>
+<tr>
+<td>观测（observation）</td>
+<td>行（row）</td>
+<td>——</td>
+</tr>
+<tr>
+<td>变量（variable）</td>
+<td>列（column）</td>
+<td>pandas 一列只有一个 dtype，SAS 也一样</td>
+</tr>
+<tr>
+<td>变量标签 / 格式</td>
+<td><code>df.attrs["labels"]</code></td>
+<td><strong>不会自动保留</strong>，读 XPT 时才拿到，存 CSV 会丢</td>
+</tr>
+<tr>
+<td><code>WORK</code> 库</td>
+<td>内存里的变量</td>
+<td>没有"库"的概念，<code>import</code> 进来就是对象</td>
+</tr>
+<tr>
+<td><code>LIBNAME</code></td>
+<td>文件路径</td>
+<td>路径就是路径，没有逻辑库映射</td>
+</tr>
+<tr>
+<td><code>DATA</code> 步</td>
+<td>向量化表达式 / <code>assign</code></td>
+<td>★ <strong>不要再写"逐行循环"</strong></td>
+</tr>
+<tr>
+<td><code>PROC SORT</code></td>
+<td><code>sort_values</code> / <code>groupby</code></td>
+<td>★ 很多 SAS 步骤在 pandas 里是<strong>隐含</strong>的</td>
+</tr>
+<tr>
+<td><code>BY</code> 组处理 + <code>RETAIN</code></td>
+<td><code>groupby().agg()/transform()</code></td>
+<td>★ 不需要 RETAIN，聚合一步到位</td>
+</tr>
+<tr>
+<td><code>PROC SQL</code></td>
+<td><code>merge</code> / <code>query</code> / <code>groupby</code></td>
+<td>pandas 的 <code>merge</code> 更像 SQL 的 JOIN</td>
+</tr>
+<tr>
+<td><code>%macro</code></td>
+<td>函数 + <code>for</code> 循环</td>
+<td>不需要宏语言，写真正的函数</td>
+</tr>
+<tr>
+<td><code>ODS</code></td>
+<td><code>to_csv</code> / <code>to_excel</code> / <code>to_html</code></td>
+<td>输出是显式调用，没有"全局开关"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三句话总结心智转变：</strong></p>
+<ol>
+<li><strong>SAS 想"一行一行怎么处理"，pandas 想"整列怎么变换"。</strong>
+   <code>if x &gt; 5 then y = 1; else y = 0;</code> → <code>df["y"] = (df["x"] &gt; 5).astype(int)</code></li>
+<li><strong>SAS 里很多动作是"过程（PROC）"，pandas 里是"方法（.method）"。</strong>
+   排序不是 <code>PROC SORT</code>，是 <code>df.sort_values()</code>。</li>
+<li><strong>SAS 里缺失值是一种值（<code>.</code>），pandas 里缺失值是"没有值"（<code>NaN</code>）。</strong>
+   这是绝大多数静默错误的根源。</li>
+</ol>
+<hr />
+<h2 id="1-数据类型与缺失值">1. 数据类型与缺失值</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>Python / pandas</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值（numeric，8 字节）</td>
+<td><code>float64</code> / <code>int64</code></td>
+<td>SAS 只有一种数值类型</td>
+</tr>
+<tr>
+<td>字符（character）</td>
+<td><code>object</code> / <code>string</code></td>
+<td>pandas 3 起推荐 <code>string</code> dtype</td>
+</tr>
+<tr>
+<td>缺失数值 <code>.</code></td>
+<td><code>np.nan</code>（float）或 <code>pd.NA</code></td>
+<td>★ 整列一旦有缺失，int 就变 float</td>
+</tr>
+<tr>
+<td>缺失字符 <code>''</code></td>
+<td><code>pd.NA</code>（需显式清洗）</td>
+<td>★ pandas 里空串是<strong>合法值</strong>，不是缺失</td>
+</tr>
+<tr>
+<td><code>IF x = .</code></td>
+<td><code>df["x"].isna()</code></td>
+<td>用 <code>.isna()</code> / <code>.notna()</code>，<strong>不要</strong>用 <code>== np.nan</code></td>
+</tr>
+<tr>
+<td><code>IF x = ''</code></td>
+<td><code>df["x"].isna()</code>（先 <code>clean_missing</code>）</td>
+<td>见下</td>
+</tr>
+<tr>
+<td><code>COALESCE(a, b)</code></td>
+<td><code>a.fillna(b)</code></td>
+<td>——</td>
+</tr>
+<tr>
+<td><code>IFN(x, a, b)</code></td>
+<td><code>np.where(x, a, b)</code></td>
+<td>★ 见第 14 节第 3 条</td>
+</tr>
+<tr>
+<td><code>CALL MISSING(x)</code></td>
+<td><code>df["x"] = np.nan</code></td>
+<td>——</td>
+</tr>
+<tr>
+<td>数值缺失参与运算</td>
+<td>结果也是缺失</td>
+<td>SAS 与 pandas 一致</td>
+</tr>
+<tr>
+<td><code>MAX(of a b)</code>（忽略缺失）</td>
+<td><code>s.max(skipna=True)</code></td>
+<td>默认就是忽略</td>
+</tr>
+<tr>
+<td><code>NMISS(of a b)</code></td>
+<td><code>df[cols].isna().sum(axis=1)</code></td>
+<td>——</td>
+</tr>
+</tbody>
+</table>
+<h3 id="清洗伪缺失">清洗"伪缺失"</h3>
+<p>CDISC 数据里 <code>''</code>、<code>'NA'</code>、<code>'.'</code>、<code>'UNKNOWN'</code> 都可能表示缺失。
+SAS 里 <code>''</code> 天然是缺失，pandas 里必须显式处理：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="s2">"data/samples/dm.csv"</span><span class="p">)</span>   <span class="c1"># 内部已调用 clean_missing()</span>
+</code></pre></div></div>
+<p>自己写的话：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">NA_TOKENS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">""</span><span class="p">,</span> <span class="s2">" "</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"NA"</span><span class="p">,</span> <span class="s2">"N/A"</span><span class="p">,</span> <span class="s2">"NULL"</span><span class="p">,</span> <span class="s2">"NaN"</span><span class="p">,</span> <span class="s2">"UNKNOWN"</span><span class="p">,</span> <span class="s2">"UNK"</span><span class="p">,</span> <span class="s2">"-"</span><span class="p">}</span>
+<span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">NA_TOKENS</span><span class="p">))</span>
+</code></pre></div></div>
+<h3 id="缺失值判断-的优先级陷阱">★★ 缺失值判断：<code>&amp;</code>/<code>|</code> 的优先级陷阱</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 错：&amp; 的优先级高于 ==，实际是 a == (b &amp; c)</span>
+<span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"A"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span> <span class="o">&amp;</span> <span class="n">df</span><span class="p">[</span><span class="s2">"B"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"N"</span><span class="p">]</span>
+
+<span class="c1"># ✅ 对：每个条件都加括号</span>
+<span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s2">"A"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"B"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"N"</span><span class="p">)]</span>
+</code></pre></div></div>
+<p>SAS 里 <code>if a='Y' and b='N'</code> 是关键字，不会踩这个坑；
+Python 里 <code>and</code> / <code>or</code> 对 Series <strong>不能</strong>用（会报 <code>ValueError</code>），
+必须用 <code>&amp;</code> / <code>|</code> / <code>~</code>，于是就有了优先级问题。</p>
+<hr />
+<h2 id="2-读入与写出">2. 读入与写出</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>Python</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>libname x xport 'a.xpt';</code></td>
+<td><code>pyreadstat.read_xport()</code></td>
+<td>或用 <code>clinic.io.read_xpt()</code></td>
+</tr>
+<tr>
+<td><code>set lib.a;</code></td>
+<td><code>pd.read_sas()</code> / <code>pyreadstat.read_sas7bdat()</code></td>
+<td><code>.sas7bdat</code> 读取</td>
+</tr>
+<tr>
+<td><code>proc import file='a.csv'</code></td>
+<td><code>pd.read_csv(..., low_memory=False)</code></td>
+<td>——</td>
+</tr>
+<tr>
+<td><code>proc export</code></td>
+<td><code>df.to_csv(idx=False, encoding="utf-8-sig")</code></td>
+<td>★ <code>encoding="utf-8-sig"</code> 让 Excel 不乱码</td>
+</tr>
+<tr>
+<td><code>proc contents</code></td>
+<td><code>df.info()</code> / <code>df.dtypes</code></td>
+<td>变量标签在 <code>df.attrs["labels"]</code></td>
+</tr>
+<tr>
+<td><code>ods excel file=...</code></td>
+<td><code>pd.ExcelWriter</code></td>
+<td>多 sheet 见 case06</td>
+</tr>
+<tr>
+<td><code>libname x '路径';</code></td>
+<td><code>Path("路径")</code></td>
+<td>用 <code>pathlib</code>，跨平台</td>
+</tr>
+<tr>
+<td><code>FILENAME</code> + <code>%sysfunc(fileexist)</code></td>
+<td><code>Path(p).exists()</code></td>
+<td>——</td>
+</tr>
+<tr>
+<td><code>INFILE</code> + <code>INPUT</code>（定长）</td>
+<td><code>pd.read_fwf()</code></td>
+<td>定宽文本</td>
+</tr>
+<tr>
+<td><code>PROC DATASETS</code>（删数据集）</td>
+<td><code>del df</code></td>
+<td>或 <code>df = None</code> 后等 GC</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adsl.csv"</span><span class="p">,</span> <span class="n">low_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># 全部当字符串读：dtype=str</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">"outputs/out.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">"outputs/out.xlsx"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s2">"表1"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong><code>dtype=str</code> 的用途</strong>：做 QC 时把所有列都当字符串读，
+可以避免"<code>'1.0'</code> 和 <code>'1'</code> 被读成同一个数"这类问题，
+也避免长数字（如 <code>AESEQ</code>）被读成浮点后出现 <code>.0</code>。</p>
+</blockquote>
+<h3 id="内存与性能">内存与性能</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件很大</td>
+<td><code>pd.read_csv(..., chunksize=500_000)</code> 分块处理</td>
+</tr>
+<tr>
+<td>只想看前几行</td>
+<td><code>pd.read_csv(..., nrows=10)</code></td>
+</tr>
+<tr>
+<td>只想要某些列</td>
+<td><code>pd.read_csv(..., usecols=[...])</code></td>
+</tr>
+<tr>
+<td>想加速</td>
+<td><code>engine="pyarrow"</code> 或先转 <code>parquet</code></td>
+</tr>
+<tr>
+<td>别这么做</td>
+<td>❌ 用 <code>for i in range(len(df))</code> 遍历行</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-变量操作data-步对照">3. 变量操作（DATA 步对照）</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>y = x;</code></td>
+<td><code>df["y"] = df["x"]</code></td>
+</tr>
+<tr>
+<td><code>y = x * 2;</code></td>
+<td><code>df["y"] = df["x"] * 2</code></td>
+</tr>
+<tr>
+<td><code>y = x + z;</code></td>
+<td><code>df["y"] = df["x"] + df["z"]</code></td>
+</tr>
+<tr>
+<td><code>y = SUM(x, z);</code></td>
+<td><code>df[["x","z"]].sum(axis=1)</code>（★ 缺失当 0）</td>
+</tr>
+<tr>
+<td><code>y = MIN(of x z);</code></td>
+<td><code>df[["x","z"]].min(axis=1)</code></td>
+</tr>
+<tr>
+<td><code>DROP x;</code></td>
+<td><code>df.drop(columns=["x"])</code></td>
+</tr>
+<tr>
+<td><code>KEEP x y;</code></td>
+<td><code>df[["x","y"]]</code></td>
+</tr>
+<tr>
+<td><code>RENAME x=y;</code></td>
+<td><code>df.rename(columns={"x":"y"})</code></td>
+</tr>
+<tr>
+<td><code>PROC SQL; SELECT ... AS y</code></td>
+<td><code>df.assign(y=...)</code> 或 <code>df.rename(...)</code></td>
+</tr>
+<tr>
+<td><code>x = LAG(y);</code></td>
+<td><code>df["y"].shift(1)</code>（组内：<code>groupby().shift()</code>）</td>
+</tr>
+<tr>
+<td><code>RETAIN total 0; total + x;</code></td>
+<td><code>df["x"].cumsum()</code></td>
+</tr>
+<tr>
+<td><code>x = _N_;</code></td>
+<td><code>df.reset_index(drop=True).index + 1</code></td>
+</tr>
+<tr>
+<td><code>IF FIRST.pt then ...</code></td>
+<td><code>df.groupby("pt").cumcount() == 0</code></td>
+</tr>
+<tr>
+<td><code>IF LAST.pt then ...</code></td>
+<td><code>df.groupby("pt").cumcount(ascending=False) == 0</code></td>
+</tr>
+<tr>
+<td><code>_ERROR_</code> / <code>_N_</code> 调试</td>
+<td><code>df.head()</code>、<code>df.info()</code>、<code>df.describe()</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS:  data want; set have; y = x*2; keep y x; run;</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
+<span class="c1"># SAS:  if first.usubjid then seq = 1; else seq + 1;</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"seq"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">cumcount</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+
+<span class="c1"># SAS:  lag 用法（取上一次的 AE 起始日）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"prev_dt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"ASTDT"</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="4-条件逻辑if-then-else">4. 条件逻辑（IF-THEN-ELSE）</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IF x &gt; 5 THEN y=1; ELSE y=0;</code></td>
+<td><code>np.where(df["x"]&gt;5, 1, 0)</code></td>
+</tr>
+<tr>
+<td>多分支 if-else</td>
+<td><code>np.select(conds, choices, default=...)</code></td>
+</tr>
+<tr>
+<td><code>y = IFN(x&gt;5, 'H', 'L');</code></td>
+<td><code>np.where(...)</code>（★ 见坑 3）</td>
+</tr>
+<tr>
+<td><code>SELECT (x); WHEN (1) ...</code></td>
+<td><code>np.select</code> / <code>df["x"].map({...})</code></td>
+</tr>
+<tr>
+<td><code>IF x IN ('A','B')</code></td>
+<td><code>df["x"].isin(["A","B"])</code></td>
+</tr>
+<tr>
+<td><code>IF x BETWEEN a AND b</code></td>
+<td><code>df["x"].between(a, b)</code>（★ 含端点，与 SAS 一致）</td>
+</tr>
+<tr>
+<td><code>y = x &gt; 5;</code>（0/1）</td>
+<td><code>(df["x"]&gt;5).astype(int)</code></td>
+</tr>
+<tr>
+<td>只保留满足条件的行</td>
+<td><code>df[cond]</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 单分支</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"FLAG"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+
+<span class="c1"># 多分支：★ 顺序很重要 —— 前面的条件先匹配（等价于 IF/ELSE IF）</span>
+<span class="n">cond</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"AESEV"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"MILD"</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">"AESEV"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"MODERATE"</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">"AESEV"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"SEVERE"</span><span class="p">]</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"SEVN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>   <span class="c1"># 注意 default 的类型</span>
+
+<span class="c1"># 分类映射（等价于 PROC FORMAT 的应用）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"SEX2"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"M"</span><span class="p">:</span> <span class="s2">"Male"</span><span class="p">,</span> <span class="s2">"F"</span><span class="p">:</span> <span class="s2">"Female"</span><span class="p">})</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"RACEN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"RACE"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"WHITE"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"BLACK OR AFRICAN AMERICAN"</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>np.select</code> 的 <code>default</code> 类型</strong>：如果 <code>choices</code> 是字符串、
+<code>default</code> 是 <code>np.nan</code>，在 numpy 2 上会直接报
+<code>DTypePromotionError</code>（不能把 str 和 float 提升到同一 dtype）。
+解决：先用字符串 <code>""</code> 或 <code>"-"</code> 做 default，再把空串改成 <code>pd.NA</code>。</p>
+</blockquote>
+<hr />
+<h2 id="5-排序与去重">5. 排序与去重</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROC SORT DATA=a; BY x y;</code></td>
+<td><code>df.sort_values(["x","y"])</code></td>
+</tr>
+<tr>
+<td><code>BY DESCENDING y;</code></td>
+<td><code>df.sort_values("y", ascending=False)</code></td>
+</tr>
+<tr>
+<td>多列不同方向</td>
+<td><code>ascending=[True, False]</code></td>
+</tr>
+<tr>
+<td><code>PROC SORT NODUPKEY;</code></td>
+<td><code>df.drop_duplicates(subset=["x"], keep="first")</code></td>
+</tr>
+<tr>
+<td><code>PROC SORT NODUP;</code>（整行）</td>
+<td><code>df.drop_duplicates()</code></td>
+</tr>
+<tr>
+<td>保留重复中的第一条</td>
+<td><code>keep="first"</code>（与 SAS 默认一致）</td>
+</tr>
+<tr>
+<td>按某列最大/最小取一条</td>
+<td><code>df.sort_values("v").drop_duplicates("k", keep="last")</code></td>
+</tr>
+<tr>
+<td><code>PROC SQL</code> 取最大行</td>
+<td><code>df.loc[df.groupby("k")["v"].idxmax()]</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS: PROC SORT DATA=ex OUT=ex2; BY usubjid descending exseq; run;</span>
+<span class="n">ex2</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"EXSEQ"</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+
+<span class="c1"># SAS: 每个受试者取最后一次记录</span>
+<span class="n">last</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"VISITNUM"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+
+<span class="c1"># 每个受试者取最差等级（L/H 优先于 N）—— 安全性分析的常见做法</span>
+<span class="n">rank</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"ANRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"N"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"L"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">worst</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">_r</span><span class="o">=</span><span class="n">rank</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_r"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong><code>sort_values</code> 的稳定性</strong>：默认 <code>kind="quicksort"</code>（不稳定）。
+需要"相同键保持原顺序"时显式写 <code>kind="stable"</code> ——
+这一点在处理有序列（如 <code>AESEQ</code>）时很关键。</p>
+</blockquote>
+<hr />
+<h2 id="6-合并merge">6. 合并（MERGE）</h2>
+<p>⚠️ <strong>这是最容易出错的一块。</strong> SAS 的 <code>MERGE</code> 与 pandas 的 <code>merge</code> 语义<strong>不同</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MERGE a b; BY usubjid;</code></td>
+<td><code>a.merge(b, on="USUBJID")</code> ← 默认 <code>how="inner"</code></td>
+</tr>
+<tr>
+<td><code>MERGE a(IN=x) b; ... IF x;</code></td>
+<td><code>a.merge(b, how="left")</code></td>
+</tr>
+<tr>
+<td><code>IF x AND y;</code>（仅共有）</td>
+<td><code>how="inner"</code></td>
+</tr>
+<tr>
+<td><code>IF x OR y;</code>（全集）</td>
+<td><code>how="outer"</code></td>
+</tr>
+<tr>
+<td>右表有一方独有的行</td>
+<td><code>how="right"</code></td>
+</tr>
+<tr>
+<td>不同变量名连接</td>
+<td><code>left_on="a", right_on="b"</code></td>
+</tr>
+<tr>
+<td>多变量连接</td>
+<td><code>on=["USUBJID","AESEQ"]</code></td>
+</tr>
+<tr>
+<td>只保留左表全部列</td>
+<td>加 <code>suffixes=("", "_b")</code> 或先 <code>b[["key","val"]]</code></td>
+</tr>
+<tr>
+<td>笛卡尔积</td>
+<td><code>how="cross"</code></td>
+</tr>
+<tr>
+<td><code>UPDATE</code> 语句</td>
+<td><code>df.update()</code> 或 <code>combine_first()</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="三个致命差异">★★ 三个致命差异</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 差异 1：默认 how 不同</span>
+<span class="c1">#   SAS:  data both; merge a b; by k; run;   → 只会保留"两边都有"的行（像 inner）</span>
+<span class="c1">#   但注意：SAS 的 merge 是"按 BY 组配对"，不是 SQL JOIN。</span>
+<span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"k"</span><span class="p">)</span>             <span class="c1"># inner —— 与 SAS merge 最接近</span>
+<span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span> <span class="c1"># 保留左表全部</span>
+
+<span class="c1"># 差异 2：右表主键重复 → 行数成倍膨胀</span>
+<span class="c1">#   SAS 里右表有重复 BY 键会报 NOTE 并可能出错；</span>
+<span class="c1">#   pandas 里会静默做"笛卡尔积"，行数悄悄变多。</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"k"</span><span class="p">)))</span>
+<span class="c1"># ★ 防御：合并前先检查右表主键唯一性</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="n">b</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span><span class="o">.</span><span class="n">any</span><span class="p">(),</span> <span class="s2">"右表主键不唯一！"</span>
+
+<span class="c1"># 差异 3：pandas 有索引，SAS 没有</span>
+<span class="c1">#   merge 之后索引会重置，别依赖原来的索引做事</span>
+</code></pre></div></div>
+<h3 id="合并后-qc-必查">合并后 QC 必查</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">before</span><span class="p">,</span> <span class="n">after</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"行数变化：</span><span class="si">{</span><span class="n">before</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">after</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>     <span class="c1"># 用 left join 时不应该变多</span>
+</code></pre></div></div>
+<hr />
+<h2 id="7-分组汇总by-组处理--proc-means--freq--tabulate">7. 分组汇总（BY 组处理 / PROC MEANS / FREQ / TABULATE）</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROC MEANS; CLASS trt; VAR age;</code></td>
+<td><code>df.groupby("TRT01P")["AGE"].agg(["count","mean","std"])</code></td>
+</tr>
+<tr>
+<td><code>PROC FREQ; TABLES sex*trt;</code></td>
+<td><code>pd.crosstab(df["SEX"], df["TRT01P"])</code></td>
+</tr>
+<tr>
+<td><code>PROC FREQ</code>（含缺失）</td>
+<td><code>df["SEX"].value_counts(dropna=False)</code></td>
+</tr>
+<tr>
+<td><code>PROC SUMMARY; OUTPUT OUT=</code></td>
+<td><code>.agg(...).reset_index()</code></td>
+</tr>
+<tr>
+<td><code>CLASS</code> + <code>WAY</code> 组合</td>
+<td><code>df.groupby(["A","B"]).agg(...)</code></td>
+</tr>
+<tr>
+<td><code>PROC TABULATE</code></td>
+<td><code>pd.pivot_table(...)</code> + 手工排版</td>
+</tr>
+<tr>
+<td><code>BY trt;</code> + <code>RETAIN</code> 累计</td>
+<td><code>df.groupby("TRT01P")["X"].transform("sum")</code></td>
+</tr>
+<tr>
+<td><code>count(distinct usubjid)</code></td>
+<td><code>df.groupby("TRT01P")["USUBJID"].nunique()</code></td>
+</tr>
+<tr>
+<td><code>PROC RANK</code></td>
+<td><code>df["x"].rank()</code></td>
+</tr>
+<tr>
+<td>每组行数</td>
+<td><code>df.groupby("g").size()</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS: PROC MEANS N MEAN STD MIN MAX; CLASS trt01p; VAR age;</span>
+<span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span>
+         <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">Mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">SD</span><span class="o">=</span><span class="s2">"std"</span><span class="p">,</span> <span class="n">Min</span><span class="o">=</span><span class="s2">"min"</span><span class="p">,</span> <span class="n">Max</span><span class="o">=</span><span class="s2">"max"</span><span class="p">)</span>
+         <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+
+<span class="c1"># ★ SD 的 ddof：pandas 与 SAS 都是样本标准差（ddof=1），默认就一致</span>
+<span class="c1">#   （numpy 的 np.std 默认 ddof=0，与 SAS 不一致，别混用）</span>
+
+<span class="c1"># 受试者层级计数（AE 表的标准做法：同一受试者同一事件只计一次）</span>
+<span class="n">n_subj</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">])</span>
+            <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"AEBODSYS"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">())</span>
+
+<span class="c1"># 组内占比（对应 SAS 的 PROC FREQ 列百分比）</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AESEV"</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">])</span>
+<span class="n">pct</span> <span class="o">=</span> <span class="n">ct</span> <span class="o">/</span> <span class="n">ct</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>          <span class="c1"># 列百分比</span>
+<span class="n">pct_row</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>   <span class="c1"># 行百分比</span>
+</code></pre></div></div>
+<h3 id="保留空分组sas-的-preloadfmt--completefypes">★ 保留空分组（SAS 的 <code>preloadfmt</code> / <code>COMPLETEFYPES</code>）</h3>
+<p>pandas 默认会把<strong>没有数据的组直接省略</strong>，而 SAS 报表里它们应该显示为 0。
+解决办法是用<strong>有序 Categorical</strong> 固定分类水平：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">TRT</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">TRT</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># 这样 groupby 会按 TRT 的顺序输出，且空组保留（配合 observed=False）</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span><span class="s2">"mean"</span><span class="p">])</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ 不做这一步会有<strong>两个后果</strong>：
+1. 行序按字母序排（<code>High Dose</code> 会跑到 <code>Low Dose</code> 前面）；
+2. 没有数据的组整行消失，报表少一行。</p>
+</blockquote>
+<hr />
+<h2 id="8-转置与重塑">8. 转置与重塑</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROC TRANSPOSE</code></td>
+<td><code>df.pivot()</code> / <code>df.melt()</code></td>
+</tr>
+<tr>
+<td>长 → 宽</td>
+<td><code>df.pivot(index=..., columns=..., values=...)</code></td>
+</tr>
+<tr>
+<td>长 → 宽（聚合重复值）</td>
+<td><code>df.pivot_table(index, columns, values, aggfunc="mean")</code></td>
+</tr>
+<tr>
+<td>宽 → 长</td>
+<td><code>df.melt(id_vars=[...], value_vars=[...])</code></td>
+</tr>
+<tr>
+<td><code>PROC TRANSPOSE</code> 多变量</td>
+<td><code>pd.wide_to_long()</code></td>
+</tr>
+<tr>
+<td>堆叠/合并列</td>
+<td><code>pd.concat([df1, df2], axis=0)</code></td>
+</tr>
+<tr>
+<td>横向合并列</td>
+<td><code>pd.concat([df1, df2], axis=1)</code></td>
+</tr>
+<tr>
+<td><code>SET a b c;</code></td>
+<td><code>pd.concat([a, b, c], ignore_index=True)</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS: PROC TRANSPOSE DATA=vs OUT=wide; BY usubjid; ID visit; VAR aval;</span>
+<span class="n">wide</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"AVISIT"</span><span class="p">,</span>
+                      <span class="n">values</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+<span class="c1"># 宽 → 长（对应 SAS 里"一堆 PROC TRANSPOSE 反过来"的活）</span>
+<span class="n">long</span> <span class="o">=</span> <span class="n">wide</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span><span class="n">id_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span> <span class="n">var_name</span><span class="o">=</span><span class="s2">"AVISIT"</span><span class="p">,</span> <span class="n">value_name</span><span class="o">=</span><span class="s2">"AVAL"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="9-日期与时间">9. 日期与时间</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'01JAN2020'd</code></td>
+<td><code>pd.Timestamp("2020-01-01")</code></td>
+</tr>
+<tr>
+<td>日期 = 自 1960-01-01 起的天数</td>
+<td><code>(ts - pd.Timestamp("1960-01-01")).days</code></td>
+</tr>
+<tr>
+<td><code>TODAY()</code></td>
+<td><code>pd.Timestamp.today().normalize()</code></td>
+</tr>
+<tr>
+<td><code>datepart(dt)</code> / <code>timepart(dt)</code></td>
+<td><code>.dt.normalize()</code> / <code>.dt.time</code></td>
+</tr>
+<tr>
+<td><code>intck('day', a, b)</code></td>
+<td><code>(b - a).dt.days</code></td>
+</tr>
+<tr>
+<td><code>intck('month', a, b)</code></td>
+<td>需自己算（SAS 的 intck 是"跨越的月份分界数"）</td>
+</tr>
+<tr>
+<td><code>intnx('month', d, 1)</code></td>
+<td><code>d + pd.DateOffset(months=1)</code></td>
+</tr>
+<tr>
+<td><code>mdy(m, d, y)</code></td>
+<td><code>pd.Timestamp(year=y, month=m, day=d)</code></td>
+</tr>
+<tr>
+<td><code>year(d)</code> / <code>month(d)</code> / <code>day(d)</code></td>
+<td><code>d.year</code> / <code>d.month</code> / <code>d.day</code></td>
+</tr>
+<tr>
+<td><code>put(d, yymmdd10.)</code></td>
+<td><code>d.strftime("%Y-%m-%d")</code></td>
+</tr>
+<tr>
+<td><code>input(s, yymmdd10.)</code></td>
+<td><code>pd.to_datetime(s, format="%Y-%m-%d")</code></td>
+</tr>
+<tr>
+<td>ISO 8601 字符日期 <code>--DTC</code></td>
+<td><code>pd.to_datetime(df["AESTDTC"], errors="coerce")</code></td>
+</tr>
+<tr>
+<td><code>datdif()</code>（按 30 天月）</td>
+<td>无直接对应，需自己实现</td>
+</tr>
+<tr>
+<td>天数 → 周数</td>
+<td><code>days // 7</code>（★ ADaM 里 56 天 = 8 周）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 核心：一次转成 datetime，之后一直用 datetime 运算</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>   <span class="c1"># errors="coerce" 关键</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+
+<span class="c1"># ★ 时长必须 +1（首尾都算）—— 与 SAS 的 TRTDUR = TRTEDT - TRTSDT + 1 一致</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTDUR"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">])</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span> <span class="o">+</span> <span class="mi">1</span>
+
+<span class="c1"># 格式化成字符串输出</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT_c"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="部分日期partially-complete-date">★ 部分日期（Partially Complete Date）</h3>
+<p>临床数据的 <code>--DTC</code> 常只有年月（<code>2014-01</code>）或只有年（<code>2014</code>）。
+<code>pd.to_datetime</code> 会把它们补成 <code>2014-01-01</code>，<strong>引入虚假精度</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_partial_date</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">parse_partial_date</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"DMDTC"</span><span class="p">])</span>
+<span class="c1"># res["date"]      解析结果（补全后的日期，仅供排序/展示）</span>
+<span class="c1"># res["precision"] "DAY" / "MONTH" / "YEAR"</span>
+<span class="c1"># ★ 千万不要拿补全后的日期直接做运算，先用 precision 过滤</span>
+</code></pre></div></div>
+<h3 id="时区">★ 时区</h3>
+<p>SAS 的 datetime 没有时区概念，pandas 有。
+读 ISO 8601 带 <code>Z</code> 或 <code>+08:00</code> 的字符串时会带时区，
+与 naive 时间相减会报错 —— 用 <code>dt.tz_localize(None)</code> 统一。</p>
+<hr />
+<h2 id="10-字符串函数">10. 字符串函数</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strip(s)</code> / <code>trim(s)</code></td>
+<td><code>s.str.strip()</code></td>
+</tr>
+<tr>
+<td><code>upcase(s)</code></td>
+<td><code>s.str.upper()</code></td>
+</tr>
+<tr>
+<td><code>lowcase(s)</code></td>
+<td><code>s.str.lower()</code></td>
+</tr>
+<tr>
+<td><code>propcase(s)</code></td>
+<td><code>s.str.title()</code></td>
+</tr>
+<tr>
+<td><code>tranwrd(s, 'a', 'b')</code></td>
+<td><code>s.str.replace("a", "b", regex=False)</code> ← ★ 默认已是字面量</td>
+</tr>
+<tr>
+<td><code>substr(s, 1, 3)</code></td>
+<td><code>s.str[:3]</code></td>
+</tr>
+<tr>
+<td><code>substr(s, 3)</code></td>
+<td><code>s.str[2:]</code></td>
+</tr>
+<tr>
+<td><code>length(s)</code></td>
+<td><code>s.str.len()</code></td>
+</tr>
+<tr>
+<td><code>scan(s, 2, '-')</code></td>
+<td><code>s.str.split("-").str[1]</code></td>
+</tr>
+<tr>
+<td><code>index(s, 'x')</code></td>
+<td><code>s.str.find("x")</code></td>
+</tr>
+<tr>
+<td><code>find(s, 'x')</code></td>
+<td><code>s.str.contains("x", regex=False)</code></td>
+</tr>
+<tr>
+<td><code>catx('-', a, b)</code></td>
+<td><code>a.str.cat(b, sep="-")</code>（或 <code>a + "-" + b</code>）</td>
+</tr>
+<tr>
+<td><code>compress(s, ' ')</code></td>
+<td><code>s.str.replace(" ", "", regex=False)</code></td>
+</tr>
+<tr>
+<td><code>prxmatch('/re/', s)</code></td>
+<td><code>s.str.contains(r"re")</code>（默认 regex=True）</td>
+</tr>
+<tr>
+<td><code>prxchange</code></td>
+<td><code>s.str.replace(r"re", "x")</code></td>
+</tr>
+<tr>
+<td><code>prxparse</code> 捕获组</td>
+<td><code>s.str.extract(r"(?P&lt;name&gt;...)")</code></td>
+</tr>
+<tr>
+<td><code>symexist</code> 等宏函数</td>
+<td>无对应（不需要）</td>
+</tr>
+<tr>
+<td>首字符</td>
+<td><code>s.str[:1]</code></td>
+</tr>
+<tr>
+<td>倒序取字符</td>
+<td><code>s.str[-1]</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ★ 正则开关（最容易搞混的地方）</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">)</span>                 <span class="c1"># regex=False（pandas ≥ 2.0 默认）→ 只换真正的点</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\."</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>   <span class="c1"># 显式正则</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"A+B"</span><span class="p">)</span>                   <span class="c1"># regex=True（默认）→ 把 + 当量词！</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"A+B"</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>      <span class="c1"># 想找字面量必须显式关掉</span>
+
+<span class="c1"># 拆解 USUBJID（01-701-1015 → 三部分）</span>
+<span class="n">ext</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?P&lt;study&gt;[^-_]+)[-_](https://github.com/jinbeiwang/clinical-python-roadmap)[-_](https://github.com/jinbeiwang/clinical-python-roadmap)$"</span><span class="p">)</span>
+
+<span class="c1"># 取正常性指示符的首字母（'NORMAL' → 'N'，'LOW' → 'L'）</span>
+<span class="n">ind</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"ANRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+</code></pre></div></div>
+<hr />
+<h2 id="11-数学舍入与统计">11. 数学、舍入与统计</h2>
+<h3 id="舍入头号差异来源">★★ 舍入（头号差异来源）</h3>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>Python</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ROUND(2.5, 1)</code></td>
+<td><code>round(2.5)</code></td>
+<td>SAS: <strong>3</strong> ｜ Python: <strong>2</strong>（银行家舍入）</td>
+</tr>
+<tr>
+<td><code>ROUND(x, 0.1)</code></td>
+<td><code>round(x, 1)</code></td>
+<td>参数含义完全不同：SAS 是<strong>单位</strong>，Python 是<strong>小数位</strong></td>
+</tr>
+<tr>
+<td><code>ROUND(1234, 10)</code></td>
+<td>——</td>
+<td>SAS 能按 10 舍入，Python <code>round</code> 做不到</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="n">sas_round</span><span class="p">,</span> <span class="n">sas_round_series</span>
+
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>              <span class="c1"># 3.0   （等价 SAS: ROUND(2.5, 1)）</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.675</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>         <span class="c1"># 2.68  （Python round(2.675,2) 会给 2.67）</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mi">1234</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>            <span class="c1"># 1230.0</span>
+
+<span class="c1"># 整列：用向量化版，比 .apply 快得多</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"X"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"X"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>      <span class="c1"># 保留 1 位小数，四舍五入</span>
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>abs(x)</code></td>
+<td><code>np.abs</code> / <code>df["x"].abs()</code></td>
+</tr>
+<tr>
+<td><code>ceil(x)</code> / <code>floor(x)</code></td>
+<td><code>np.ceil</code> / <code>np.floor</code></td>
+</tr>
+<tr>
+<td><code>sqrt(x)</code> / <code>exp(x)</code> / <code>log(x)</code></td>
+<td><code>np.sqrt</code> / <code>np.exp</code> / <code>np.log</code></td>
+</tr>
+<tr>
+<td><code>log10(x)</code></td>
+<td><code>np.log10</code></td>
+</tr>
+<tr>
+<td><code>mod(x, y)</code></td>
+<td><code>np.mod</code> / <code>%</code></td>
+</tr>
+<tr>
+<td><code>x ** 2</code></td>
+<td><code>df["x"] ** 2</code>（★ <code>^</code> 在 Python 里是<strong>按位异或</strong>，不是乘方！）</td>
+</tr>
+<tr>
+<td><code>MIN(a,b)</code> / <code>MAX(a,b)</code></td>
+<td><code>np.minimum(a,b)</code> / <code>np.maximum(a,b)</code></td>
+</tr>
+<tr>
+<td><code>largest(1, of x1-x3)</code></td>
+<td><code>df[["x1","x2","x3"]].max(axis=1)</code></td>
+</tr>
+<tr>
+<td><code>ranuni(seed)</code></td>
+<td><code>np.random.default_rng(seed).random(n)</code></td>
+</tr>
+<tr>
+<td><code>int(x)</code></td>
+<td><code>np.floor(x).astype(int)</code>（Python <code>int()</code> 是<strong>向零取整</strong>，负数不同）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="统计proc-对照">统计（PROC 对照）</h3>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROC MEANS</code></td>
+<td><code>df["x"].describe()</code> / <code>.agg([...])</code></td>
+</tr>
+<tr>
+<td><code>PROC UNIVARIATE</code></td>
+<td><code>.describe()</code> + <code>scipy.stats.describe</code></td>
+</tr>
+<tr>
+<td><code>PROC FREQ; TABLES a*b / CHISQ;</code></td>
+<td><code>scipy.stats.chi2_contingency(pd.crosstab(a,b))</code></td>
+</tr>
+<tr>
+<td><code>PROC TTEST</code></td>
+<td><code>scipy.stats.ttest_ind(a, b, equal_var=False)</code></td>
+</tr>
+<tr>
+<td><code>PROC NPAR1WAY WILCOXON</code></td>
+<td><code>scipy.stats.mannwhitneyu(a, b)</code></td>
+</tr>
+<tr>
+<td><code>PROC FREQ / EXACT</code>（Fisher）</td>
+<td><code>scipy.stats.fisher_exact(table)</code></td>
+</tr>
+<tr>
+<td><code>PROC CORR</code></td>
+<td><code>df[["x","y"]].corr(method="pearson")</code></td>
+</tr>
+<tr>
+<td><code>PROC REG</code></td>
+<td><code>statsmodels.api.OLS</code></td>
+</tr>
+<tr>
+<td><code>PROC LOGISTIC</code></td>
+<td><code>statsmodels.api.Logit</code></td>
+</tr>
+<tr>
+<td><code>PROC PHREG</code>（生存）</td>
+<td><code>lifelines.CoxPHFitter</code></td>
+</tr>
+<tr>
+<td><code>PROC LIFETEST</code></td>
+<td><code>lifelines.KaplanMeierFitter</code></td>
+</tr>
+<tr>
+<td><code>PROC MIXED</code></td>
+<td><code>statsmodels.MixedLM</code></td>
+</tr>
+<tr>
+<td><code>PROC ANOVA</code></td>
+<td><code>statsmodels.ols</code> + <code>anova_lm</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ★ p 值格式化（临床报表惯例）</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.report</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_pvalue</span>
+<span class="n">format_pvalue</span><span class="p">(</span><span class="mf">0.00003</span><span class="p">)</span>     <span class="c1"># '&lt;0.0001'</span>
+<span class="n">format_pvalue</span><span class="p">(</span><span class="mf">0.12345</span><span class="p">)</span>     <span class="c1"># '0.1235'</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>scipy</code> 不是 pandas 的一部分</strong>，需要单独 <code>pip install scipy</code>。
+如果只是做描述统计，不需要 scipy。</p>
+</blockquote>
+<hr />
+<h2 id="12-格式与标签format--label">12. 格式与标签（FORMAT / LABEL）</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LABEL age = '年龄';</code></td>
+<td><code>df.attrs["labels"]["AGE"] = "年龄"</code></td>
+</tr>
+<tr>
+<td><code>PROC FORMAT; VALUE $sexf ...</code></td>
+<td><code>df["SEX"].map({...})</code> 或 <code>pd.Categorical</code></td>
+</tr>
+<tr>
+<td>应用格式 <code>format x sexf.;</code></td>
+<td><code>df["SEX_L"] = df["SEX"].map(...)</code></td>
+</tr>
+<tr>
+<td><code>put(x, fmt)</code></td>
+<td><code>.map()</code> / <code>.astype(str)</code></td>
+</tr>
+<tr>
+<td><code>PROC CONTENTS</code> 看 label</td>
+<td><code>df.attrs["labels"]</code></td>
+</tr>
+<tr>
+<td>导出时带 label</td>
+<td>手工拼表头（见 <code>clinic/report.py</code>）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 从 XPT 读入时标签会挂在 df.attrs 上（见 clinic/io.py）</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_xpt</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">][</span><span class="s2">"AGE"</span><span class="p">])</span>        <span class="c1"># 'Age'</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_labels</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="n">get_labels</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>                 <span class="c1"># {变量: 标签}，没有则恒等映射</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>pandas 不会自动保留 label</strong>。<code>df.to_csv()</code> 之后 label 就丢了。
+需要保留时，用侧车文件（<code>clinic.io.save_labels()</code> 写出 JSON），
+或者在生成报表时把 label 作为表头拼进去。</p>
+</blockquote>
+<hr />
+<h2 id="13-宏循环与批处理">13. 宏、循环与批处理</h2>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%macro m(a); ... %mend;</code></td>
+<td><code>def m(a): ...</code> ← 真正的函数</td>
+</tr>
+<tr>
+<td><code>%do i=1 %to 10;</code></td>
+<td><code>for i in range(1, 11):</code></td>
+</tr>
+<tr>
+<td><code>%let x = 1;</code></td>
+<td><code>x = 1</code></td>
+</tr>
+<tr>
+<td><code>%if ... %then ...;</code></td>
+<td><code>if ...:</code></td>
+</tr>
+<tr>
+<td><code>&amp;x</code> 宏变量引用</td>
+<td>直接用变量名</td>
+</tr>
+<tr>
+<td><code>%sysfunc(countw(&amp;list))</code></td>
+<td><code>len(list)</code></td>
+</tr>
+<tr>
+<td><code>filename d pipe "dir";</code></td>
+<td><code>Path(dir).glob("*.xpt")</code></td>
+</tr>
+<tr>
+<td><code>%include</code></td>
+<td><code>import</code> / <code>exec(open(...).read())</code></td>
+</tr>
+<tr>
+<td><code>PROC PRINTTO LOG=</code></td>
+<td><code>logging.FileHandler("run.log")</code></td>
+</tr>
+<tr>
+<td><code>OPTIONS ERRORABEND;</code></td>
+<td><code>raise</code> / <code>sys.exit(1)</code></td>
+</tr>
+<tr>
+<td>一个 DATA 步出错 → 程序中断</td>
+<td><code>try/except</code> → 记录后继续</td>
+</tr>
+<tr>
+<td><code>%abort</code></td>
+<td><code>raise SystemExit(...)</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 批处理：一个文件失败不影响其他（完整例子见 cases/case06_批处理自动化.py）</span>
+<span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">"data/raw"</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.xpt"</span><span class="p">)):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_xpt</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"文件"</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"状态"</span><span class="p">:</span> <span class="s2">"OK"</span><span class="p">,</span> <span class="s2">"行数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)})</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"文件"</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"状态"</span><span class="p">:</span> <span class="s2">"失败"</span><span class="p">,</span> <span class="s2">"备注"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)})</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="14-常见坑-top-20">14. 常见坑 Top 20</h2>
+<p>按<strong>踩坑频率</strong>排序。每一条我都见过真实的 diff 或错误的报表。</p>
+<h3 id="1-round-不是-sas-的-round">1. <code>round()</code> 不是 SAS 的 <code>ROUND()</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nb">round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>          <span class="c1"># 2  ← 银行家舍入</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">2.675</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>     <span class="c1"># 2.67（浮点误差）</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># 3.0 ✅</span>
+<span class="n">sas_round</span><span class="p">(</span><span class="mf">2.675</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>  <span class="c1"># 2.68 ✅</span>
+</code></pre></div></div>
+<h3 id="2-std-和-npstd-不一样">2. <code>.std()</code> 和 <code>np.std()</code> 不一样</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>        <span class="c1"># ddof=1（样本 SD）—— 与 SAS 的 STD 一致 ✅</span>
+<span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>      <span class="c1"># ddof=0（总体 SD）—— 与 SAS **不一致** ❌</span>
+</code></pre></div></div>
+<h3 id="3-npwhere-混用-str-和-npnannumpy-2-起会报错">3. <code>np.where</code> 混用 str 和 np.nan（numpy 2 起会报错）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>        <span class="c1"># ❌ DTypePromotionError（numpy ≥ 2）</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">))</span>  <span class="c1"># ✅ 或者用 pandas 赋值</span>
+<span class="n">out</span><span class="p">[</span><span class="s2">"FLAG"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+<span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cond</span><span class="p">,</span> <span class="s2">"FLAG"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Y"</span>        <span class="c1"># ✅ 最稳</span>
+</code></pre></div></div>
+<h3 id="4-and--or-对-series-不能用">4. <code>and</code> / <code>or</code> 对 Series 不能用</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">b</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)]</span>      <span class="c1"># ❌ ValueError</span>
+<span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">b</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)]</span>        <span class="c1"># ✅ 每个条件都加括号</span>
+</code></pre></div></div>
+<h3 id="5-空字符串不是缺失值">5. 空字符串不是缺失值</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>             <span class="c1"># 空串不算缺失 ❌</span>
+<span class="n">cio</span><span class="o">.</span><span class="n">clean_missing</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>   <span class="c1"># ✅ 先统一清洗</span>
+</code></pre></div></div>
+<h3 id="6-loc-赋值到不存在的索引会静默失效">6. <code>.loc</code> 赋值到不存在的索引会<strong>静默失效</strong></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="s2">"X"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">keep</span><span class="p">),</span> <span class="s2">"FLAG"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Y"</span>
+<span class="c1"># 如果 keep 里的标签不在 out.index 中 → 这条赋值什么都不做，也不报错</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">all_keys</span><span class="p">)</span>        <span class="c1"># ✅ 先补齐索引</span>
+</code></pre></div></div>
+<p>SAS 至少会给你一个 NOTE；pandas 什么都不会说。</p>
+<h3 id="7-merge-右表主键重复会成倍膨胀">7. <code>merge</code> 右表主键重复会<strong>成倍膨胀</strong></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">)</span>           <span class="c1"># 右表有重复 → 行数变多</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="n">b</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>   <span class="c1"># ✅ 先断言</span>
+</code></pre></div></div>
+<h3 id="8-循环遍历-dataframe-行">8. 循环遍历 DataFrame 行</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)):</span>           <span class="c1"># ❌ 慢几百倍</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
+<span class="n">df</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>              <span class="c1"># ✅ 向量化</span>
+</code></pre></div></div>
+<p>真的必须逐行时，用 <code>df.itertuples()</code>（比 <code>iterrows()</code> 快）。</p>
+<h3 id="9-链式赋值settingwithcopywarning">9. 链式赋值（SettingWithCopyWarning）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">][</span><span class="s2">"b"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>              <span class="c1"># ❌ 改的是临时副本，原表不变</span>
+<span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>          <span class="c1"># ✅</span>
+</code></pre></div></div>
+<h3 id="10-忘了-1-的天数差">10. 忘了 <code>+1</code> 的天数差</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"dur"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span>         <span class="c1"># ❌ 少算一天</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"dur"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span> <span class="o">+</span> <span class="mi">1</span>     <span class="c1"># ✅ 与 SAS 一致</span>
+</code></pre></div></div>
+<h3 id="11-pdcut-的默认区间是左开右闭">11. <code>pd.cut</code> 的默认区间是<strong>左开右闭</strong></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">200</span><span class="p">])</span>
+<span class="c1"># (0,65] / (65,80] / (80,200] → AGE=65 落到第一组 ❌</span>
+<span class="c1"># 用 np.select 显式写边界 ✅（见 clinic.derive.derive_agegr1）</span>
+<span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="n">age</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="12-groupby-默认去掉了空组且按字母序排">12. <code>groupby</code> 默认去掉了空组，且按字母序排</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>                        <span class="c1"># ❌ 行序错、空组消失</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">TRT</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>        <span class="c1"># ✅</span>
+</code></pre></div></div>
+<h3 id="13-strreplace--strcontains-的正则开关不一致">13. <code>str.replace</code> / <code>str.contains</code> 的正则开关不一致</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">)</span>            <span class="c1"># regex=False（默认）→ 只换真正的点</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"A.B"</span><span class="p">)</span>              <span class="c1"># regex=True（默认）→ 把 . 当通配符！</span>
+<span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"A.B"</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># ✅ 想找字面量要显式关掉</span>
+</code></pre></div></div>
+<h3 id="14--不是乘方">14. <code>^</code> 不是乘方</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>       <span class="c1"># ✅ 平方</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">^</span> <span class="mi">2</span>        <span class="c1"># ❌ 按位异或！</span>
+</code></pre></div></div>
+<h3 id="15-merge-之后忘了检查行数">15. merge 之后忘了检查行数</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">n0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"k"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">n0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"合并后行数变了：</span><span class="si">{</span><span class="n">n0</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+</code></pre></div></div>
+<h3 id="16-读-csv-时-low_memory--dtype-推断出错">16. 读 CSV 时 <code>low_memory</code> / dtype 推断出错</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>                            <span class="c1"># ❌ 混合类型列会分块推断，结果不一致</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">low_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>          <span class="c1"># ✅</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>                 <span class="c1"># ✅ QC 场景：全部当字符串</span>
+</code></pre></div></div>
+<h3 id="17-inplacetrue-其实不该用">17. <code>inplace=True</code> 其实不该用</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>   <span class="c1"># ❌ pandas 3 起已不推荐，且容易出错</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>            <span class="c1"># ✅ 明确赋值</span>
+</code></pre></div></div>
+<h3 id="18-日期列没转就直接算">18. 日期列没转就直接算</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span>                        <span class="c1"># ❌ 字符串相减 → 报错或乱来</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTEDT"</span><span class="p">])</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">])</span>   <span class="c1"># ✅</span>
+</code></pre></div></div>
+<h3 id="19-忘了-errorscoerce">19. 忘了 <code>errors="coerce"</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"DTC"</span><span class="p">])</span>                     <span class="c1"># ❌ 有一个坏值就整列报错</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"DTC"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>    <span class="c1"># ✅ 坏值变 NaT，其他正常</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"X"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>       <span class="c1"># 同理</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ 但 <code>errors="coerce"</code> 会<strong>掩盖数据质量问题</strong>。
+生产代码里应该同时统计有多少个被 coerce 掉了，并报告出来。</p>
+</blockquote>
+<h3 id="20-excel-的-sheet-名有-31-字符上限不能含">20. Excel 的 sheet 名有 31 字符上限、不能含 <code>[]:*?/\</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">[:</span><span class="mi">28</span><span class="p">]</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"_"</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="s1">'[]:*?/</span><span class="se">\\</span><span class="s1">'</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">name</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="附本项目的关键工具函数">附：本项目的关键工具函数</h2>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sas_round(x, unit)</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>SAS 语义的舍入（四舍五入 + 单位参数）</td>
+</tr>
+<tr>
+<td><code>sas_round_series(s, decimals)</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>整列向量化舍入</td>
+</tr>
+<tr>
+<td><code>derive_agegr1(df)</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>年龄分组（边界显式：65 和 80 都归 65-80）</td>
+</tr>
+<tr>
+<td><code>to_categorical(s, levels)</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>用有序 Categorical 固定输出顺序</td>
+</tr>
+<tr>
+<td><code>parse_partial_date(s)</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>处理 ISO 8601 部分日期，返回精度</td>
+</tr>
+<tr>
+<td><code>sas_date_to_datetime</code> / <code>datetime_to_sas_date</code></td>
+<td><code>clinic/derive.py</code></td>
+<td>SAS 日期数字 ↔ Timestamp</td>
+</tr>
+<tr>
+<td><code>read_xpt</code> / <code>read_any</code> / <code>load_domains</code></td>
+<td><code>clinic/io.py</code></td>
+<td>读 XPT / 自动识别格式 / 批量加载</td>
+</tr>
+<tr>
+<td><code>clean_missing(df)</code></td>
+<td><code>clinic/io.py</code></td>
+<td>伪缺失值统一清洗</td>
+</tr>
+<tr>
+<td><code>pct_format</code> / <code>summarize_continuous</code> / <code>crosstab_shift</code></td>
+<td><code>clinic/report.py</code></td>
+<td>TFL 报表构造件</td>
+</tr>
+<tr>
+<td><code>format_pvalue</code></td>
+<td><code>clinic/report.py</code></td>
+<td>p 值格式化（<code>&lt;0.0001</code> 惯例）</td>
+</tr>
+<tr>
+<td><code>check_dataset</code> / <code>compare_frames</code></td>
+<td><code>clinic/qc.py</code></td>
+<td>数据质量检查 / PROC COMPARE 等价物</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>相关文档</strong></p>
+<ul>
+<li><a href="02.html"><code>docs/02-基础语法速通-SAS对照.md</code></a> —— 语法层对照</li>
+<li><a href="08.html"><code>docs/08-数据操作对照-DATA步与PROC SQL.md</code></a> —— 数据操作对照</li>
+<li><a href="10.html"><code>docs/10-日期缺失值格式与数据质量.md</code></a> —— 日期与缺失值专题</li>
+<li><a href="https://github.com/jinbeiwang/clinical-python-roadmap/tree/master/cases"><code>cases/</code></a> —— 7 个可运行案例，每个坑都有可复现的代码</li>
+</ul></article>
+<nav class="pager"><a class="pg-prev" href="17.html"><span class="pg-label">← 上一篇</span><span class="pg-title">工程化与后续进阶</span></a><a class="pg-next" href="resources.html"><span class="pg-label">下一篇 →</span><span class="pg-title">资料索引 · 总览</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

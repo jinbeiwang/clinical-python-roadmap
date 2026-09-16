@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 02 章 · 基础语法速通（SAS 对照）</title>
+<meta name="description" content="基础语法速通（SAS 对照） — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 02 章 · 基础语法速通（SAS 对照）">
+<meta property="og:description" content="基础语法速通（SAS 对照） — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/02.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第一阶段 · Python 基础</div><h1>第 02 章 · 基础语法速通（SAS 对照）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/02-%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E9%80%9F%E9%80%9A-SAS%E5%AF%B9%E7%85%A7.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：用 2 小时补齐 Python 的语法肌肉。
+你不需要"重新学编程"，只需要把已有概念换一套符号系统。
+<strong>读法建议</strong>：不要背诵，把所有代码敲一遍，遇到疑问回查本章。</p>
+</blockquote>
+<hr />
+<h2 id="21-语法骨架三个第一眼差异">2.1 语法骨架：三个第一眼差异</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* ============ SAS ============ */</span>
+<span class="kr">data </span>want;                      <span class="c">/* 语句以分号结束 */</span>
+    <span class="k">set</span> have;                   <span class="c">/* 大小写不敏感 */</span>
+    <span class="k">x</span> = age * <span class="m">2</span>;
+    <span class="k">if</span> <span class="k">x</span> &gt; <span class="m">100</span> <span class="k">then</span> flag = <span class="s">'Y'</span>;
+    <span class="k">else</span> flag = <span class="s">'N'</span>;
+<span class="kr">run;</span>
+
+<span class="nb">%macro</span> hi(name);                <span class="c">/* 宏定义 */</span>
+<span class="k">    %put </span><span class="err">Hello </span><span class="nv">&amp;name</span><span class="err">;</span>
+<span class="nb">%mend</span>;
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ============ Python ============</span>
+<span class="c1"># 语句以换行结束，缩进决定层级（没有 run; 也没有分号）</span>
+<span class="n">want</span> <span class="o">=</span> <span class="n">have</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>              <span class="c1"># 大小写敏感！have ≠ Have</span>
+<span class="n">want</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">=</span> <span class="n">want</span><span class="p">[</span><span class="s2">"age"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="n">want</span><span class="p">[</span><span class="s2">"flag"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Y"</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">100</span> <span class="k">else</span> <span class="s2">"N"</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">want</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">hi</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>                   <span class="c1"># 函数定义用 def</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th>差异</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语句结束</td>
+<td><code>;</code></td>
+<td>换行</td>
+</tr>
+<tr>
+<td>代码块</td>
+<td><code>if ... then do; ... end;</code></td>
+<td><code>if ...:</code> + <strong>缩进</strong>（4 空格）</td>
+</tr>
+<tr>
+<td>大小写</td>
+<td>不敏感（<code>AGE</code> = <code>age</code>）</td>
+<td><strong>敏感</strong>（<code>AGE</code> ≠ <code>age</code>）</td>
+</tr>
+<tr>
+<td>注释</td>
+<td><code>* 注释;</code> 或 <code>/* 注释 */</code></td>
+<td><code># 单行</code> 或 <code>"""多行"""</code></td>
+</tr>
+<tr>
+<td>运行单位</td>
+<td><code>run;</code> 提交整个步</td>
+<td>逐行执行到文件末尾</td>
+</tr>
+<tr>
+<td>变量赋值</td>
+<td><code>x = 1;</code></td>
+<td><code>x = 1</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>大小写敏感是临床程序员最容易犯的错</strong>。
+SDTM 变量名习惯全大写（<code>USUBJID</code>），但 Python 里 <code>df["usubjid"]</code> 会直接报错
+<code>KeyError</code>。写代码时建议复制变量名，或统一改名（见第 07 章）。</p>
+</blockquote>
+<hr />
+<h2 id="22-变量与数据类型">2.2 变量与数据类型</h2>
+<p><strong>SAS 只有两种类型</strong>（字符、数值），Python 的类型丰富得多：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>写法</th>
+<th>SAS 对应</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int</code></td>
+<td><code>n = 42</code></td>
+<td>数值（无小数）</td>
+<td>整数</td>
+</tr>
+<tr>
+<td><code>float</code></td>
+<td><code>x = 3.14</code></td>
+<td>数值</td>
+<td>浮点数，含 <code>nan</code></td>
+</tr>
+<tr>
+<td><code>str</code></td>
+<td><code>s = "ABC"</code></td>
+<td>字符</td>
+<td>字符串</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td><code>t = True</code></td>
+<td>数值 0/1</td>
+<td><code>True</code> / <code>False</code>（首字母大写）</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td><code>v = None</code></td>
+<td><code>.</code> / <code>''</code></td>
+<td>"无值"，<strong>唯一</strong>的空值对象</td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td><code>[1, 2, 3]</code></td>
+<td>数组 / 多值</td>
+<td>有序可变</td>
+</tr>
+<tr>
+<td><code>dict</code></td>
+<td><code>{"a": 1}</code></td>
+<td><strong>Hash Object</strong></td>
+<td>键值对</td>
+</tr>
+<tr>
+<td><code>tuple</code></td>
+<td><code>(1, 2)</code></td>
+<td>—</td>
+<td>有序不可变</td>
+</tr>
+<tr>
+<td><code>set</code></td>
+<td><code>{1, 2}</code></td>
+<td><code>PROC SORT nodupkey</code></td>
+<td>去重集合</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 检查类型 —— 等价于 SAS 的 PROC CONTENTS 看 type</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="mi">42</span><span class="p">))</span>         <span class="c1"># &lt;class 'int'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="mf">3.14</span><span class="p">))</span>       <span class="c1"># &lt;class 'float'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="s2">"A"</span><span class="p">))</span>        <span class="c1"># &lt;class 'str'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>       <span class="c1"># &lt;class 'bool'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>       <span class="c1"># &lt;class 'NoneType'&gt;</span>
+
+<span class="nb">isinstance</span><span class="p">(</span><span class="mi">42</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>     <span class="c1"># True —— 类似 SAS 的 vtype() / vartype()</span>
+</code></pre></div></div>
+<h3 id="数值运算">数值运算</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="mi">7</span> <span class="o">/</span> <span class="mi">2</span>      <span class="c1"># 3.5   ← 真除法！与 SAS 一致（SAS 的 / 也是真除）</span>
+<span class="mi">7</span> <span class="o">//</span> <span class="mi">2</span>     <span class="c1"># 3     ← 整除（SAS 里对应 floor(7/2)）</span>
+<span class="mi">7</span> <span class="o">%</span> <span class="mi">2</span>      <span class="c1"># 1     ← 取余（SAS 的 MOD(7,2)）</span>
+<span class="mi">2</span> <span class="o">**</span> <span class="mi">10</span>    <span class="c1"># 1024  ← 幂（SAS 的 2**10 也支持）</span>
+<span class="nb">abs</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>    <span class="c1"># 5     ← SAS 的 ABS(-5)</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">3.14159</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># 3.14  ← SAS 的 round(x, 0.01)，注意参数含义不同！</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>round()</code> 的重要差异</strong>：
+SAS 的 <code>ROUND(x, 0.01)</code> 第二个参数是<strong>舍入单位</strong>；
+Python 的 <code>round(x, 2)</code> 第二个参数是<strong>小数位数</strong>。
+而且 Python 用的是<strong>银行家舍入</strong>（四舍六入五成双）：
+<code>round(0.5) == 0</code>，<code>round(1.5) == 2</code>。
+临床报表对舍入极其敏感，<strong>第 13 章会专门讲怎么复刻 SAS 的舍入规则</strong>。</p>
+</blockquote>
+<h3 id="类型转换input--put-的对应">类型转换（<code>input</code> / <code>put</code> 的对应）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS */</span>
+<span class="k">x</span> = <span class="k">input</span>(<span class="s">"123"</span>, best.);      <span class="c">/* 字符 -&gt; 数值 */</span>
+y = <span class="k">put</span>(<span class="m">123</span>, <span class="m">8</span>.);             <span class="c">/* 数值 -&gt; 字符 */</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nb">int</span><span class="p">(</span><span class="s2">"123"</span><span class="p">)</span>        <span class="c1"># 123      字符 -&gt; 整数</span>
+<span class="nb">float</span><span class="p">(</span><span class="s2">"3.14"</span><span class="p">)</span>     <span class="c1"># 3.14     字符 -&gt; 浮点</span>
+<span class="nb">str</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>          <span class="c1"># '123'    数值 -&gt; 字符</span>
+<span class="nb">bool</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>           <span class="c1"># False    任意 -&gt; 布尔（0/''/None 为 False）</span>
+
+<span class="c1"># 批量转换 + 容错（对应 SAS 的 input(..., ??best.) 抑制日志）</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="s2">"abc"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>   <span class="c1"># nan（无法转换时返回缺失，不报错）</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <code>errors="coerce"</code> 是 pandas 里极其常用的参数：
+<strong>转换失败就变成缺失值</strong>，等价于 SAS 的 <code>input(var, ??best.)</code>。
+数据清洗场景几乎每处都要用。（<code>coerce</code> = 强制、胁迫）</p>
+</blockquote>
+<hr />
+<h2 id="23-字符串与-sas-字符函数对照">2.3 字符串：与 SAS 字符函数对照</h2>
+<p>这是你最熟也最容易迁移的部分——<strong>几乎所有 SAS 字符函数都有对应</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>SAS 函数</th>
+<th>Python 写法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>length(s)</code></td>
+<td><code>len(s)</code></td>
+<td>长度（<strong>注意</strong>：SAS 返回存储长度含尾部空格，Python 不含）</td>
+</tr>
+<tr>
+<td><code>strip(s)</code></td>
+<td><code>s.strip()</code></td>
+<td>去首尾空格（<strong>SAS 的 <code>strip</code> = Python 的 <code>strip</code></strong>）</td>
+</tr>
+<tr>
+<td><code>trim(s)</code></td>
+<td><code>s.rstrip()</code></td>
+<td>去尾部空格</td>
+</tr>
+<tr>
+<td><code>left(s)</code></td>
+<td><code>s.lstrip()</code></td>
+<td>去首部空格</td>
+</tr>
+<tr>
+<td><code>upcase(s)</code></td>
+<td><code>s.upper()</code></td>
+<td>转大写</td>
+</tr>
+<tr>
+<td><code>lowcase(s)</code></td>
+<td><code>s.lower()</code></td>
+<td>转小写</td>
+</tr>
+<tr>
+<td><code>propcase(s)</code></td>
+<td><code>s.title()</code></td>
+<td>首字母大写</td>
+</tr>
+<tr>
+<td><code>substr(s, 1, 3)</code></td>
+<td><code>s[0:3]</code></td>
+<td>取子串（<strong>索引从 0 开始！</strong>）</td>
+</tr>
+<tr>
+<td><code>substr(s, 1)</code></td>
+<td><code>s[0]</code></td>
+<td>取第一个字符（<strong>注意 SAS 从 1 开始，Python 从 0</strong>）</td>
+</tr>
+<tr>
+<td><code>scan(s, 2, ',')</code></td>
+<td><code>s.split(",")[1]</code></td>
+<td>按分隔符取第 n 个（第 2 个 → 索引 1）</td>
+</tr>
+<tr>
+<td><code>cat(a, b)</code></td>
+<td><code>a + b</code> 或 <code>f"{a}{b}"</code></td>
+<td>拼接</td>
+</tr>
+<tr>
+<td><code>cats(a, b)</code></td>
+<td><code>"".join([a.strip(), b.strip()])</code></td>
+<td>拼接并去空格</td>
+</tr>
+<tr>
+<td><code>catx('-', a, b)</code></td>
+<td><code>"-".join([a, b])</code></td>
+<td>带分隔符拼接</td>
+</tr>
+<tr>
+<td><code>tranwrd(s, 'X', 'Y')</code></td>
+<td><code>s.replace("X", "Y")</code></td>
+<td>替换全部</td>
+</tr>
+<tr>
+<td><code>index(s, 'X')</code></td>
+<td><code>s.find("X")</code></td>
+<td>查找位置（<strong>找不到返回 -1，SAS 返回 0</strong>）</td>
+</tr>
+<tr>
+<td><code>find(s, 'X')</code></td>
+<td><code>s.find("X")</code></td>
+<td>查找</td>
+</tr>
+<tr>
+<td><code>compress(s)</code></td>
+<td><code>"".join(s.split())</code></td>
+<td>去所有空格</td>
+</tr>
+<tr>
+<td><code>compress(s, '0123456789')</code></td>
+<td><code>re.sub(r"\D", "", s)</code></td>
+<td>只保留数字</td>
+</tr>
+<tr>
+<td><code>verify</code> / <code>anyalpha</code></td>
+<td>正则表达式 <code>re</code></td>
+<td>见下</td>
+</tr>
+<tr>
+<td><code>repeat(s, 2)</code></td>
+<td><code>s * 2</code></td>
+<td>重复</td>
+</tr>
+<tr>
+<td><code>reverse(s)</code></td>
+<td><code>s[::-1]</code></td>
+<td>反转</td>
+</tr>
+<tr>
+<td><code>prxmatch(p, s)</code></td>
+<td><code>re.search(p, s)</code></td>
+<td>正则匹配</td>
+</tr>
+</tbody>
+</table>
+<h3 id="索引从-0-开始请立刻记住">索引从 0 开始——请立刻记住</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">s</span> <span class="o">=</span> <span class="s2">"CDISCPILOT01"</span>
+
+<span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>        <span class="c1"># 'C'      第 1 个字符（SAS 是 substr(s,1,1)）</span>
+<span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>        <span class="c1"># 'D'      第 2 个字符</span>
+<span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>       <span class="c1"># '1'      最后一个字符 ← Python 独有，非常好用</span>
+<span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>      <span class="c1"># 'CDIS'   第 1~4 个字符（左闭右开：含 0，不含 4）</span>
+<span class="n">s</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>       <span class="c1"># 'CPILOT01'  从第 5 个到结尾</span>
+<span class="n">s</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>       <span class="c1"># 'CDIS'   从开头到第 4 个</span>
+
+<span class="c1"># 对应 SAS：substr(s, 1, 4)  →  s[0:4]</span>
+<span class="c1">#          substr(s, 5)     →  s[4:]</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>记住这个换算公式</strong>：<code>Python 切片起点 = SAS substr 起点 − 1</code>；
+且 Python 的结束位置是<strong>不包含</strong>的，而 SAS 的长度是<strong>包含</strong>的。
+<code>substr(s, 1, 4)</code> → <code>s[0:0+4]</code> → <code>s[0:4]</code>。</p>
+</blockquote>
+<h3 id="字符串方法速查贯穿日常">字符串方法速查（贯穿日常）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">s</span> <span class="o">=</span> <span class="s2">"  Nausea  "</span>
+
+<span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>                 <span class="c1"># 'Nausea'</span>
+<span class="n">s</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>                <span class="c1"># 'Nausea  '</span>
+<span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>         <span class="c1"># 'NAUSEA'</span>
+<span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>         <span class="c1"># 'nausea'</span>
+<span class="s2">"NAUSEA"</span><span class="o">.</span><span class="n">istitle</span><span class="p">()</span>        <span class="c1"># False</span>
+<span class="s2">"ab"</span> <span class="ow">in</span> <span class="s2">"abc"</span>             <span class="c1"># True    ← 子串判断（比 index()&gt;0 更 Pythonic）</span>
+<span class="s2">"abc"</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"a"</span><span class="p">)</span>     <span class="c1"># True</span>
+<span class="s2">"abc"</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"c"</span><span class="p">)</span>       <span class="c1"># True</span>
+<span class="s2">"a,b,,c"</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>       <span class="c1"># ['a', 'b', '', 'c']  ← 注意空元素会被保留</span>
+<span class="s2">"-"</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">])</span>      <span class="c1"># 'a-b'</span>
+<span class="s2">"AEDECOD"</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>  <span class="c1"># 'AEDECOD'</span>
+<span class="s2">"  a  b  "</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>        <span class="c1"># ['a', 'b']  ← 不传参时按任意空白切分，自动去空</span>
+
+<span class="c1"># 对应 SAS 的 compress(s)：去掉所有空白</span>
+<span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"01 701 1015"</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>   <span class="c1"># '017011015'</span>
+</code></pre></div></div>
+<h3 id="f-stringput-的现代替代品">f-string：<code>put()</code> 的现代替代品</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">subjid</span><span class="p">,</span> <span class="n">age</span><span class="p">,</span> <span class="n">sex</span> <span class="o">=</span> <span class="s2">"1015"</span><span class="p">,</span> <span class="mi">63</span><span class="p">,</span> <span class="s2">"F"</span>
+
+<span class="c1"># SAS: %let line = Subject &amp;subjid. is &amp;age. years old, sex &amp;sex.;</span>
+<span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Subject </span><span class="si">{</span><span class="n">subjid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">age</span><span class="si">}</span><span class="s2"> years old, sex </span><span class="si">{</span><span class="n">sex</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>   <span class="c1"># Subject 1015 is 63 years old, sex F</span>
+
+<span class="c1"># 格式化数字（对应 SAS 的 put(3.14159, 8.2)）</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mf">3.14159</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>     <span class="c1"># 3.14    保留 2 位小数</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mi">1234567</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>       <span class="c1"># 1,234,567   千分位</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mf">0.1234</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>      <span class="c1"># 12.3%   百分比</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'N'</span><span class="si">:</span><span class="s2">&gt;5</span><span class="si">}</span><span class="s2">|</span><span class="si">{</span><span class="s1">'N'</span><span class="si">:</span><span class="s2">&lt;5</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="c1"># 右对齐 | 左对齐（做文本报表时有用）</span>
+
+<span class="c1"># 表格加宽（临床报表常见需求，对应 SAS 的 $10. 格式）</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'TRT01P'</span><span class="si">:</span><span class="s2">&lt;25</span><span class="si">}{</span><span class="s1">'N'</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}{</span><span class="s1">'Mean'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'Placebo'</span><span class="si">:</span><span class="s2">&lt;25</span><span class="si">}{</span><span class="mi">79</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}{</span><span class="mf">75.2</span><span class="si">:</span><span class="s2">&gt;10.1f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="正则表达式sas-prx-函数的替代">正则表达式：SAS <code>prx*</code> 函数的替代</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="n">ae</span> <span class="o">=</span> <span class="s2">"MODERATE, SEVERE"</span>
+
+<span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">"SEVERE"</span><span class="p">,</span> <span class="n">ae</span><span class="p">)</span>              <span class="c1"># &lt;re.Match&gt;  对应 prxmatch</span>
+<span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\s+"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">,</span> <span class="n">ae</span><span class="p">)</span>               <span class="c1"># 'MODERATE, SEVERE'  对应 prxchange</span>
+<span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\b[A-Z]{4,}\b"</span><span class="p">,</span> <span class="n">ae</span><span class="p">)</span>      <span class="c1"># ['MODERATE', 'SEVERE']</span>
+
+<span class="c1"># 实用例：从 USUBJID 提取 SITEID 和 SUBJID（01-701-1015）</span>
+<span class="n">usubjid</span> <span class="o">=</span> <span class="s2">"01-701-1015"</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(\d+)-(\d+)-(\d+)$"</span><span class="p">,</span> <span class="n">usubjid</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+    <span class="n">study</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">subj</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>     <span class="c1"># ('01', '701', '1015')</span>
+
+<span class="c1"># 或者更简单的 split（USUBJID 结构固定时更推荐）</span>
+<span class="n">study</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">subj</span> <span class="o">=</span> <span class="n">usubjid</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>优先级建议</strong>：能不用正则就不用。
+<code>split()</code> / <code>startswith()</code> / <code>strip()</code> 可读性远好于正则，
+而临床代码的可读性 = 可 QC 性。</p>
+</blockquote>
+<hr />
+<h2 id="24-布尔与比较">2.4 布尔与比较</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 比较运算（与 SAS 基本一致）</span>
+<span class="mi">2</span> <span class="o">&gt;</span> <span class="mi">1</span>        <span class="c1"># True</span>
+<span class="s2">"a"</span> <span class="o">==</span> <span class="s2">"a"</span>   <span class="c1"># True   ← 相等是 ==，不是 =</span>
+<span class="mi">2</span> <span class="o">!=</span> <span class="mi">3</span>       <span class="c1"># True   ← 不等是 !=（SAS 是 ^= 或 ne）</span>
+<span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">3</span>       <span class="c1"># True</span>
+
+<span class="c1"># 逻辑运算：SAS 用 and/or/not 或 &amp;/|/^，Python 必须用关键字</span>
+<span class="kc">True</span> <span class="ow">and</span> <span class="kc">False</span>    <span class="c1"># False    ← SAS: True &amp; False 或 True and False</span>
+<span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>     <span class="c1"># True</span>
+<span class="ow">not</span> <span class="kc">True</span>          <span class="c1"># False    ← SAS: not True 或 ^True</span>
+
+<span class="c1"># 链式比较（Python 独有，很好用）</span>
+<span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">100</span>      <span class="c1"># 等价于 age &gt;= 0 and age &lt;= 100</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong><code>&amp;</code> / <code>|</code> 在 pandas 里的坑</strong>：
+对 Series 做逐元素逻辑运算时<strong>必须用 <code>&amp;</code> / <code>|</code>，不能用 <code>and</code> / <code>or</code></strong>，
+且<strong>每个条件都要加括号</strong>：
+<code>python
+df[(df["AGE"] &gt;= 65) &amp; (df["SEX"] == "F")]   # ✅ 正确
+df[df["AGE"] &gt;= 65 and df["SEX"] == "F"]     # ❌ ValueError
+df[df["AGE"] &gt;= 65 &amp; df["SEX"] == "F"]       # ❌ 运算符优先级错误</code>
+这是 pandas 新手最高频的报错，<strong>第 08 章会详细展开</strong>。</p>
+</blockquote>
+<h3 id="真值判断sas-里不存在的概念">真值判断（SAS 里不存在的概念）</h3>
+<p>Python 里很多东西可以当布尔用：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 以下都是 False（"假值"）</span>
+<span class="nb">bool</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="s2">""</span><span class="p">),</span> <span class="nb">bool</span><span class="p">([]),</span> <span class="nb">bool</span><span class="p">({}),</span> <span class="nb">bool</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">))</span>
+<span class="c1"># 其余都是 True</span>
+
+<span class="c1"># 实用：判断"有没有内容"</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"名字为空"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="25-缺失值python-的--是怎么表示的">2.5 缺失值：Python 的 <code>.</code> 是怎么表示的</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 三种"空"的表示，用途不同</span>
+<span class="n">v1</span> <span class="o">=</span> <span class="kc">None</span>          <span class="c1"># Python 原生空值，用于对象（字符串、日期列表元组）</span>
+<span class="n">v2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>        <span class="c1"># 浮点缺失，用于数值（pandas 数值列的缺失值）</span>
+<span class="n">v3</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>         <span class="c1"># pandas 的通用缺失值（可空整型/布尔）</span>
+
+<span class="c1"># 判断：永远用 pd.isna()，绝不用 ==</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span>        <span class="c1"># True</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span>        <span class="c1"># True</span>
+<span class="n">v2</span> <span class="o">==</span> <span class="n">v2</span>           <span class="c1"># False  ← 注意！NaN 不等于自己</span>
+</code></pre></div></div>
+<h3 id="与-sas-的关键差异表">与 SAS 的关键差异表</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SAS</th>
+<th>Python / pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值缺失</td>
+<td><code>.</code></td>
+<td><code>np.nan</code></td>
+</tr>
+<tr>
+<td>字符缺失</td>
+<td><code>''</code>（空串即缺失）</td>
+<td><code>None</code> / <code>np.nan</code>；<strong><code>''</code> 不算缺失</strong></td>
+</tr>
+<tr>
+<td>判断</td>
+<td><code>if x = . then</code></td>
+<td><code>if pd.isna(x):</code></td>
+</tr>
+<tr>
+<td><code>if x = '' then</code></td>
+<td>捕获字符缺失</td>
+<td><strong>不适用</strong>，需 <code>if x == "" or pd.isna(x):</code></td>
+</tr>
+<tr>
+<td>排序</td>
+<td><code>.</code> 视为最小值排在最前</td>
+<td><code>NaN</code> 默认排在<strong>最后</strong>（<code>sort_values(na_position="first")</code> 可改）</td>
+</tr>
+<tr>
+<td>计算</td>
+<td><code>.</code> 参与运算结果仍为 <code>.</code></td>
+<td><code>NaN + 1 = NaN</code>（一致）</td>
+</tr>
+<tr>
+<td>分组</td>
+<td><code>PROC MEANS</code> 自动排除 <code>.</code></td>
+<td><code>groupby().mean()</code> 默认 <code>skipna=True</code>（一致）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># SAS 的这段：</span>
+<span class="c1">#   if nmiss(age, weight) &gt; 0 then flag = 'Y';</span>
+<span class="c1"># 在 pandas 中：</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"has_missing"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"WEIGHTBL"</span><span class="p">]]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># 数缺失（对应 PROC MEANS 的 NMISS）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>            <span class="c1"># 每列缺失数</span>
+
+<span class="c1"># 用 0 填充（对应 if x = . then x = 0;）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="26-输出与调试put-的替代">2.6 输出与调试：<code>%put</code> 的替代</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 1) 最直接：print</span>
+<span class="n">subjid</span><span class="p">,</span> <span class="n">age</span> <span class="o">=</span> <span class="s2">"1015"</span><span class="p">,</span> <span class="mi">63</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"SUBJID ="</span><span class="p">,</span> <span class="n">subjid</span><span class="p">,</span> <span class="s2">"AGE ="</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span>     <span class="c1"># 逗号分隔，自动加空格</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SUBJID = </span><span class="si">{</span><span class="n">subjid</span><span class="si">}</span><span class="s2">, AGE = </span><span class="si">{</span><span class="n">age</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>    <span class="c1"># 推荐：f-string</span>
+
+<span class="c1"># 2) 看变量"是什么"（调试必用，对应 PROC CONTENTS）</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="c1"># 3) 结构化调试（推荐用于正式脚本）</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"</span><span class="si">%(levelname)s</span><span class="s2"> | </span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"读取 dm.xpt 完成，</span><span class="si">%d</span><span class="s2"> 行"</span><span class="p">,</span> <span class="mi">306</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"ADSL 中 </span><span class="si">%d</span><span class="s2"> 条记录 TRT01P 为空"</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="c1"># 输出：INFO | 读取 dm.xpt 完成，306 行</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>日志优于 print</strong>：正式脚本（尤其是要 QC 的代码）请用 <code>logging</code>——
+它能分级（DEBUG/INFO/WARNING/ERROR）、能写文件、能由调用方控制，
+这正是 SAS 日志分级（NOTE/WARNING/ERROR）的思路。</p>
+</blockquote>
+<hr />
+<h2 id="27-动手练习">2.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>字符串处理</strong>（对比 SAS 写法）：
+   给定 <code>usubjid = "01-701-1015"</code>，分别取出 study、site、subjid 三段。
+   再给定 <code>aedecod = "  nausea  "</code>，输出全大写且无空格的形式。</p>
+</li>
+<li>
+<p><strong>类型转换</strong>：
+   给定字符串列表 <code>["63", "71", "abc", "58"]</code>，转成数值列表，
+   无法转换的变成缺失值，并统计有几个缺失。</p>
+</li>
+<li>
+<p><strong>格式化输出</strong>：
+   输出这样一张表（列名左对齐 20 字符、数字右对齐 8 字符）：
+   <code>Treatment               N     Mean
+   Placebo                79     75.2
+   Xanomeline Low Dose    81     76.4
+   Xanomeline High Dose   84     74.1</code></p>
+</li>
+<li>
+<p><strong>缺失值判断</strong>：
+   <code>SAS 的 if age = . then flag = 'Y';</code> 和
+   <code>if name = '' then flag = 'Y';</code> 分别怎么用 Python/pandas 表达？</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="01.html">第 01 章 · 环境搭建与思维转换</a>
+<strong>下一章 →</strong> <a href="03.html">第 03 章 · 核心数据结构</a></p></article>
+<nav class="pager"><a class="pg-prev" href="01.html"><span class="pg-label">← 上一篇</span><span class="pg-title">环境搭建与思维转换</span></a><a class="pg-next" href="03.html"><span class="pg-label">下一篇 →</span><span class="pg-title">核心数据结构 list / dict / str</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

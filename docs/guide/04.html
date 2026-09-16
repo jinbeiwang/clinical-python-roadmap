@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 04 章 · 控制流、函数、模块与异常</title>
+<meta name="description" content="控制流、函数、模块与异常 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 04 章 · 控制流、函数、模块与异常">
+<meta property="og:description" content="控制流、函数、模块与异常 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/04.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第一阶段 · Python 基础</div><h1>第 04 章 · 控制流、函数、模块与异常</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/04-%E6%8E%A7%E5%88%B6%E6%B5%81%E5%87%BD%E6%95%B0%E6%A8%A1%E5%9D%97%E4%B8%8E%E5%BC%82%E5%B8%B8.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把 SAS 的 <code>%MACRO</code> 思维迁移到 Python 函数；
+学会用模块组织代码；学会用异常处理替代 SAS 的"日志 + 继续跑"。</p>
+</blockquote>
+<hr />
+<h2 id="41-控制流与-data-步逐行逻辑几乎一一对应">4.1 控制流：与 DATA 步逐行逻辑几乎一一对应</h2>
+<h3 id="if--elif--else">if / elif / else</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS DATA 步 */</span>
+<span class="kr">data </span>want;
+    <span class="k">set</span> have;
+    <span class="k">if</span> age &lt; <span class="m">65</span> <span class="k">then</span> agegr = <span class="s">'&lt;65'</span>;
+    <span class="k">else</span> <span class="k">if</span> age &lt;= <span class="m">80</span> <span class="k">then</span> agegr = <span class="s">'65-80'</span>;
+    <span class="k">else</span> agegr = <span class="s">'&gt;80'</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python（单值场景）</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">age_group</span><span class="p">(</span><span class="n">age</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">age</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"&lt;65"</span>
+    <span class="k">elif</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">:</span>        <span class="c1"># ← SAS 的 else if 在 Python 里是 elif</span>
+        <span class="k">return</span> <span class="s2">"65-80"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"&gt;80"</span>
+
+<span class="c1"># 但处理整列数据时，用向量化（第 06 章）：</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>原则</strong>：<code>if/elif/else</code> 用于<strong>控制程序流程</strong>（配置判断、错误处理）；
+<strong>数据的分组派生一律用向量化</strong>（<code>np.where</code> / <code>np.select</code> / <code>pd.cut</code>）。
+这是"Python 思维"和"SAS 思维"的分水岭。</p>
+</blockquote>
+<h3 id="for-循环">for 循环</h3>
+<p><strong>SAS 里你几乎不写循环</strong>（DATA 步自动逐行，<code>%DO</code> 只用于宏生成代码）。
+Python 里循环主要用于<strong>对一组"东西"做同一件事</strong>（文件、参数组合、数据集）。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：%DO 循环通常用来生成代码 */</span>
+<span class="nb">%macro</span> loop;
+    <span class="nb">%do</span> i = <span class="m">1</span> <span class="nb">%to</span> <span class="m">3</span>;
+<span class="kr">        proc print </span>data=ds<span class="nv">&amp;i.</span>;<span class="kr"> run;</span>
+    <span class="nb">%end</span>;
+<span class="nb">%mend</span>;
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python：循环遍历"真实的对象"</span>
+<span class="k">for</span> <span class="n">domain</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"处理 </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">.xpt ..."</span><span class="p">)</span>
+
+<span class="c1"># 遍历带序号（对应 SAS 的自动宏变量 &amp;i）</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">domain</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 遍历字典</span>
+<span class="n">var_labels</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"AGE"</span><span class="p">:</span> <span class="s2">"Age"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">:</span> <span class="s2">"Sex"</span><span class="p">}</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">var_labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">&lt;10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># range 循环</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>          <span class="c1"># 0, 1, 2</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>       <span class="c1"># 1, 2, 3</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="while-循环">while 循环</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 用得不多的场景：分页抓取 API、重试</span>
+<span class="n">attempts</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">while</span> <span class="n">attempts</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="n">attempts</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第 </span><span class="si">{</span><span class="n">attempts</span><span class="si">}</span><span class="s2"> 次尝试"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="break--continue">break / continue</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">for</span> <span class="n">domain</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="s2">"error"</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"遇到错误域，停止"</span><span class="p">)</span>
+        <span class="k">break</span>            <span class="c1"># 跳出整个循环</span>
+    <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="s2">"ae"</span><span class="p">:</span>
+        <span class="k">continue</span>         <span class="c1"># 跳过本次，继续下一次</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"处理 </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>Python 的 <code>for</code> 有 <code>else</code> 子句</strong>（循环没被 break 时执行）——
+这是 SAS 里没有的概念，偶尔很好用，但不建议新手使用，容易误读。</p>
+</blockquote>
+<hr />
+<h2 id="42-函数macro-的替代品">4.2 函数：<code>%MACRO</code> 的替代品</h2>
+<p>这是最重要的迁移点。SAS 的宏本质是<strong>文本替换</strong>，
+Python 的函数是<strong>真正的参数传递 + 返回值</strong>——更安全、更易调试。</p>
+<h3 id="从宏到函数的翻译">从宏到函数的翻译</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：一个生成人口学表的宏 */</span>
+<span class="nb">%macro</span> demo_tbl(<span class="k">in</span>=, <span class="k">out</span>=, trtvar=);
+<span class="kr">    proc means </span>data=<span class="nv">&amp;in.</span> n mean std;
+        class <span class="nv">&amp;trtvar.</span>;
+        var AGE;
+<span class="kr">    run;</span>
+<span class="nb">%mend</span> demo_tbl;
+
+<span class="nf">%demo_tbl</span>(<span class="k">in</span>=adsl, <span class="k">out</span>=t1, trtvar=TRT01P);
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python：一个生成人口学表的函数</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">demo_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">trtvar</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">agevar</span><span class="o">=</span><span class="s2">"AGE"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""按治疗组汇总年龄的 N / Mean / SD。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : DataFrame  分析数据集（如 ADSL）</span>
+<span class="sd">    trtvar : str    治疗组变量名</span>
+<span class="sd">    agevar : str    年龄变量名</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DataFrame  行为治疗组，列为 N / Mean / SD</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">trtvar</span><span class="p">)[</span><span class="n">agevar</span><span class="p">]</span>
+          <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">Mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">SD</span><span class="o">=</span><span class="s2">"std"</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="p">)</span>
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">demo_table</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">trtvar</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong>关键差异</strong>：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS 宏</th>
+<th>Python 函数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本质</td>
+<td>文本替换</td>
+<td>值传递 + 独立作用域</td>
+</tr>
+<tr>
+<td>参数</td>
+<td>宏变量（巨型全局变量）</td>
+<td>局部变量，<strong>不污染外部</strong></td>
+</tr>
+<tr>
+<td>返回</td>
+<td>靠宏变量或输出数据集</td>
+<td><code>return</code> 明确返回值</td>
+</tr>
+<tr>
+<td>调试</td>
+<td>很难（宏展开难读）</td>
+<td>容易（可打日志、可单元测试）</td>
+</tr>
+<tr>
+<td>复用</td>
+<td><code>%include</code> + 调用宏</td>
+<td><code>import</code> 模块 + 调用函数</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>一个必须养成的习惯</strong>：写函数时加 <strong>docstring</strong>（三引号内的说明）。
+这是 Python 的"程序头注释"，但更好——它会被 IDE 自动提示，
+也是 QC 评审时的关键证据。</p>
+</blockquote>
+<h3 id="默认参数与关键字参数">默认参数与关键字参数</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">summarize</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">na_rm</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""通用描述统计。"""</span>
+    <span class="k">if</span> <span class="n">by</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">by</span><span class="p">)[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decimals</span><span class="p">)</span>
+
+<span class="n">summarize</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">)</span>                          <span class="c1"># 位置参数</span>
+<span class="n">summarize</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">)</span>         <span class="c1"># 关键字参数（推荐，可读性好）</span>
+<span class="n">summarize</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># 混合</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>临床编程建议</strong>：调用时<strong>尽量用关键字参数</strong>（<code>by="TRT01P"</code>）。
+因为临床程序讲究可读性与可 QC 性，而关键字参数让每个参数的含义一目了然，
+减少"参数顺序搞错"这类低级错误。</p>
+</blockquote>
+<h3 id="返回多个值">返回多个值</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">age_stats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">"AGE"</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">s</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>      <span class="c1"># 返回 tuple</span>
+
+<span class="n">n</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">sd</span> <span class="o">=</span> <span class="n">age_stats</span><span class="p">(</span><span class="n">adsl</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"N=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, Mean=</span><span class="si">{</span><span class="n">mean</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, SD=</span><span class="si">{</span><span class="n">sd</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="args-与-kwargs了解即可"><em>args 与 </em>*kwargs（了解即可）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">make_table</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"标题: </span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"列: </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"选项: </span><span class="si">{</span><span class="n">options</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">make_table</span><span class="p">(</span><span class="s2">"Table 1"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="43-模块把自己的代码拆成文件">4.3 模块：把自己的代码拆成文件</h2>
+<p>SAS 用 <code>%INCLUDE</code> 复用代码。Python 用 <code>import</code>，但<strong>更严格、更清晰</strong>。</p>
+<h3 id="目录结构约定">目录结构约定</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>clinical-python-roadmap/
+├── cases/
+│   ├── case02_人口学表.py
+│   └── case03_不良事件汇总表.py
+├── clinic/                    ← 你自己的工具包
+│   ├── __init__.py            ← 空文件，标记这是一个"包"
+│   ├── io.py                  ← 读数据
+│   ├── format.py              ← 数字格式化、报表布局
+│   └── qc.py                  ← QC 检查工具
+</code></pre></div></div>
+<h3 id="写模块与导入">写模块与导入</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/io.py</span>
+<span class="sd">"""临床数据读取工具。"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_xpt</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""读取 SAS XPORT (.xpt) 文件，返回 DataFrame。"""</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_any</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""按扩展名自动选择读取方式。"""</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".xpt"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">read_xpt</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".csv"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".xlsx"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"不支持的文件类型: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># cases/case02_人口学表.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_any</span>          <span class="c1"># ← 类似 %include clinic/io.sas</span>
+
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">read_any</span><span class="p">(</span><span class="s2">"data/samples/adsl.csv"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong>三种导入方式</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>                      <span class="c1"># 推荐：导入模块，用 pd.xxx（最清晰）</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>                 <span class="c1"># 导入具体对象</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_xpt</span>           <span class="c1"># 从自己的包导入</span>
+
+<span class="c1"># 不要这样（会污染命名空间，且无法看出函数来自哪里）：</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>别名约定</strong>（行业惯例，照抄即可）：
+<code>import pandas as pd</code>、<code>import numpy as np</code>、<code>import matplotlib.pyplot as plt</code>。</p>
+</blockquote>
+<h3 id="标准库不用安装就有的内置-sas-函数库">标准库：不用安装就有的"内置 SAS 函数库"</h3>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>模块</th>
+<th>SAS 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路径与文件操作</td>
+<td><code>pathlib</code></td>
+<td><code>LIBNAME</code> + <code>%sysfunc(pathname())</code></td>
+</tr>
+<tr>
+<td>目录遍历 / 批处理</td>
+<td><code>pathlib.glob</code>、<code>os</code></td>
+<td><code>%sysfunc(dread())</code>、<code>PROC DATASETS</code></td>
+</tr>
+<tr>
+<td>日期时间</td>
+<td><code>datetime</code></td>
+<td>SAS 日期函数（<code>today()</code>、<code>intck</code>）</td>
+</tr>
+<tr>
+<td>正则</td>
+<td><code>re</code></td>
+<td><code>PRX*</code> 函数族</td>
+</tr>
+<tr>
+<td>JSON / CSV</td>
+<td><code>json</code>、<code>csv</code></td>
+<td><code>PROC JSON</code>、<code>PROC IMPORT</code></td>
+</tr>
+<tr>
+<td>随机数</td>
+<td><code>random</code></td>
+<td><code>RAND()</code></td>
+</tr>
+<tr>
+<td>日志</td>
+<td><code>logging</code></td>
+<td>SAS 日志机制</td>
+</tr>
+<tr>
+<td>命令行参数</td>
+<td><code>argparse</code></td>
+<td>宏参数 <code>%let</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="44-异常处理sas-日志思维-vs-python-中断思维">4.4 异常处理：SAS 日志思维 vs Python 中断思维</h2>
+<p><strong>这是行为差异最大的地方</strong>，值得花时间理解。</p>
+<h3 id="心智模型对照">心智模型对照</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SAS</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>出错时</td>
+<td>写 ERROR 到日志，<strong>程序继续</strong>（多数情况）</td>
+<td>抛异常，<strong>立即中断</strong></td>
+</tr>
+<tr>
+<td>"检查是否出错"</td>
+<td>看 <code>&amp;syserr</code> / 日志</td>
+<td>用 <code>try/except</code> 捕获</td>
+</tr>
+<tr>
+<td>"我想让它继续"</td>
+<td>默认行为</td>
+<td>必须显式 <code>try/except</code></td>
+</tr>
+<tr>
+<td>主动报错</td>
+<td><code>%abort</code></td>
+<td><code>raise</code></td>
+</tr>
+<tr>
+<td>主动警告</td>
+<td><code>%put WARNING:</code></td>
+<td><code>logging.warning</code> / <code>warnings.warn</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="基本语法">基本语法</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">try</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"data/raw/qc_missing.xpt"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[ERROR] 数据文件不存在: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"提示：请先运行 python scripts/download_data.py --core"</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[ERROR] 未知错误: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">raise</span>                      <span class="c1"># 不认识的错误，重新抛出（便于排查）</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[OK] 读取成功，</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> 行"</span><span class="p">)</span>     <span class="c1"># 没有异常时执行</span>
+<span class="k">finally</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"--- 读取步骤结束 ---"</span><span class="p">)</span>              <span class="c1"># 无论如何都执行（如关闭文件）</span>
+</code></pre></div></div>
+<h3 id="临床场景批量处理的容错">临床场景：批量处理的容错</h3>
+<p>这是 <code>try/except</code> 最有价值的场景——
+<strong>一个域读取失败，不应让整个批处理崩掉</strong>（这正是 SAS 的默认行为）：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"</span><span class="si">%(levelname)s</span><span class="s2"> | </span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_all</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">domains</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""批量读取多个域，单个失败不影响其他。"""</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">failed</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dom</span> <span class="ow">in</span> <span class="n">domains</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dom</span><span class="si">}</span><span class="s2">.xpt"</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">dom</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"已读取 </span><span class="si">%-8s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> 行"</span><span class="p">,</span> <span class="n">dom</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">dom</span><span class="p">])</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">failed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dom</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"跳过 </span><span class="si">%-8s</span><span class="s2"> 文件不存在: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">dom</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">failed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dom</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"读取 </span><span class="si">%-8s</span><span class="s2"> 失败: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">dom</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">failed</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"共 </span><span class="si">%d</span><span class="s2"> 个域未成功读取: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">failed</span><span class="p">),</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">failed</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">failed</span>
+
+<span class="n">data</span><span class="p">,</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">load_all</span><span class="p">(</span><span class="s2">"data/raw"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">,</span> <span class="s2">"lb"</span><span class="p">,</span> <span class="s2">"vs"</span><span class="p">])</span>
+</code></pre></div></div>
+<h3 id="主动抛错对应-abort">主动抛错（对应 <code>%abort</code>）</h3>
+<p>数据不符合预期时，<strong>主动中断比默默产出错误结果更安全</strong>——
+在监管环境里尤其重要：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">assert_no_dup</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"数据集"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""检查主键唯一性；不唯一则抛错中断。等价于 SAS 的 %abort。"""</span>
+    <span class="n">dup</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dup</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dup</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">dup</span><span class="p">,</span> <span class="n">keys</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: 主键 </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> 存在 </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> 条重复记录</span><span class="se">\n</span><span class="si">{</span><span class="n">sample</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+<span class="n">assert_no_dup</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span> <span class="s2">"ADSL"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>临床编程视角</strong>：这比 SAS 的"日志里出现 ERROR 但程序跑完了"
+<strong>更安全</strong>。因为很多人不看日志，或者只看最后有没有报错。
+<strong>让错误无法被忽略，是质量保证的一部分。</strong></p>
+</blockquote>
+<hr />
+<h2 id="45-列表推导式-vs-循环什么时候用哪个">4.5 列表推导式 vs 循环：什么时候用哪个</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>写法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>生成一个新列表（简单变换）</td>
+<td>列表推导式 <code>[f(x) for x in xs]</code></td>
+</tr>
+<tr>
+<td>有副作用（打印、写文件、调 API）</td>
+<td><code>for</code> 循环</td>
+</tr>
+<tr>
+<td>需要复杂逻辑（多层嵌套、提前退出）</td>
+<td><code>for</code> 循环</td>
+</tr>
+<tr>
+<td>处理 DataFrame 的整列</td>
+<td><strong>向量化</strong>（既不是推导式也不是循环）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 推导式：简洁</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"V</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)]</span>
+
+<span class="c1"># 循环：需要逐步操作</span>
+<span class="k">for</span> <span class="n">dom</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">]:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">read_xpt</span><span class="p">(</span><span class="sa">f</span><span class="s2">"data/raw/</span><span class="si">{</span><span class="n">dom</span><span class="si">}</span><span class="s2">.xpt"</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">"data/samples/</span><span class="si">{</span><span class="n">dom</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>      <span class="c1"># 副作用</span>
+</code></pre></div></div>
+<hr />
+<h2 id="46-动手练习">4.6 动手练习</h2>
+<ol>
+<li>
+<p><strong>函数化</strong>：把第 02 章的"从 USUBJID 拆出 study/site/subjid"写成一个函数
+   <code>parse_usubjid(usubjid) -&gt; tuple</code>，要求能处理格式不符时返回 <code>(None, None, None)</code>。</p>
+</li>
+<li>
+<p><strong>宏迁移</strong>：把下面这个 SAS 宏改写成 Python 函数，并用 ADSL 调用：
+   <code>sas
+   %macro freq(in=, var=);
+       proc freq data=&amp;in.;
+           tables &amp;var. / missing;
+       run;
+   %mend;</code></p>
+</li>
+<li>
+<p><strong>容错批处理</strong>：写一个函数，遍历 <code>data/raw/</code> 下所有 <code>.xpt</code> 文件，
+   逐个读取并打印"域名 / 行数 / 列数"，<strong>任何文件失败都不能中断流程</strong>。</p>
+</li>
+<li>
+<p><strong>断言</strong>：写一个 <code>check_required_vars(df, required)</code>，
+   如果数据集缺少必需变量（如 ADSL 必须有 USUBJID/TRT01P/SAFFL），就抛错。</p>
+</li>
+<li>
+<p><strong>（进阶）</strong> 把练习 1、3 的函数放进 <code>clinic/</code> 包，
+   在 <code>cases/</code> 的脚本里 <code>import</code> 使用。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="03.html">第 03 章 · 核心数据结构</a>
+<strong>下一章 →</strong> <a href="05.html">第 05 章 · 文件与批处理自动化</a></p></article>
+<nav class="pager"><a class="pg-prev" href="03.html"><span class="pg-label">← 上一篇</span><span class="pg-title">核心数据结构 list / dict / str</span></a><a class="pg-next" href="05.html"><span class="pg-label">下一篇 →</span><span class="pg-title">文件与批处理自动化</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

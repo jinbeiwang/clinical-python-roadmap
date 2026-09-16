@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>论文、技术资料与行业实践</title>
+<meta name="description" content="论文与技术资料 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="论文、技术资料与行业实践">
+<meta property="og:description" content="论文与技术资料 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/res-03.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>论文、技术资料与行业实践</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/resources/03-%E8%AE%BA%E6%96%87%E4%B8%8E%E6%8A%80%E6%9C%AF%E8%B5%84%E6%96%99.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>临床统计编程这个行业的知识，<strong>绝大部分不在教科书里，而在会议论文里。</strong>
+这一份告诉你：该去哪找、怎么搜、什么值得读。</p>
+</blockquote>
+<hr />
+<h2 id="1-该关注哪些会议">1. 该关注哪些会议</h2>
+<table>
+<thead>
+<tr>
+<th>会议</th>
+<th>官网</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>PharmaSUG（US）</strong></td>
+<td><a href="https://pharmasug.org/">pharmasug.org</a></td>
+<td><strong>最实操</strong>。论文密度高、篇幅短、直接给代码。SAS 用户组起家，近年 Python/R/AI 专题大幅增加</td>
+</tr>
+<tr>
+<td>🟢 <strong>PharmaSUG Japan</strong></td>
+<td><a href="https://pharmasug.org/conferences/japan2026/">pharmasug.org/conferences/japan2026</a></td>
+<td>亚洲场次，议题更贴近亚太区实践</td>
+</tr>
+<tr>
+<td>🟢 <strong>PHUSE（EU / US / China）</strong></td>
+<td><a href="https://phuse.global/events">phuse.global/events</a></td>
+<td>更偏项目制与标准讨论，白皮书质量高</td>
+</tr>
+<tr>
+<td>🔵 <strong>SAS Global Forum</strong></td>
+<td>见 SAS 官网</td>
+<td>SAS 官方最大会议，近年也在谈开源集成</td>
+</tr>
+<tr>
+<td>🔵 <strong>CDISC Interchange</strong></td>
+<td>见 <a href="https://www.cdisc.org/">cdisc.org</a></td>
+<td>CDISC 标准的落地实践，偏标准而非代码</td>
+</tr>
+<tr>
+<td>🔵 <strong>R/Pharma</strong></td>
+<td><a href="https://rinpharma.com/">rinpharma.com</a></td>
+<td>R 生态的年度会议。<strong>Python 方向的进展也常在这里讨论</strong></td>
+</tr>
+<tr>
+<td>🔵 <strong>PHUSE China</strong></td>
+<td><a href="https://phuse.global/events">phuse.global/events</a></td>
+<td>中文区场次，值得国内同行关注</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>2027 年 PharmaSUG US 已定</strong>：2027-06-06 ~ 06-09，Anaheim, CA。
+见 <a href="https://pharmasug.org/conferences/pharmasug-2027-us/">pharmasug.org/conferences/pharmasug-2027-us</a></p>
+</blockquote>
+<hr />
+<h2 id="2-去哪找论文全文">2. 去哪找论文全文</h2>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>会议官网的 Proceedings 页</strong></td>
+<td>PharmaSUG / PHUSE 每年会后会放出 PDF。从 <a href="https://pharmasug.org/">pharmasug.org</a> 进当年会议页面找 "Proceedings"</td>
+</tr>
+<tr>
+<td>🟢 <strong>PHUSE 资源库</strong></td>
+<td><a href="https://phuse.global/resources">phuse.global/resources</a> 与 <a href="https://advance.phuse.global/">advance.phuse.global</a></td>
+</tr>
+<tr>
+<td>🟢 <strong>Lex Jansen 论文归档</strong></td>
+<td><code>https://www.lexjansen.com/</code> —— 收录了几十年间 SAS/PharmaSUG/PhUSE 等会议的<strong>绝大部分论文</strong>，是这个行业最重要的免费论文库。★ 部分企业网络可能访问受限，若打不开可换用会议官网</td>
+</tr>
+<tr>
+<td>🔵 <strong>SAS Communities</strong></td>
+<td><code>https://communities.sas.com/</code> —— 提问质量很高，很多疑难问题在这里有答案</td>
+</tr>
+<tr>
+<td>🔵 <strong>Google 检索技巧</strong></td>
+<td>见下一节</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-怎么搜论文比有哪些论文更重要">3. 怎么搜论文（比"有哪些论文"更重要）</h2>
+<p>会议论文的价值在于<strong>具体问题</strong>，所以最好的检索方式是
+<strong>用"你的具体问题 + 会议名"去搜</strong>。</p>
+<h3 id="高效检索模板">高效检索模板</h3>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>"&lt;技术名&gt;" "&lt;业务场景&gt;" pharmasug
+"&lt;变量名&gt;" "&lt;标准名&gt;" adam
+"&lt;问题描述&gt;" site:lexjansen.com
+</code></pre></div></div>
+<p><strong>实战例子（把问题直接翻译成搜索词）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>你的问题</th>
+<th>搜索词</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>怎么用 Python 读 XPT？</td>
+<td><code>read xpt python pandas pharmasug</code></td>
+</tr>
+<tr>
+<td>AE 表的分母怎么定？</td>
+<td><code>adverse events table denominator subject level pharmasug</code></td>
+</tr>
+<tr>
+<td>怎么自动生成 define.xml？</td>
+<td><code>automate define.xml metadata driven pharmasug</code></td>
+</tr>
+<tr>
+<td>移位表（shift table）怎么做？</td>
+<td><code>lab shift table SAS python implementation pharmasug</code></td>
+</tr>
+<tr>
+<td>SAS 程序怎么转 Python？</td>
+<td><code>migrating SAS to python clinical statistical programming pharmasug</code></td>
+</tr>
+<tr>
+<td>AI 辅助编程在临床编程里的应用？</td>
+<td><code>large language model clinical statistical programming pharmasug AI</code></td>
+</tr>
+<tr>
+<td>开源工具怎么验证？</td>
+<td><code>validation open source R python GxP phuse</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="按论文编号查如果你拿到了编号">按论文编号查（如果你拿到了编号）</h3>
+<p>PharmaSUG 的论文编号有<strong>前缀规律</strong>，知道前缀就知道大致主题：</p>
+<table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>主题方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ET-</code></td>
+<td>Emerging Technologies / 新兴技术（<strong>Python、R、开源、自动化多在这一类</strong>）</td>
+</tr>
+<tr>
+<td><code>AI-</code></td>
+<td>Artificial Intelligence / 机器学习与 Agent</td>
+</tr>
+<tr>
+<td><code>AD-</code></td>
+<td>Analysis &amp; Display / 分析与报表</td>
+</tr>
+<tr>
+<td><code>DS-</code></td>
+<td>Data Standards / 标准与数据管理</td>
+</tr>
+<tr>
+<td><code>QT-</code></td>
+<td>Quality &amp; Testing / 质量与测试</td>
+</tr>
+<tr>
+<td><code>PO-</code></td>
+<td>Poster / 海报</td>
+</tr>
+<tr>
+<td><code>HW-</code></td>
+<td>Hands-On Workshop / 实操工作坊（<strong>最适合跟着做</strong>）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>如果你记下了某篇论文的编号（例如 <code>ET-223</code>、<code>AI-305</code>），
+直接在会议 Proceedings 页里按编号查找，或用
+<code>"&lt;编号&gt;" pharmasug</code> 作为搜索词。</p>
+</blockquote>
+<hr />
+<h2 id="4-必读的几类主题按学习优先级">4. 必读的几类主题（按学习优先级）</h2>
+<h3 id="优先级-1--直接影响你每天的工作">优先级 1 —— 直接影响你每天的工作</h3>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>为什么必须读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Subject level vs Event level 计数</strong></td>
+<td>AE 表最常见的错误来源。分子到底该是"受试者数"还是"事件数"，论文里有大量实例</td>
+</tr>
+<tr>
+<td><strong>Denominator / Analysis Population</strong></td>
+<td>分母错了整张表都错。SAFFL vs ITTFL vs EFFFL 的差异有专门论文讨论</td>
+</tr>
+<tr>
+<td><strong>Shift Table 的实现</strong></td>
+<td>实验室与生命体征移位表，各家实现细节差异极大</td>
+</tr>
+<tr>
+<td><strong>Partial / Imputed Date 规则</strong></td>
+<td>缺失日的补全规则（AE 起始日、用药起止日）会直接影响 TEAE 判定</td>
+</tr>
+<tr>
+<td><strong><code>PROC COMPARE</code> 的替代方案</strong></td>
+<td>双编程验证是行业基本要求，怎么用 Python 做等价比对</td>
+</tr>
+<tr>
+<td><strong>CDISC 一致性检查</strong></td>
+<td>官方规则集见 <a href="https://github.com/cdisc-org/cdisc-rules-engine">cdisc-rules-engine</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="优先级-2--决定你未来五年竞争力">优先级 2 —— 决定你未来五年竞争力</h3>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>为什么值得投入</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metadata driven programming（元数据驱动编程）</strong></td>
+<td>从"手写每个数据集"到"由 spec 生成"。见 <a href="https://github.com/pharmaverse/sdtm.oak">pharmaverse/sdtm.oak</a> 与 <a href="https://github.com/cdisc-org/analysis-results-standard">analysis-results-standard</a></td>
+</tr>
+<tr>
+<td><strong>Dataset-JSON 与 XPT 的替代</strong></td>
+<td><a href="https://github.com/cdisc-org/DataExchange-DatasetJson">cdisc-org/DataExchange-DatasetJson</a></td>
+</tr>
+<tr>
+<td><strong>LLM / Agent 在临床编程中的应用</strong></td>
+<td>代码迁移、QC 辅助、文档生成。★ 但<strong>必须理解合规边界</strong>（本项目第 16 章）</td>
+</tr>
+<tr>
+<td><strong>RWD / RWE 相关标准</strong></td>
+<td>真实世界证据是行业增量最大的方向</td>
+</tr>
+<tr>
+<td><strong>自动化 QC 与 CI/CD</strong></td>
+<td>把 QC 从"人工核对"变成"每次提交自动跑"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="优先级-3--合规与验证决定能不能用">优先级 3 —— 合规与验证（决定"能不能用"）</h3>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>去处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开源软件在 GxP 环境的使用</td>
+<td><a href="https://github.com/cdisc-org/COSMoS">cdisc-org/COSMoS</a></td>
+</tr>
+<tr>
+<td>开源工具的验证框架</td>
+<td><a href="https://github.com/phuse-org/valtools">phuse-org/valtools</a></td>
+</tr>
+<tr>
+<td>Git 在统计编程中的规范</td>
+<td><a href="https://github.com/phuse-org/git-in-statistical-programming">phuse-org/git-in-statistical-programming</a></td>
+</tr>
+<tr>
+<td>PHUSE 方法学对照（SAS/R/Python）</td>
+<td><a href="https://github.com/phuse-org/OSTCDA">phuse-org/OSTCDA</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-需要长期跟踪的信息源清单">5. 需要长期跟踪的"信息源清单"</h2>
+<p>把这几处加进你的收藏夹，每季度扫一次：</p>
+<ul>
+<li>[ ] <a href="https://pharmasug.org/">pharmasug.org</a> —— 每年会后下载 Proceedings</li>
+<li>[ ] <a href="https://phuse.global/resources">phuse.global/resources</a> —— 白皮书与交付物</li>
+<li>[ ] <a href="https://advance.phuse.global/">advance.phuse.global</a> —— 工作组进展</li>
+<li>[ ] <a href="https://www.cdisc.org/standards">cdisc.org/standards</a> —— 标准版本更新（<strong>CT 每季度更新</strong>）</li>
+<li>[ ] <a href="https://github.com/phuse-org">phuse-org</a> / <a href="https://github.com/cdisc-org">cdisc-org</a> / <a href="https://github.com/atorus-research">atorus-research</a> —— <code>Watch</code> 这三个组织的仓库更新</li>
+<li>[ ] <a href="https://pharmaverse.org/">pharmaverse.org</a> —— R 生态的"标准包清单"，看它就知道行业在标准化什么</li>
+<li>[ ] SAS Communities（<code>communities.sas.com</code>）—— 疑难问题的搜索首选</li>
+</ul>
+<hr />
+<h2 id="6-怎么读一篇临床统计编程论文方法论">6. 怎么读一篇临床统计编程论文（方法论）</h2>
+<p>大部分论文的结构是：<strong>问题 → 为什么难 → 传统做法 → 新做法 → 代码 → 结果对比</strong>。
+读的时候<strong>不要从头读到尾</strong>，按这个顺序：</p>
+<ol>
+<li><strong>先看结果的表长什么样</strong>（通常是第 1 张图/表）
+   —— 这决定了"这篇论文解不解决我的问题"。</li>
+<li><strong>再看"传统做法 vs 新做法"的对比</strong>
+   —— 这里藏着口径差异，也就是最容易出错的地方。</li>
+<li><strong>然后看代码</strong>
+   —— 只抄你能读懂的部分。看不懂的逻辑，抄了也是隐患。</li>
+<li><strong>最后看作者的结论与限制</strong>
+   —— 论文作者通常会写"本方法不适用于……"，这句最容易被忽略，
+   但往往决定了你能不能在自己的项目里用。</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>重要提醒</strong>：会议论文是<strong>个人/公司的经验分享</strong>，
+不是监管要求。它说"可以这么做"，不代表"你的项目可以这么做"。
+<strong>最终依据永远是：SAP + 公司 SOP + 监管指南。</strong></p>
+</blockquote>
+<hr />
+<h2 id="7-中文学术与行业资料">7. 中文学术与行业资料</h2>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>中国临床试验数据管理学组（CDMC）</strong></td>
+<td>国内的临床数据管理专业组织，有年会与资料</td>
+</tr>
+<tr>
+<td><strong>DIA China</strong></td>
+<td>药物信息协会中国分会，常有临床数据与统计专场</td>
+</tr>
+<tr>
+<td><strong>NMPA 相关技术指导原则</strong></td>
+<td>国家药监局药审中心（CDE）发布的指导原则，是国内的合规依据</td>
+</tr>
+<tr>
+<td><strong>知网 / 万方</strong></td>
+<td>搜"临床统计编程""CDISC 实施""SDTM 映射"等关键词</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 国内实践与国际标准在 CDISC 层面基本一致，
+但在<strong>申报资料要求、数据递交格式（如 eCTD）</strong>上有本地化差异。
+做国内项目时，以 CDE 的指导原则为准。</p>
+</blockquote>
+<hr />
+<p><strong>返回</strong> → <a href="../index.html">项目主页</a> ｜ <a href="resources.html">资料索引总览</a></p></article>
+<nav class="pager"><a class="pg-prev" href="res-02.html"><span class="pg-label">← 上一篇</span><span class="pg-title">标准与规范 · CDISC / PHUSE</span></a><a class="pg-next" href="res-04.html"><span class="pg-label">下一篇 →</span><span class="pg-title">Python 学习资源与工具链</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

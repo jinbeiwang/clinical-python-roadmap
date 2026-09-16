@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python 学习资源与工具链</title>
+<meta name="description" content="Python 学习资源与工具链 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 学习资源与工具链">
+<meta property="og:description" content="Python 学习资源与工具链 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/res-04.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>Python 学习资源与工具链</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/resources/04-Python%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>只收录<strong>真正有用的</strong>。
+对临床统计程序员来说，"学 Python"的难点从来不是语法，
+而是<strong>建立"向量化 + DataFrame"的思维方式</strong>。这一份围绕这个目标组织。</p>
+</blockquote>
+<hr />
+<h2 id="0-学习路径如果你只有-8-周">0. 学习路径（如果你只有 8 周）</h2>
+<table>
+<thead>
+<tr>
+<th>周</th>
+<th>目标</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>环境能跑</td>
+<td>装 Python + VS Code，跑通 <a href="https://docs.python.org/zh-cn/3/tutorial/">Python 官方教程</a>前 6 节</td>
+</tr>
+<tr>
+<td>2</td>
+<td>语法速通</td>
+<td>本项目 <a href="02.html">第 02 章</a>，边看边改 <code>case01</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>思维转换</strong></td>
+<td>本项目 <a href="06.html">第 06 章</a>、<a href="07.html">第 07 章</a>。★ <strong>这是最关键的一周</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>数据操作</td>
+<td><a href="08.html">第 08 章</a>、<a href="09.html">第 09 章</a>，把一张老 SAS 程序改写成 pandas</td>
+</tr>
+<tr>
+<td>5</td>
+<td>真实数据</td>
+<td>跑通 <code>cases/case01</code>~<code>case05</code>。<strong>每一步都问自己"这对应 SAS 的哪一句"</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>工程化</td>
+<td>Git、虚拟环境、<code>pytest</code>（<a href="17.html">第 17 章</a>）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>AI 辅助</td>
+<td><a href="15.html">第 15 章</a>：用 LLM 迁移代码，但<strong>你必须能判断它写的对不对</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Agent</td>
+<td><a href="16.html">第 16 章</a> + <code>cases/case07</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>一周不够就拉长。</strong> 上面每一周的内容，实际做扎实都要 10-20 小时。
+<strong>不要跳过第 3 周</strong> —— 跳过它的人，写出来的代码会是"用 Python 语法的 SAS 程序"，
+又慢又难维护，然后得出"Python 不如 SAS"的错误结论。</p>
+</blockquote>
+<hr />
+<h2 id="1-官方文档最好的学习材料没有之一">1. 官方文档（最好的学习材料，没有之一）</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+<th>怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>Python 官方教程（中文）</strong></td>
+<td><a href="https://docs.python.org/zh-cn/3/tutorial/">docs.python.org/zh-cn/3/tutorial</a></td>
+<td>通读一遍。中文翻译质量很好</td>
+</tr>
+<tr>
+<td>🟢 <strong>Python 官方文档（英文）</strong></td>
+<td><a href="https://docs.python.org/3/">docs.python.org/3</a></td>
+<td>查标准库。<strong>比任何教程都准</strong></td>
+</tr>
+<tr>
+<td>🟢 <strong>pandas 官方文档</strong></td>
+<td><a href="https://pandas.pydata.org/docs/">pandas.pydata.org/docs</a></td>
+<td>★ 你要反复回来查的地方。特别是 <strong>User Guide</strong> 和 <strong>Cookbook</strong></td>
+</tr>
+<tr>
+<td>🟢 <strong>pandas 十分钟入门</strong></td>
+<td><a href="https://pandas.pydata.org/docs/user_guide/10min.html">pandas.pydata.org/docs/user_guide/10min.html</a></td>
+<td>第一份该读的 pandas 材料</td>
+</tr>
+<tr>
+<td>🟢 <strong>NumPy 广播机制</strong></td>
+<td><a href="https://numpy.org/doc/stable/user/basics.broadcasting.html">numpy.org/doc/stable/user/basics.broadcasting.html</a></td>
+<td>★ <strong>理解向量化的钥匙</strong>。看懂这个，你就不会再写行循环了</td>
+</tr>
+<tr>
+<td>🔵 <strong>pyreadstat 文档</strong></td>
+<td><a href="https://pyreadstat.readthedocs.io/">pyreadstat.readthedocs.io</a></td>
+<td>读 XPT / sas7bdat 的参数说明</td>
+</tr>
+<tr>
+<td>🔵 <strong>openpyxl 文档</strong></td>
+<td><a href="https://openpyxl.readthedocs.io/">openpyxl.readthedocs.io</a></td>
+<td>Excel 读写（含格式、公式）</td>
+</tr>
+<tr>
+<td>🔵 <strong>SciPy 文档</strong></td>
+<td><a href="https://docs.scipy.org/">docs.scipy.org</a></td>
+<td>统计检验函数</td>
+</tr>
+<tr>
+<td>🔵 <strong>statsmodels 文档</strong></td>
+<td><a href="https://www.statsmodels.org/">statsmodels.org</a></td>
+<td>回归 / Logistic / Mixed Model</td>
+</tr>
+<tr>
+<td>🔵 <strong>Matplotlib 文档</strong></td>
+<td><a href="https://matplotlib.org/">matplotlib.org</a></td>
+<td>绘图（对应 <code>PROC SGPLOT</code>）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pandas-里最该先读的-6-个页面">pandas 里最该先读的 6 个页面</h3>
+<ol>
+<li><strong>10 minutes to pandas</strong> —— 全貌</li>
+<li><strong>User Guide → Indexing and selecting data</strong> —— <code>loc</code> / <code>iloc</code> / 布尔索引。<strong>这里不搞清，后面全是错</strong></li>
+<li><strong>User Guide → Group by: split-apply-combine</strong> —— 对应 SAS 的 <code>BY</code> 组处理</li>
+<li><strong>User Guide → Merge, join, concatenate</strong> —— 对应 <code>MERGE</code></li>
+<li><strong>User Guide → Reshaping and pivot tables</strong> —— 对应 <code>PROC TRANSPOSE</code> / <code>PROC TABULATE</code></li>
+<li><strong>User Guide → Working with missing data</strong> —— ★ 与 SAS 差异最大的一块</li>
+</ol>
+<hr />
+<h2 id="2-开发环境">2. 开发环境</h2>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适合谁</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>VS Code + Python 扩展</strong></td>
+<td>大多数人</td>
+<td>免费、跨平台、Git 集成好。<strong>推荐</strong></td>
+</tr>
+<tr>
+<td>🟢 <strong>PyCharm Community</strong></td>
+<td>喜欢重 IDE 的人</td>
+<td>提示与重构更强。JetBrains 系用户上手快</td>
+</tr>
+<tr>
+<td>🔵 <strong>Jupyter Lab / Notebook</strong></td>
+<td>探索阶段</td>
+<td>对应 SAS Studio 的交互体验。★ 但<strong>不要把生产程序写成 notebook</strong></td>
+</tr>
+<tr>
+<td>🔵 <strong>Anaconda / Miniconda</strong></td>
+<td>不想折腾环境的人</td>
+<td>一次装齐科学计算栈。缺点是体积大</td>
+</tr>
+<tr>
+<td>⚪ <strong>uv</strong></td>
+<td>追求速度的人</td>
+<td>极快的 Python 包管理器，近年很流行</td>
+</tr>
+</tbody>
+</table>
+<h3 id="必装的-vs-code-扩展">必装的 VS Code 扩展</h3>
+<ul>
+<li><strong>Python</strong>（微软官方）</li>
+<li><strong>Pylance</strong>（类型提示与补全）</li>
+<li><strong>Jupyter</strong>（跑 notebook）</li>
+<li><strong>Rainbow CSV</strong>（看 CSV 时按列着色）</li>
+<li><strong>GitLens</strong>（看每行代码是谁改的、什么时候改的 —— <strong>审计场景很有用</strong>）</li>
+<li><strong>Data Wrangler</strong>（微软出的数据探索插件，可视化看 DataFrame）</li>
+</ul>
+<h3 id="虚拟环境-必须养成习惯">虚拟环境（★ 必须养成习惯）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code><span class="c1"># 每个项目一个独立环境 —— 对应 SAS 里"每个项目有自己的库"</span>
+python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+
+<span class="c1"># Windows PowerShell</span>
+.venv<span class="se">\S</span>cripts<span class="se">\A</span>ctivate.ps1
+<span class="c1"># Windows CMD</span>
+.venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate.bat
+<span class="c1"># Linux / macOS</span>
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+
+pip<span class="w"> </span>install<span class="w"> </span>pandas<span class="w"> </span>numpy<span class="w"> </span>pyreadstat<span class="w"> </span>openpyxl
+
+<span class="c1"># 把依赖固定下来（对应 SAS 里"记录用了哪个版本的工具"）</span>
+pip<span class="w"> </span>freeze<span class="w"> </span>&gt;<span class="w"> </span>requirements.txt
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>为什么虚拟环境在临床场景特别重要？</strong>
+因为<strong>可复现性</strong>。半年后你要复现一个结果，
+如果依赖版本变了（比如 pandas 2 → 3 的行为变化），结果可能就不一样。
+<code>requirements.txt</code> 是审计材料的一部分。</p>
+</blockquote>
+<hr />
+<h2 id="3-包管理速查">3. 包管理速查</h2>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安装</td>
+<td><code>pip install pandas</code></td>
+</tr>
+<tr>
+<td>指定版本</td>
+<td><code>pip install "pandas==2.2.3"</code></td>
+</tr>
+<tr>
+<td>升级</td>
+<td><code>pip install --upgrade pandas</code></td>
+</tr>
+<tr>
+<td>卸载</td>
+<td><code>pip uninstall pandas</code></td>
+</tr>
+<tr>
+<td>看已装什么</td>
+<td><code>pip list</code></td>
+</tr>
+<tr>
+<td>导出依赖</td>
+<td><code>pip freeze &gt; requirements.txt</code></td>
+</tr>
+<tr>
+<td>按依赖恢复</td>
+<td><code>pip install -r requirements.txt</code></td>
+</tr>
+<tr>
+<td>国内加速（临时）</td>
+<td><code>pip install pandas -i https://pypi.tuna.tsinghua.edu.cn/simple</code></td>
+</tr>
+<tr>
+<td>国内加速（永久）</td>
+<td><code>pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 本项目的依赖见根目录 <a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/requirements.txt"><code>requirements.txt</code></a>。</p>
+</blockquote>
+<hr />
+<h2 id="4-临床数据专用工具本项目用到与推荐的">4. 临床数据专用工具（本项目用到与推荐的）</h2>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>clinic.io</strong></td>
+<td>本项目 <a href="../code/clinic-io.html"><code>clinic/io.py</code></a></td>
+<td>读 XPT/sas7bdat/CSV，保留标签，清洗伪缺失</td>
+</tr>
+<tr>
+<td><strong>clinic.derive</strong></td>
+<td>本项目 <a href="../code/clinic-derive.html"><code>clinic/derive.py</code></a></td>
+<td>SAS 语义的舍入、年龄分组、日期转换</td>
+</tr>
+<tr>
+<td><strong>clinic.report</strong></td>
+<td>本项目 <a href="../code/clinic-report.html"><code>clinic/report.py</code></a></td>
+<td>TFL 报表构造件（<code>n (%)</code>、Mean (SD)、移位表）</td>
+</tr>
+<tr>
+<td><strong>clinic.qc</strong></td>
+<td>本项目 <a href="../code/clinic-qc.html"><code>clinic/qc.py</code></a></td>
+<td>数据质量检查、跨域一致性、PROC COMPARE 等价物</td>
+</tr>
+<tr>
+<td><strong>clinic.agent_tools</strong></td>
+<td>本项目 <a href="../code/clinic-agent_tools.html"><code>clinic/agent_tools.py</code></a></td>
+<td>暴露给 LLM Agent 的临床数据工具集</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Roche/pyreadstat">pyreadstat</a></td>
+<td>第三方</td>
+<td>底层 XPT 读取</td>
+</tr>
+<tr>
+<td><a href="https://github.com/cdisc-org/cdisc-rules-engine">cdisc-rules-engine</a></td>
+<td>CDISC 官方</td>
+<td>一致性规则引擎（CORE）</td>
+</tr>
+<tr>
+<td><a href="https://github.com/swhume/odmlib">odmlib</a></td>
+<td>第三方</td>
+<td>Define-XML / ODM 读写</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dylanmeysmans/duckdb-read-stat">duckdb-read-stat</a></td>
+<td>第三方</td>
+<td>大 SAS 文件的 SQL 直查</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-通用技能决定你能走多远">5. 通用技能（决定你能走多远）</h2>
+<table>
+<thead>
+<tr>
+<th>技能</th>
+<th>为什么临床程序员也该学</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>Git</strong></td>
+<td>版本管理是<strong>审计要求</strong>，不是"程序员的爱好"。见 <a href="https://github.com/phuse-org/git-in-statistical-programming">phuse-org/git-in-statistical-programming</a></td>
+</tr>
+<tr>
+<td>🟢 <strong>日志（logging）</strong></td>
+<td>对应 <code>PROC PRINTTO</code>，但能做级别控制、能接调度系统</td>
+</tr>
+<tr>
+<td>🔵 <strong>测试（pytest）</strong></td>
+<td>对应"双编程验证"的自动化版本。<strong>把 QC 从人工变成自动</strong></td>
+</tr>
+<tr>
+<td>🔵 <strong>CI/CD（GitHub Actions 等）</strong></td>
+<td>每次提交自动跑测试与 QC —— 这是质量的真正保障</td>
+</tr>
+<tr>
+<td>🔵 <strong>容器（Docker）</strong></td>
+<td>环境可复现的终极方案。在"换台机器结果就不一样"的场景下是唯一解法</td>
+</tr>
+<tr>
+<td>⚪ <strong>正则表达式（regex）</strong></td>
+<td>对应 SAS 的 PRX 函数族。处理 <code>--DTC</code>、解析文件名、清洗数据都要用</td>
+</tr>
+<tr>
+<td>⚪ <strong>SQL</strong></td>
+<td>不只 <code>PROC SQL</code>。真实世界数据（RWD）场景几乎全是 SQL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-免费的公开课程挑一个就够">6. 免费的公开课程（挑一个就够）</h2>
+<table>
+<thead>
+<tr>
+<th>课程</th>
+<th>链接</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python 官方教程</strong></td>
+<td><a href="https://docs.python.org/zh-cn/3/tutorial/">docs.python.org/zh-cn/3/tutorial</a></td>
+<td>最准，不要钱</td>
+</tr>
+<tr>
+<td><strong>Kaggle Learn: Python / Pandas</strong></td>
+<td><a href="https://www.kaggle.com/learn">kaggle.com/learn</a></td>
+<td>短、有练习、直接能跑。<strong>pandas 那份特别适合入门</strong></td>
+</tr>
+<tr>
+<td><strong>Python for Data Analysis（书）</strong></td>
+<td>作者 Wes McKinney 就是 pandas 的作者</td>
+<td>免费在线版在 <a href="https://wesmckinney.com/book/">wesmckinney.com/book</a></td>
+</tr>
+<tr>
+<td><strong>Real Python</strong></td>
+<td><a href="https://realpython.com/">realpython.com</a></td>
+<td>文章质量高，覆盖实际场景</td>
+</tr>
+<tr>
+<td><strong>pharmaverse 教学材料</strong></td>
+<td><a href="https://pharmaverse.org/">pharmaverse.org</a></td>
+<td>R 为主，但<strong>临床数据处理的思路完全通用</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>避坑</strong>：不要一上来学 Django / Flask / 爬虫 / 深度学习。
+那些和你的工作无关。<strong>你的主线是 pandas + 文件处理 + 一点点统计。</strong>
+学完主线再去扩展。</p>
+</blockquote>
+<hr />
+<h2 id="7-遇到问题怎么办按顺序">7. 遇到问题怎么办（按顺序）</h2>
+<ol>
+<li><strong>看报错信息的最后一行</strong>（Python 的报错信息比 SAS 的 log 精确得多，
+   它直接告诉你文件和行号）</li>
+<li><strong>读官方文档对应的那一页</strong> —— 90% 的问题文档里都写了</li>
+<li><strong>搜索引擎</strong>（把报错信息原样贴进去，去掉你自己的变量名）</li>
+<li><strong>Stack Overflow</strong> —— 加 <code>pandas</code> 标签</li>
+<li><strong>SAS Communities / PHUSE</strong> —— 业务口径类问题去这里</li>
+<li><strong>问 AI</strong> —— ★ 但<strong>必须自己验证</strong>。
+   LLM 在 pandas API 细节上经常记错版本差异（如 <code>observed</code> 参数、
+   <code>str.replace</code> 的 regex 默认值、numpy 2 的类型提升规则）。
+   <strong>把 AI 给的答案当成"待验证的假设"，不是"结论"。</strong></li>
+</ol>
+<hr />
+<h2 id="8-一个务实的提醒">8. 一个务实的提醒</h2>
+<blockquote>
+<p>你在 SAS 里积累的<strong>领域知识</strong>（什么是 SAFFL、TEAE 怎么判、
+移位表看什么、双编程怎么比）—— 那些才是你真正的资产，
+值钱得多。</p>
+<p>Python 只是换了个工具来表达同样的知识。
+<strong>不要因为不熟悉工具，就怀疑自己的专业能力；
+也不要因为会用工具，就以为自己懂了业务。</strong></p>
+<p>本项目存在的意义就是：<strong>用你已经懂的业务，把新工具学会。</strong></p>
+</blockquote>
+<hr />
+<p><strong>返回</strong> → <a href="../index.html">项目主页</a> ｜ <a href="resources.html">资料索引总览</a></p></article>
+<nav class="pager"><a class="pg-prev" href="res-03.html"><span class="pg-label">← 上一篇</span><span class="pg-title">论文与技术资料</span></a><a class="pg-next" href="../code/case01.html"><span class="pg-label">下一篇 →</span><span class="pg-title">数据体检</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

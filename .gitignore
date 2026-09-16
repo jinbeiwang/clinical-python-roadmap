@@ -63,3 +63,7 @@ token.json
 # ---- 例外：要提交的样本数据 ----
 !data/samples/*.csv
 !data/samples/*_meta.json
+
+# ---- 文档站构建/截图验证的临时目录 ----
+.shots/
+.tmp-edge/

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/derive.py</title>
+<meta name="description" content="derive.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/derive.py">
+<meta property="og:description" content="derive.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-derive.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/</div><h1>clinic/derive.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/derive.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/derive.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">derive.py</strong> · 250 行 · 8 KB<br>clinic.derive —— 派生逻辑（与 SAS 结果对齐）</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""</span>
+<span class="sd">clinic.derive —— 派生逻辑（与 SAS 结果对齐）</span>
+
+<span class="sd">本模块集中实现"跨语言最容易出现差异"的派生逻辑，</span>
+<span class="sd">所有函数都以**与 SAS 结果一致**为第一优先级。</span>
+
+<span class="sd">包含</span>
+<span class="sd">----</span>
+<span class="sd">- ``sas_round`` / ``sas_round_series`` : 复刻 SAS ``ROUND`` 的舍入语义</span>
+<span class="sd">- ``derive_agegr1``      : 年龄分组（含边界归属说明）</span>
+<span class="sd">- ``parse_partial_date`` : 处理 ISO 8601 部分日期（2014 / 2014-01 / 2014-01-05）</span>
+<span class="sd">- ``sas_date_to_datetime`` / ``datetime_to_sas_date`` : 与 SAS 日期数字互换</span>
+<span class="sd">- ``derive_baseline_flag`` : 派生基线记录标记</span>
+<span class="sd">- ``to_categorical``     : 用 Categorical 固定分组顺序（替代 SAS 的 CLASS 顺序）</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># SAS 日期基准日（SAS 里 '01JAN1960'd = 0）</span>
+<span class="n">SAS_EPOCH</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">"1960-01-01"</span><span class="p">)</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 舍入：Python 与 SAS 的头号差异来源</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sas_round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""复刻 SAS 的 ``ROUND(x, unit)``。</span>
+
+<span class="sd">    SAS 语义：</span>
+<span class="sd">    - 第二个参数是**舍入单位**（不是小数位数）</span>
+<span class="sd">    - 采用**四舍五入**（round half away from zero）</span>
+
+<span class="sd">    Python 的 ``round()`` 采用**银行家舍入**（round half to even），</span>
+<span class="sd">    且第二个参数是小数位数 —— 两者对临床数值都不可直接替换。</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; sas_round(2.5, 1)</span>
+<span class="sd">    3.0</span>
+<span class="sd">    &gt;&gt;&gt; sas_round(2.675, 0.01)      # Python round(2.675, 2) 会给 2.67</span>
+<span class="sd">    2.68</span>
+<span class="sd">    &gt;&gt;&gt; sas_round(1234, 10)</span>
+<span class="sd">    1230.0</span>
+<span class="sd">    &gt;&gt;&gt; sas_round(-2.5, 1)</span>
+<span class="sd">    -3.0</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">ROUND_HALF_UP</span>
+
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">unit_d</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unit</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">unit_d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="c1"># 用 Decimal 避免二进制浮点误差（2.675 实际存储为 2.67499999...）</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">/</span> <span class="n">unit_d</span><span class="p">)</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">"1"</span><span class="p">),</span> <span class="n">rounding</span><span class="o">=</span><span class="n">ROUND_HALF_UP</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="n">unit_d</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sas_round_series</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">decimals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""向量化版本的 SAS 风格舍入（四舍五入）。</span>
+
+<span class="sd">    比 ``s.apply(sas_round)`` 快得多，适合整列处理。</span>
+<span class="sd">    ``decimals`` 是**小数位数**（与 SAS 的 unit 语义不同，这里是常用写法）。</span>
+<span class="sd">    """</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">decimals</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sas_round_to</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""按 SAS 的"舍入单位"语义整列舍入（如把 1234 舍入到最近的 10）。"""</span>
+    <span class="k">return</span> <span class="n">sas_round_series</span><span class="p">(</span><span class="n">s</span> <span class="o">/</span> <span class="n">unit</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">unit</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 分组派生：边界必须显式</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_agegr1</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">age_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"AGE"</span><span class="p">,</span>
+                  <span class="n">out_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"AGEGR1"</span><span class="p">,</span>
+                  <span class="n">num_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"AGEGR1N"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""派生年龄分组。</span>
+
+<span class="sd">    ★ 边界规则（与 CDISC 试点项目 ADSL 一致，也是最常见的惯例）★</span>
+
+<span class="sd">    ==========  =====================</span>
+<span class="sd">    区间        归属</span>
+<span class="sd">    ==========  =====================</span>
+<span class="sd">    AGE &lt; 65    ``'&lt;65'``    （不含 65）</span>
+<span class="sd">    65 ≤ AGE ≤ 80  ``'65-80'`` （**含 65、含 80**）</span>
+<span class="sd">    AGE &gt; 80    ``'&gt;80'``    （不含 80）</span>
+<span class="sd">    ==========  =====================</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">       不要用 ``pd.cut(bins=[0, 65, 80, 200], right=False)`` 来实现！</span>
+<span class="sd">       那样产生的区间是 ``[0,65) / [65,80) / [80,200)``，</span>
+<span class="sd">       **AGE = 80 会落到 ``&gt;80`` 组**，与临床惯例冲突。</span>
+<span class="sd">       这是分组派生最隐蔽的错误之一。</span>
+
+<span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">    &gt;&gt;&gt; derive_agegr1(pd.DataFrame({"AGE": [64, 65, 80, 81]}))["AGEGR1"].tolist()</span>
+<span class="sd">    ['&lt;65', '65-80', '65-80', '&gt;80']</span>
+<span class="sd">    """</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">age_var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="n">a</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">if</span> <span class="n">num_var</span><span class="p">:</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">num_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">out_var</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"&lt;65"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">to_categorical</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">levels</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">ordered</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把列转成有序 Categorical —— 用来**固定分组输出顺序**。</span>
+
+<span class="sd">    这是复刻 SAS ``CLASS`` / 自定义 format 输出顺序的关键：</span>
+<span class="sd">    SAS 报表里治疗组按 SAP 指定的顺序出现，而 pandas 默认按字母序。</span>
+<span class="sd">    不做这一步，报表的行序就会错。</span>
+
+<span class="sd">    &gt;&gt;&gt; to_categorical(pd.Series(["B", "A"]), ["A", "B"]).tolist()</span>
+<span class="sd">    ['B', 'A']           # categories 顺序为 A, B，导致 groupby 按 A, B 输出</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="n">ordered</span><span class="p">)</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 日期</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sas_date_to_datetime</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""SAS 日期数字 → pandas Timestamp（SAS 以 1960-01-01 为 0）。"""</span>
+    <span class="k">return</span> <span class="n">SAS_EPOCH</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"D"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">datetime_to_sas_date</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""pandas Timestamp / datetime → SAS 日期数字。"""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-</span> <span class="n">SAS_EPOCH</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_partial_date</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""解析 ISO 8601 日期并保留"精度"信息。</span>
+
+<span class="sd">    临床数据里 ``--DTC`` 常有部分日期（只知道年月）。</span>
+
+<span class="sd">    ==============  ===============  ========</span>
+<span class="sd">    输入            解析结果         精度</span>
+<span class="sd">    ==============  ===============  ========</span>
+<span class="sd">    ``2014-01-05``  2014-01-05       DAY</span>
+<span class="sd">    ``2014-01``     2014-01-01       MONTH</span>
+<span class="sd">    ``2014``        2014-01-01       YEAR</span>
+<span class="sd">    ==============  ===============  ========</span>
+
+<span class="sd">    调用方应根据精度决定是否参与计算 —— **不要直接用补全后的日期做运算**，</span>
+<span class="sd">    否则会引入虚假精度。</span>
+<span class="sd">    """</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"string"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">len</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">len</span><span class="p">()</span> <span class="o">==</span> <span class="mi">7</span><span class="p">],</span> <span class="p">[</span><span class="s2">"DAY"</span><span class="p">,</span> <span class="s2">"MONTH"</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s2">"YEAR"</span>
+    <span class="p">)</span>
+    <span class="n">filled</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">len</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span> <span class="n">fillchar</span><span class="o">=</span><span class="s2">"0"</span><span class="p">)</span>
+         <span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(\d</span><span class="si">{4}</span><span class="s2">)$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"\1-01-01"</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+         <span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">)$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"\1-01"</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">"date"</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">),</span> <span class="s2">"precision"</span><span class="p">:</span> <span class="n">precision</span><span class="p">}</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">add_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">dtc_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">out_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把 ISO 8601 字符日期列转成 datetime，**保留原始列**。</span>
+
+<span class="sd">    保留原始值是 CDISC 的要求（原始值必须可追溯），</span>
+<span class="sd">    同时也是 QC 时对照"原始 vs 派生"的依据。</span>
+<span class="sd">    """</span>
+    <span class="n">out_var</span> <span class="o">=</span> <span class="n">out_var</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dtc_var</span><span class="si">}</span><span class="s2">_DT"</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">dtc_var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_baseline_flag</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">date_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ref_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">by</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">out_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"_BLFL_NEW"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""派生基线标记：**首次给药日当天或之前的最后一次测量**。</span>
+
+<span class="sd">    用于数据集没有原生 ``--BLFL`` 的情况。</span>
+<span class="sd">    ``ref_var`` 通常是 ``TRTSDT``；若为空则视为""受试者尚未给药"，</span>
+<span class="sd">    其所有记录都参与基线候选。</span>
+<span class="sd">    """</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">date_var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">ref_var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span> <span class="k">if</span> <span class="n">ref_var</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
+
+    <span class="n">cand</span> <span class="o">=</span> <span class="n">df</span><span class="p">[(</span><span class="n">ref</span><span class="o">.</span><span class="n">isna</span><span class="p">())</span> <span class="o">|</span> <span class="p">(</span><span class="n">d</span> <span class="o">&lt;=</span> <span class="n">ref</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">cand</span><span class="p">[</span><span class="s2">"_d"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">cand</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">cand</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"_d"</span><span class="p">])</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_d"</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">by</span><span class="p">)[</span><span class="s2">"_d"</span><span class="p">]</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()</span>
+
+    <span class="n">df</span><span class="p">[</span><span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"N"</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idx</span><span class="o">.</span><span class="n">dropna</span><span class="p">(),</span> <span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Y"</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 受试者标识</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_usubjid</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""拆解 USUBJID（如 ``01-701-1015`` → study/site/subjid）。</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">       USUBJID 的拼接规则**因公司/项目而异**（分隔符可能是 ``-`` / ``_``，</span>
+<span class="sd">       段数也可能是 2~4 段）。生产代码里应先做正则校验，不要盲目 split。</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">names</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">"STUDY_PART"</span><span class="p">,</span> <span class="s2">"SITE_PART"</span><span class="p">,</span> <span class="s2">"SUBJ_PART"</span><span class="p">]</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?P&lt;a&gt;[^-_]+)[-_](?P&lt;b&gt;[^-_]+)[-_](?P&lt;c&gt;.+)$"</span><span class="p">)</span>
+    <span class="n">ext</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">names</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[^-_]+[-_][^-_]+[-_].+$"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ext</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="c1"># 人群标记</span>
+<span class="c1"># --------------------------------------------------------------------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">derive_saffl</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">trtsdt_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"TRTSDT_DT"</span><span class="p">,</span>
+                 <span class="n">arm_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ARM"</span><span class="p">,</span>
+                 <span class="n">excluded_arms</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                     <span class="s2">"Screen Failure"</span><span class="p">,</span> <span class="s2">"Not Assigned"</span><span class="p">,</span> <span class="s2">"Not Randomized"</span><span class="p">),</span>
+                 <span class="n">out_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"SAFFL"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""派生安全性人群标记：接受了至少一次研究药物，且不属于排除组。</span>
+
+<span class="sd">    这对应 SAS 里最常见的 ``if not missing(trtsdt) and arm not in (...) then SAFFL='Y';``</span>
+<span class="sd">    """</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">has_trt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">trtsdt_var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> \
+        <span class="k">if</span> <span class="n">trtsdt_var</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">bad_arm</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">arm_var</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">excluded_arms</span><span class="p">)</span> <span class="k">if</span> <span class="n">arm_var</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> \
+        <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">out_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_trt</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">bad_arm</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-io.html"><span class="pg-label">← 上一篇</span><span class="pg-title">io.py</span></a><a class="pg-next" href="clinic-report.html"><span class="pg-label">下一篇 →</span><span class="pg-title">report.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

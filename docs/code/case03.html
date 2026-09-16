@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 03 · 不良事件汇总表</title>
+<meta name="description" content="不良事件汇总表 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 03 · 不良事件汇总表">
+<meta property="og:description" content="不良事件汇总表 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case03.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例源码</div><h1>案例 03 · 不良事件汇总表</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case03_%E4%B8%8D%E8%89%AF%E4%BA%8B%E4%BB%B6%E6%B1%87%E6%80%BB%E8%A1%A8.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case03_%E4%B8%8D%E8%89%AF%E4%BA%8B%E4%BB%B6%E6%B1%87%E6%80%BB%E8%A1%A8.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case03_不良事件汇总表.py</strong> · 242 行 · 9 KB<br>案例 03 · 不良事件汇总表（按 MedDRA SOC / PT） ================================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 03 · 不良事件汇总表（按 MedDRA SOC / PT）</span>
+<span class="sd">================================================</span>
+
+<span class="sd">**目标**：生成 CSR 中最核心的安全性表——治疗中出现的不良事件（TEAE）按</span>
+<span class="sd">系统器官分类（SOC）与首选术语（PT）的受试者数与百分比。</span>
+
+<span class="sd">**对应 SAS**：``PROC FREQ`` + ``PROC TRANSPOSE`` + ``PROC REPORT`` 组合，</span>
+<span class="sd">但本案例用 pandas 的 ``pivot_table`` + 受试者层级去重一次完成。</span>
+
+<span class="sd">**覆盖教程章节**：第 09 章（重塑）、第 13 章（TFL 报表）</span>
+
+<span class="sd">★ 这是最容易做错的一张表，重点在于三个"隐形陷阱" ★</span>
+<span class="sd">----------------------------------------------------</span>
+<span class="sd">1. **分子是受试者数，不是事件数。**</span>
+<span class="sd">   同一受试者发生 3 次 Nausea，分子只能是 1。</span>
+<span class="sd">   → 用 ``drop_duplicates(["USUBJID","AEBODSYS","AEDECOD"])`` 做受试者层级去重</span>
+<span class="sd">2. **分母是该治疗组的分析人群人数**（ADSL 的 SAFFL='Y'），</span>
+<span class="sd">   而不是 AE 数据集里的记录数。</span>
+<span class="sd">3. **没发生 AE 的受试者要计入分母（分子为 0）。**</span>
+<span class="sd">   CDISC 试点数据中 254 人里有 29 人没有任何 AE —— 他们不能被悄悄丢掉。</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case03_不良事件汇总表.py</span>
+<span class="sd">    python cases/case03_不良事件汇总表.py --all-events   # 不限定 TEAE</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">cio</span>                        <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">report</span> <span class="k">as</span> <span class="n">rpt</span>                    <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.derive</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_categorical</span>            <span class="c1"># noqa: E402</span>
+
+<span class="n">TRT_LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">220</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.max_colwidth"</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">section</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">86</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">86</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="n">data_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">treatment_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""准备数据：人群、分母、受试者层级的 SOC/PT 计数。"""</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"adsl.csv"</span><span class="p">)</span>
+    <span class="n">adae</span> <span class="o">=</span> <span class="n">cio</span><span class="o">.</span><span class="n">read_any</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"adae.csv"</span><span class="p">)</span>
+
+    <span class="c1"># ---- Step 1: 分析人群（分母）----</span>
+    <span class="n">saf</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">saf</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">saf</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">denom</span> <span class="o">=</span> <span class="n">saf</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+
+    <span class="c1"># ---- Step 2: 限定分析事件 ----</span>
+    <span class="n">ae</span> <span class="o">=</span> <span class="n">adae</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">treatment_only</span> <span class="ow">and</span> <span class="s2">"TRTEMFL"</span> <span class="ow">in</span> <span class="n">ae</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ae</span><span class="p">)</span>
+        <span class="n">ae</span> <span class="o">=</span> <span class="n">ae</span><span class="p">[</span><span class="n">ae</span><span class="p">[</span><span class="s2">"TRTEMFL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"限定治疗中出现的不良事件（TRTEMFL='Y'）：</span><span class="si">{</span><span class="n">n_before</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ae</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条记录"</span><span class="p">)</span>
+
+    <span class="c1"># ---- Step 3: 只保留分析人群内的受试者（关键！）----</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="n">ae</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+    <span class="n">ae</span> <span class="o">=</span> <span class="n">ae</span><span class="p">[</span><span class="n">ae</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">saf</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]))]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"限定在安全性人群内：</span><span class="si">{</span><span class="n">n0</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">ae</span><span class="p">[</span><span class="s1">'USUBJID'</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="si">}</span><span class="s2"> 位受试者"</span><span class="p">)</span>
+
+    <span class="c1"># ---- Step 3b: 取治疗组变量 ----</span>
+    <span class="c1"># ★ 注意：ADAE 里通常只有 TRTA（实际治疗），没有 TRT01P（计划治疗）。</span>
+    <span class="c1">#   CSR 报表惯例使用 **计划治疗 TRT01P**，所以要从 ADSL 带过来。</span>
+    <span class="c1">#   这既保证了分组口径与 Table 1 一致，也避免了"实际治疗"因</span>
+    <span class="c1">#   提前退出而与计划治疗不一致带来的口径混乱。</span>
+    <span class="k">if</span> <span class="s2">"TRT01P"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ae</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">ae</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">saf</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"已从 ADSL 引入 TRT01P（ADAE 原生只有 TRTA）"</span><span class="p">)</span>
+    <span class="n">ae</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ae</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="c1"># ---- Step 4: ★受试者层级去重★ ----</span>
+    <span class="c1"># 同一受试者同一 SOC 发生多次 → 只计 1 人</span>
+    <span class="n">subj_soc</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">])</span>
+    <span class="c1"># 同一受试者同一 PT 发生多次 → 只计 1 人</span>
+    <span class="n">subj_pt</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">])</span>
+    <span class="c1"># 有任一 TEAE 的受试者</span>
+    <span class="n">subj_any</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">])</span>
+
+    <span class="n">n_any</span> <span class="o">=</span> <span class="n">subj_any</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">saf</span><span class="p">,</span> <span class="n">denom</span><span class="p">,</span> <span class="n">subj_soc</span><span class="p">,</span> <span class="n">subj_pt</span><span class="p">,</span> <span class="n">n_any</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ae</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pivot_counts</span><span class="p">(</span><span class="n">df_uniq</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">denom</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""按 keys 分组统计各治疗组受试者数，返回 (计数表, n(%) 格式表)。"""</span>
+    <span class="n">cnt</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_uniq</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">])[</span><span class="s2">"USUBJID"</span><span class="p">]</span>
+                  <span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"N"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">cnt</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"N"</span><span class="p">,</span>
+                           <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># ★ 保证所有治疗组列都存在（即使某组为 0）</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">wide</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">wide</span><span class="p">[</span><span class="n">TRT_LEVELS</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+    <span class="n">fmt</span> <span class="o">=</span> <span class="n">wide</span><span class="p">[</span><span class="n">keys</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+        <span class="n">fmt</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">rpt</span><span class="o">.</span><span class="n">pct_format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">denom</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">wide</span><span class="p">[</span><span class="n">t</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">wide</span><span class="p">,</span> <span class="n">fmt</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"AE 按 SOC/PT 汇总表"</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--all-events"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"统计全部 AE（默认只统计治疗中出现的 TEAE）"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span>
+    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">treatment_only</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">all_events</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="s2">"治疗中出现的不良事件（TEAE）"</span> <span class="k">if</span> <span class="n">treatment_only</span> <span class="k">else</span> <span class="s2">"全部不良事件"</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">86</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  案例 03 · </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> 汇总表（按 SOC / PT，受试者层级）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">86</span><span class="p">)</span>
+
+    <span class="n">saf</span><span class="p">,</span> <span class="n">denom</span><span class="p">,</span> <span class="n">subj_soc</span><span class="p">,</span> <span class="n">subj_pt</span><span class="p">,</span> <span class="n">n_any</span><span class="p">,</span> <span class="n">n_records</span> <span class="o">=</span> <span class="n">build</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">treatment_only</span><span class="p">)</span>
+
+    <span class="n">section</span><span class="p">(</span><span class="s2">"1. 分母核对（这是整张表的基础）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'治疗组'</span><span class="si">:</span><span class="s2">26s</span><span class="si">}{</span><span class="s1">'安全性人群人数'</span><span class="si">:</span><span class="s2">&gt;12s</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="si">:</span><span class="s2">26s</span><span class="si">}{</span><span class="n">denom</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;12d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'合计'</span><span class="si">:</span><span class="s2">26s</span><span class="si">}{</span><span class="nb">sum</span><span class="p">(</span><span class="n">denom</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">:</span><span class="s2">&gt;12d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">AE 记录数（未去重）：</span><span class="si">{</span><span class="n">n_records</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"有任一 AE 的受试者：</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">n_any</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">denom</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"2. 总体行"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">''</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="p">[:</span><span class="mi">18</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;22s</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'有任一'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="s1">'TEAE'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">treatment_only</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'AE'</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'的受试者'</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">+=</span> <span class="n">rpt</span><span class="o">.</span><span class="n">pct_format</span><span class="p">(</span><span class="n">n_any</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">denom</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"3. 按 SOC 汇总"</span><span class="p">)</span>
+    <span class="n">soc_w</span><span class="p">,</span> <span class="n">soc_fmt</span> <span class="o">=</span> <span class="n">pivot_counts</span><span class="p">(</span><span class="n">subj_soc</span><span class="p">,</span> <span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">],</span> <span class="n">denom</span><span class="p">)</span>
+    <span class="n">soc_w</span><span class="p">[</span><span class="s2">"_tot"</span><span class="p">]</span> <span class="o">=</span> <span class="n">soc_w</span><span class="p">[</span><span class="n">TRT_LEVELS</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">soc_w</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_tot"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">soc_fmt</span> <span class="o">=</span> <span class="n">soc_fmt</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">order</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'SOC'</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="p">[:</span><span class="mi">18</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;22s</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span> <span class="o">*</span> <span class="mi">122</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">soc_fmt</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'AEBODSYS'</span><span class="p">])[:</span><span class="mi">54</span><span class="p">]</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span>
+              <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">t</span><span class="p">])</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"4. 按 SOC → PT 汇总（完整表，前 6 个 SOC）"</span><span class="p">)</span>
+    <span class="n">pt_w</span><span class="p">,</span> <span class="n">pt_fmt</span> <span class="o">=</span> <span class="n">pivot_counts</span><span class="p">(</span><span class="n">subj_pt</span><span class="p">,</span> <span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">denom</span><span class="p">)</span>
+    <span class="n">pt_w</span><span class="p">[</span><span class="s2">"_tot"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt_w</span><span class="p">[</span><span class="n">TRT_LEVELS</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'SOC / PT'</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="p">[:</span><span class="mi">18</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;22s</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span> <span class="o">*</span> <span class="mi">122</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">soc_name</span> <span class="ow">in</span> <span class="n">soc_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">6</span><span class="p">):</span>
+        <span class="n">soc_row</span> <span class="o">=</span> <span class="n">soc_fmt</span><span class="p">[</span><span class="n">soc_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">soc_name</span><span class="p">)[:</span><span class="mi">54</span><span class="p">]</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span>
+              <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">soc_row</span><span class="p">[</span><span class="n">t</span><span class="p">])</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">pt_w</span><span class="p">[</span><span class="n">pt_w</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"_tot"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"_tot"</span><span class="p">])</span>
+            <span class="c1"># CSR 惯例：只显示发生频率 &gt;= 一定阈值的 PT（这里用 &gt;=1）</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">pct_row</span> <span class="o">=</span> <span class="n">pt_fmt</span><span class="p">[(</span><span class="n">pt_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">)</span>
+                             <span class="o">&amp;</span> <span class="p">(</span><span class="n">pt_fmt</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">])]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'  '</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">'AEDECOD'</span><span class="p">])[:</span><span class="mi">52</span><span class="p">]</span><span class="si">:</span><span class="s2">56s</span><span class="si">}</span><span class="s2">"</span>
+                  <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">pct_row</span><span class="p">[</span><span class="n">t</span><span class="p">])</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">()</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 输出</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"5. 输出文件"</span><span class="p">)</span>
+    <span class="n">soc_fmt</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table02_teae_soc.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">pt_fmt</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"AEBODSYS"</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table02_teae_pt.csv"</span><span class="p">,</span>
+                                          <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+
+    <span class="c1"># 拼装成一张分层表（SOC 行 + PT 行，符合 CSR 排版惯例）</span>
+    <span class="n">combined</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">soc_name</span> <span class="ow">in</span> <span class="n">soc_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]:</span>
+        <span class="n">sr</span> <span class="o">=</span> <span class="n">soc_fmt</span><span class="p">[</span><span class="n">soc_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">combined</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"层级"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">soc_name</span><span class="p">),</span> <span class="s2">"级别"</span><span class="p">:</span> <span class="s2">"SOC"</span><span class="p">,</span>
+                         <span class="o">**</span><span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">sr</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">}})</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">pt_fmt</span><span class="p">[</span><span class="n">pt_fmt</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">cnt</span> <span class="o">=</span> <span class="n">pt_w</span><span class="p">[(</span><span class="n">pt_w</span><span class="p">[</span><span class="s2">"AEBODSYS"</span><span class="p">]</span> <span class="o">==</span> <span class="n">soc_name</span><span class="p">)</span>
+                       <span class="o">&amp;</span> <span class="p">(</span><span class="n">pt_w</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">]</span> <span class="o">==</span> <span class="n">pr</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">])][</span><span class="s2">"_tot"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">cnt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">combined</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"层级"</span><span class="p">:</span> <span class="s2">"  "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pr</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">]),</span> <span class="s2">"级别"</span><span class="p">:</span> <span class="s2">"PT"</span><span class="p">,</span>
+                             <span class="o">**</span><span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">pr</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">TRT_LEVELS</span><span class="p">}})</span>
+    <span class="n">combined_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+    <span class="n">combined_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table02_teae_hierarchical.csv"</span><span class="p">,</span>
+                       <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
+    <span class="n">rpt</span><span class="o">.</span><span class="n">to_html</span><span class="p">(</span><span class="n">combined_df</span><span class="p">,</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"table02_teae.html"</span><span class="p">,</span>
+                <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"表 2. </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">（按 SOC / PT）"</span><span class="p">,</span>
+                <span class="n">subtitle</span><span class="o">=</span><span class="s2">"安全性人群，受试者层级计数"</span><span class="p">,</span>
+                <span class="n">footnote</span><span class="o">=</span><span class="p">(</span><span class="s2">"分子为受试者数（同一受试者同一事件只计一次）。"</span>
+                          <span class="s2">"分母为该治疗组的安全性人群人数。"</span>
+                          <span class="s2">"数据来源：CDISC 试点项目 CDISCPILOT01（公开数据）。"</span><span class="p">),</span>
+                <span class="n">label_cols</span><span class="o">=</span><span class="p">(</span><span class="s2">"层级"</span><span class="p">,</span> <span class="s2">"级别"</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"已输出到 </span><span class="si">{</span><span class="n">out_dir</span><span class="si">}</span><span class="s2">："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  table02_teae_soc.csv            SOC 层级"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  table02_teae_pt.csv             PT 层级"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  table02_teae_hierarchical.csv   分层合并表（推荐）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  table02_teae.html               带排版的 HTML"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">section</span><span class="p">(</span><span class="s2">"6. QC 提示（迁移到 Python 时最容易搞错的三处）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ① 分子：必须做受试者层级去重。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"     未去重的事件数 = </span><span class="si">{</span><span class="n">n_records</span><span class="si">}</span><span class="s2">；去重后的受试者数 = </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">n_any</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"     如果用事件数当分子，所有百分比都会偏高。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ② 分母：必须是 ADSL 的安全性人群人数，不是 AE 记录数。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  ③ 空组：某治疗组在某 SOC 下无事件时，必须显示 '0' 而不是不显示该行。"</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case02.html"><span class="pg-label">← 上一篇</span><span class="pg-title">人口学表</span></a><a class="pg-next" href="case04.html"><span class="pg-label">下一篇 →</span><span class="pg-title">实验室移位表</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

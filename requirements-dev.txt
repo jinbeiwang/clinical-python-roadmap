@@ -1,0 +1,4 @@
+# 仅构建文档站（scripts/build_site.py）时需要，运行教程案例不需要装。
+# 用法：pip install -r requirements-dev.txt
+markdown>=3.5      # Markdown -> HTML（表格、围栏代码、脚注、目录锚点）
+pygments>=2.15     # 代码块语法高亮

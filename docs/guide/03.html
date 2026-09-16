@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 03 章 · 核心数据结构：list / dict / str</title>
+<meta name="description" content="核心数据结构 list / dict / str — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 03 章 · 核心数据结构：list / dict / str">
+<meta property="og:description" content="核心数据结构 list / dict / str — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/03.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第一阶段 · Python 基础</div><h1>第 03 章 · 核心数据结构：list / dict / str</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/03-%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-list-dict-str.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：掌握 Python 的三种"容器"思维。
+这是 Python 区别于 SAS 的地方——SAS 只有数据集，Python 有很多种装东西的方式。
+<strong>重要</strong>：<code>dict</code> 就是 SAS 的 <strong>Hash Object</strong>，你其实已经会了。</p>
+</blockquote>
+<hr />
+<h2 id="31-为什么需要容器sas-与-python-的差异">3.1 为什么需要容器：SAS 与 Python 的差异</h2>
+<p>SAS 世界里"数据"几乎只有一种形态：<strong>数据集（行 × 列）</strong>。
+需要装别的东西时，你用 <code>ARRAY</code>、宏变量或者干脆硬编码。</p>
+<p>Python 世界里，<strong>不同类型的容器适合不同的任务</strong>，选错了会让代码又长又慢：</p>
+<table>
+<thead>
+<tr>
+<th>容器</th>
+<th>形状</th>
+<th>适合</th>
+<th>SAS 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list</code> 列表</td>
+<td>有序、可变、可重复</td>
+<td>一串同质的东西（文件清单、变量名、结果）</td>
+<td><code>ARRAY</code> / 多值</td>
+</tr>
+<tr>
+<td><code>tuple</code> 元组</td>
+<td>有序、<strong>不可变</strong></td>
+<td>不想被改动的固定组合（坐标、配置项）</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>dict</code> 字典</td>
+<td>键→值映射</td>
+<td>查找表、配置、计数、变量标签</td>
+<td><strong>Hash Object</strong></td>
+</tr>
+<tr>
+<td><code>set</code> 集合</td>
+<td>无序、<strong>自动去重</strong></td>
+<td>去重、集合运算（找差异）</td>
+<td><code>PROC SORT nodupkey</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="32-list最常用对应-sas-的-array">3.2 list：最常用，对应 SAS 的 ARRAY</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 创建</span>
+<span class="n">trts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+<span class="n">ages</span> <span class="o">=</span> <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">]</span>
+<span class="n">mixed</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">3.14</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>        <span class="c1"># 可以混装（但通常不建议）</span>
+
+<span class="c1"># 索引（从 0 开始，与字符串一致）</span>
+<span class="n">trts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>        <span class="c1"># 'Placebo'</span>
+<span class="n">trts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>       <span class="c1"># 'Xanomeline High Dose'</span>
+<span class="n">trts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>      <span class="c1"># ['Placebo', 'Xanomeline Low Dose']</span>
+
+<span class="c1"># 长度</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">trts</span><span class="p">)</span>      <span class="c1"># 3</span>
+
+<span class="c1"># 增删改</span>
+<span class="n">trts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Screen Failure"</span><span class="p">)</span>     <span class="c1"># 追加到末尾（对应 SAS 数组扩容）</span>
+<span class="n">trts</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"Screen Failure"</span><span class="p">)</span>     <span class="c1"># 按值删除</span>
+<span class="n">popped</span> <span class="o">=</span> <span class="n">trts</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>               <span class="c1"># 弹出末尾元素</span>
+<span class="n">trts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"PLACEBO"</span>               <span class="c1"># 直接改</span>
+<span class="n">trts</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"All"</span><span class="p">)</span>             <span class="c1"># 插入到位置 0</span>
+
+<span class="c1"># 查找</span>
+<span class="s2">"Placebo"</span> <span class="ow">in</span> <span class="n">trts</span>                 <span class="c1"># 成员判断（SAS: if 'Placebo' in trts then）</span>
+<span class="n">trts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"Placebo"</span><span class="p">)</span>             <span class="c1"># 位置（找不到会抛 ValueError）</span>
+
+<span class="c1"># 排序</span>
+<span class="n">ages_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ages</span><span class="p">)</span>                    <span class="c1"># 返回新列表，原列表不变</span>
+<span class="n">ages_sorted_desc</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ages</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">trts</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>                                   <span class="c1"># 原地排序，返回 None（注意！）</span>
+
+<span class="c1"># 合并与重复</span>
+<span class="p">[</span><span class="s2">"a"</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"b"</span><span class="p">]</span>      <span class="c1"># ['a', 'b']</span>
+<span class="p">[</span><span class="s2">"a"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>          <span class="c1"># ['a', 'a', 'a']</span>
+</code></pre></div></div>
+<h3 id="列表推导式最实用的-python-特性">列表推导式：最实用的 Python 特性</h3>
+<p>这是 Python 最值得掌握的一个语法糖，<strong>它对应 SAS 的"DATA 步 + output"</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：给每个受试者算 BMI，输出到新数据集 */</span>
+<span class="kr">data </span>want;
+    <span class="k">set</span> have;
+    bmi = weight / (height/<span class="m">100</span>)**<span class="m">2</span>;
+    <span class="k">output</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python：一行搞定</span>
+<span class="n">bmi_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">heights</span><span class="p">)]</span>
+
+<span class="c1"># 带条件（对应 SAS 的 where）</span>
+<span class="n">adult_ages</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ages</span> <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">]</span>
+
+<span class="c1"># 带分支（对应 SAS 的 if/else）</span>
+<span class="n">grp</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"&lt;65"</span> <span class="k">if</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mi">65</span> <span class="k">else</span> <span class="s2">"&gt;=65"</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ages</span><span class="p">]</span>
+
+<span class="c1"># 嵌套（两层循环）</span>
+<span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">]]</span>
+<span class="c1"># [(1, 'A'), (1, 'B'), (2, 'A'), (2, 'B')]</span>
+</code></pre></div></div>
+<p><strong>配合临床场景的真实例子</strong>——为每个受试者派生 AGEGR1：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">ages</span> <span class="o">=</span> <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">]</span>
+<span class="n">agegr</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"&lt;65"</span> <span class="k">if</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mi">65</span> <span class="k">else</span> <span class="p">(</span><span class="s2">"65-80"</span> <span class="k">if</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">80</span> <span class="k">else</span> <span class="s2">"&gt;80"</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ages</span><span class="p">]</span>
+<span class="c1"># ['&lt;65', '&lt;65', '65-80', '65-80', '&lt;65']</span>
+</code></pre></div></div>
+<h3 id="zip并行遍历多个列表"><code>zip()</code>：并行遍历多个列表</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">subjids</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"1015"</span><span class="p">,</span> <span class="s2">"1023"</span><span class="p">,</span> <span class="s2">"1028"</span><span class="p">]</span>
+<span class="n">ages</span>    <span class="o">=</span> <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">age</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">subjids</span><span class="p">,</span> <span class="n">ages</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">age</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 转成字典</span>
+<span class="n">subj_age</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">subjids</span><span class="p">,</span> <span class="n">ages</span><span class="p">))</span>    <span class="c1"># {'1015': 63, '1023': 64, '1028': 71}</span>
+
+<span class="c1"># 转成"成对"的列表</span>
+<span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">subjids</span><span class="p">,</span> <span class="n">ages</span><span class="p">))</span>               <span class="c1"># [('1015', 63), ('1023', 64), ('1028', 71)]</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <code>zip</code> 在处理"数据集的一行"时特别有用：把几列取出来一起遍历。
+但在 pandas 里通常不需要它——<strong>向量化更快</strong>（第 06 章）。</p>
+</blockquote>
+<hr />
+<h2 id="33-dict这就是-sas-的-hash-object">3.3 dict：这就是 SAS 的 Hash Object</h2>
+<p>如果你用过 <code>DECLARE HASH</code>，那么 dict 会让你觉得"这不就是哈希对象吗"。<strong>是的。</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS Hash Object：按 USUBJID 查 TRT01P */</span>
+<span class="kr">data </span><span class="kc">_null_</span>;
+    <span class="k">if</span> <span class="kc">_n_</span> = <span class="m">1</span> <span class="k">then</span> <span class="k">do</span>;
+        declare hash h (dataset:<span class="s">'adsl'</span>);
+        h<span class="m">.</span>definekey(<span class="s">'USUBJID'</span>);
+        h<span class="m">.</span>definedata(<span class="s">'TRT01P'</span>);
+        h<span class="m">.</span>definedone();
+    <span class="k">end</span>;
+    <span class="k">set</span> ae;
+    <span class="k">if</span> h<span class="m">.</span>find(<span class="k">key</span>:USUBJID) = <span class="m">0</span> <span class="k">then</span> <span class="k">output</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># Python dict：同样的键→值映射</span>
+<span class="n">trt_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"01-701-1015"</span><span class="p">:</span> <span class="s2">"Placebo"</span><span class="p">,</span>
+    <span class="s2">"01-701-1023"</span><span class="p">:</span> <span class="s2">"Placebo"</span><span class="p">,</span>
+    <span class="s2">"01-701-1028"</span><span class="p">:</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">trt_map</span><span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">]</span>                   <span class="c1"># 取值（键不存在会 KeyError）</span>
+<span class="n">trt_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"01-999-9999"</span><span class="p">)</span>               <span class="c1"># None —— 安全取值（对应 h.find()返回非0）</span>
+<span class="n">trt_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"01-999-9999"</span><span class="p">,</span> <span class="s2">"UNKNOWN"</span><span class="p">)</span>    <span class="c1"># 给默认值</span>
+
+<span class="c1"># 增删改</span>
+<span class="n">trt_map</span><span class="p">[</span><span class="s2">"01-701-1033"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"Xanomeline Low Dose"</span>    <span class="c1"># 新增</span>
+<span class="k">del</span> <span class="n">trt_map</span><span class="p">[</span><span class="s2">"01-701-1033"</span><span class="p">]</span>                        <span class="c1"># 删除</span>
+<span class="s2">"01-701-1015"</span> <span class="ow">in</span> <span class="n">trt_map</span>                          <span class="c1"># 存在性判断</span>
+
+<span class="c1"># 遍历</span>
+<span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">trt</span> <span class="ow">in</span> <span class="n">trt_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">trt</span><span class="p">)</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">trt_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>      <span class="c1"># 所有键</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">trt_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>    <span class="c1"># 所有值</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>性能提醒</strong>：dict 是 O(1) 查找，而 <code>.get()</code> 比 <code>[]</code> 安全。
+<strong>不要用 <code>for</code> 循环+<code>if</code> 去"查找"，那正是 dict 存在的意义。</strong></p>
+</blockquote>
+<h3 id="实战用-dict-做变量标签替代-sas-label">实战：用 dict 做变量标签（替代 SAS label）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SAS: label AGE = 'Age';  SEX = 'Sex';</span>
+<span class="n">var_labels</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"USUBJID"</span><span class="p">:</span> <span class="s2">"Unique Subject Identifier"</span><span class="p">,</span>
+    <span class="s2">"AGE"</span><span class="p">:</span>     <span class="s2">"Age"</span><span class="p">,</span>
+    <span class="s2">"SEX"</span><span class="p">:</span>     <span class="s2">"Sex"</span><span class="p">,</span>
+    <span class="s2">"RACE"</span><span class="p">:</span>    <span class="s2">"Race"</span><span class="p">,</span>
+    <span class="s2">"TRT01P"</span><span class="p">:</span>  <span class="s2">"Planned Treatment for Period 01"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># 生成表头（对应 SAS 报表里用 label 替换变量名）</span>
+<span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">]</span>
+<span class="n">header</span> <span class="o">=</span> <span class="p">[</span><span class="n">var_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+<span class="c1"># ['Unique Subject Identifier', 'Age', 'Sex']</span>
+</code></pre></div></div>
+<h3 id="实战用-dict-计数对应-proc-freq">实战：用 dict 计数（对应 PROC FREQ）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+
+<span class="n">trts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">,</span> <span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">]</span>
+
+<span class="n">cnt</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">trts</span><span class="p">)</span>
+<span class="c1"># Counter({'Placebo': 3, 'Xanomeline High Dose': 1, 'Xanomeline Low Dose': 1})</span>
+
+<span class="n">cnt</span><span class="p">[</span><span class="s2">"Placebo"</span><span class="p">]</span>              <span class="c1"># 3</span>
+<span class="n">cnt</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>          <span class="c1"># [('Placebo', 3), ('Xanomeline High Dose', 1)]</span>
+
+<span class="c1"># 手写版本（理解原理）</span>
+<span class="n">manual</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trts</span><span class="p">:</span>
+    <span class="n">manual</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">manual</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+</code></pre></div></div>
+<h3 id="嵌套-dict表达层级结构">嵌套 dict：表达层级结构</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 表达"每个受试者的每个访视的结果"——这是数据集之外的新能力</span>
+<span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"01-701-1015"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"VISIT1"</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span> <span class="s2">"VISIT2"</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span> <span class="s2">"VISIT3"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="s2">"01-701-1023"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"VISIT1"</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span> <span class="s2">"VISIT2"</span><span class="p">:</span> <span class="mi">25</span><span class="p">},</span>
+<span class="p">}</span>
+<span class="n">data</span><span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">][</span><span class="s2">"VISIT2"</span><span class="p">]</span>      <span class="c1"># 22</span>
+</code></pre></div></div>
+<hr />
+<h2 id="34-set去重与集合运算">3.4 set：去重与集合运算</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">trts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">,</span> <span class="s2">"Placebo"</span><span class="p">}</span>     <span class="c1"># 自动去重</span>
+<span class="c1"># {'Placebo', 'Xanomeline High Dose'}</span>
+
+<span class="nb">len</span><span class="p">(</span><span class="n">trts</span><span class="p">)</span>              <span class="c1"># 2</span>
+<span class="s2">"Placebo"</span> <span class="ow">in</span> <span class="n">trts</span>      <span class="c1"># True —— 比 list 快得多</span>
+
+<span class="c1"># 从列表建集合（对应 PROC SORT nodupkey）</span>
+<span class="n">unique_sites</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">"701"</span><span class="p">,</span> <span class="s2">"701"</span><span class="p">,</span> <span class="s2">"702"</span><span class="p">,</span> <span class="s2">"703"</span><span class="p">,</span> <span class="s2">"702"</span><span class="p">])</span>   <span class="c1"># {'701', '702', '703'}</span>
+
+<span class="c1"># 集合运算 —— 做数据比对时极其好用</span>
+<span class="n">sdtm_subjects</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"1015"</span><span class="p">,</span> <span class="s2">"1023"</span><span class="p">,</span> <span class="s2">"1028"</span><span class="p">,</span> <span class="s2">"1033"</span><span class="p">}</span>
+<span class="n">adam_subjects</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"1015"</span><span class="p">,</span> <span class="s2">"1023"</span><span class="p">,</span> <span class="s2">"1028"</span><span class="p">}</span>
+
+<span class="n">adam_subjects</span> <span class="o">&amp;</span> <span class="n">sdtm_subjects</span>     <span class="c1"># 交集 {'1015', '1023', '1028'}</span>
+<span class="n">adam_subjects</span> <span class="o">-</span> <span class="n">sdtm_subjects</span>     <span class="c1"># 差集 set()  （ADaM 里有但 SDTM 里没有的）</span>
+<span class="n">sdtm_subjects</span> <span class="o">-</span> <span class="n">adam_subjects</span>     <span class="c1"># {'1033'}  （SDTM 有但 ADaM 漏掉的！QC 重点）</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>这是 QC 场景的杀手级应用</strong>：比对两个数据集的受试者清单，
+一行代码找出"A 有 B 没有"的记录。等价于 SAS 的
+<code>PROC SQL; select USUBJID from a except select USUBJID from b; quit;</code></p>
+</blockquote>
+<h3 id="一个必知的坑set-是无序的">一个必知的坑：set 是无序的</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="p">{</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="s2">"abc"</span><span class="p">}</span>        <span class="c1"># 顺序不保证！</span>
+<span class="c1"># 需要有序 + 去重时：用 dict.fromkeys（Python 3.7+ 保序）</span>
+<span class="n">ordered_unique</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s2">"b"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">]))</span>   <span class="c1"># ['b', 'a', 'c']</span>
+</code></pre></div></div>
+<hr />
+<h2 id="35-tuple不可变的固定组合">3.5 tuple：不可变的"固定组合"</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 常用于函数返回多个值、坐标、配置</span>
+<span class="n">point</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># 拆包（unpacking）—— 高频实用</span>
+<span class="n">site</span><span class="p">,</span> <span class="n">subject</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"701"</span><span class="p">,</span> <span class="s2">"1015"</span><span class="p">)</span>
+
+<span class="c1"># 这个特性在读取数据/遍历时非常好用</span>
+<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"a"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+<span class="c1"># 交换变量（SAS 里要写临时变量）</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span>        <span class="c1"># a=2, b=1</span>
+</code></pre></div></div>
+<hr />
+<h2 id="36-三种容器的选择指南">3.6 三种容器的选择指南</h2>
+<table>
+<thead>
+<tr>
+<th>你的需求</th>
+<th>用</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一串有顺序的东西</td>
+<td><code>list</code></td>
+<td>文件路径清单、变量名清单</td>
+</tr>
+<tr>
+<td>查表 / 映射 / 计数</td>
+<td><code>dict</code></td>
+<td>USUBJID → 治疗组、变量 → 标签</td>
+</tr>
+<tr>
+<td>去重 / 找差异</td>
+<td><code>set</code></td>
+<td>受试者清单比对</td>
+</tr>
+<tr>
+<td>固定的多个值</td>
+<td><code>tuple</code></td>
+<td>函数的多个返回值</td>
+</tr>
+<tr>
+<td><strong>表格数据（行×列）</strong></td>
+<td><strong>pandas DataFrame</strong></td>
+<td><strong>第 07 章</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>重要提醒</strong>：真正的临床数据（几千行、几十列）<strong>不要用 list/dict 手搓</strong>——
+那是 pandas 的工作。本章的容器主要用于：
+- 配置信息（变量标签、治疗组顺序）
+- 中间结果（计数、清单）
+- 文件与路径的批量处理（第 05 章）
+- 函数内部的小数据</p>
+</blockquote>
+<hr />
+<h2 id="37-动手练习">3.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>list 基础</strong>：给定治疗组列表
+   <code>["Placebo", "Xanomeline High Dose", "Xanomeline Low Dose"]</code>，
+   分别输出它的第 1 个、最后一个元素，以及"包含 Placebo 吗"。</p>
+</li>
+<li>
+<p><strong>列表推导式</strong>：给定 <code>ages = [63, 64, 71, 74, 55, 82]</code>，
+   用一行推导式生成 <code>AGEGR1</code>：<code>&lt;65</code> / <code>65-80</code> / <code>&gt;80</code>。</p>
+</li>
+<li>
+<p><strong>dict 计数</strong>：给定不良事件严重程度列表
+   <code>["MILD", "MILD", "MODERATE", "SEVERE", "MILD"]</code>，
+   统计每个等级的例数（用 <code>Counter</code> 和手写两种方式）。</p>
+</li>
+<li>
+<p><strong>set 做 QC</strong>：给定两个受试者清单（一个 SDTM DM 的、一个 ADaM ADSL 的），
+   找出"在 SDTM 但不在 ADaM"的受试者（这是真实的 QC 场景）。</p>
+</li>
+<li>
+<p><strong>综合</strong>：把 <code>dict</code> 形式的变量标签用在输出上——
+   给定列名列表，输出对应的中文/英文标签表头。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="02.html">第 02 章 · 基础语法速通</a>
+<strong>下一章 →</strong> <a href="04.html">第 04 章 · 控制流、函数、模块与异常</a></p></article>
+<nav class="pager"><a class="pg-prev" href="02.html"><span class="pg-label">← 上一篇</span><span class="pg-title">基础语法速通（SAS 对照）</span></a><a class="pg-next" href="04.html"><span class="pg-label">下一篇 →</span><span class="pg-title">控制流、函数、模块与异常</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

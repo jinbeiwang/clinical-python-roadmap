@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 08 章 · 数据操作对照：DATA 步 / PROC SQL → pandas</title>
+<meta name="description" content="数据操作对照：DATA 步 / PROC SQL — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 08 章 · 数据操作对照：DATA 步 / PROC SQL → pandas">
+<meta property="og:description" content="数据操作对照：DATA 步 / PROC SQL — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/08.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第二阶段 · 数据操作</div><h1>第 08 章 · 数据操作对照：DATA 步 / PROC SQL → pandas</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/08-%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C%E5%AF%B9%E7%85%A7-DATA%E6%AD%A5%E4%B8%8EPROC%20SQL.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：这是全教程<strong>最核心的一章</strong>。
+目标是让你达到"看到一段 SAS 程序，能在脑子里完成翻译"的程度。
+<strong>建议做法</strong>：读完一遍后，找一段你手头的真实 SAS 程序，逐句重写。</p>
+</blockquote>
+<hr />
+<h2 id="81-总览对照表建议打印置顶">8.1 总览对照表（建议打印/置顶）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>SAS 操作</th>
+<th>pandas 写法</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>where 条件</code></td>
+<td><code>df[条件]</code> / <code>df.query()</code></td>
+<td>8.2</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>if/then/else</code> 派生</td>
+<td><code>np.where</code> / <code>np.select</code></td>
+<td>8.3</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>keep</code> / <code>drop</code></td>
+<td><code>df[[...]]</code> / <code>df.drop(columns=...)</code></td>
+<td>8.4</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>rename</code></td>
+<td><code>df.rename(columns={})</code></td>
+<td>8.4</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>set</code>（纵向堆叠）</td>
+<td><code>pd.concat([...])</code></td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>merge</code>（横向连接）</td>
+<td><code>pd.merge()</code></td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>PROC SORT</code></td>
+<td><code>df.sort_values()</code></td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>nodupkey</code> 去重</td>
+<td><code>df.drop_duplicates()</code></td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>PROC MEANS</code></td>
+<td><code>df.groupby().agg()</code></td>
+<td>8.7</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>PROC FREQ</code></td>
+<td><code>value_counts()</code> / <code>crosstab()</code></td>
+<td>8.8</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>PROC TRANSPOSE</code></td>
+<td><code>pivot()</code> / <code>pivot_table()</code> / <code>melt()</code></td>
+<td>第 09 章</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>PROC SQL</code> 子查询</td>
+<td><code>df.query()</code> / 链式筛选</td>
+<td>8.9</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>first.</code> / <code>last.</code></td>
+<td><code>groupby().transform()</code> / <code>drop_duplicates(keep=)</code></td>
+<td>8.10</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>retain</code></td>
+<td><code>ffill()</code> / <code>groupby().cumsum()</code></td>
+<td>8.10</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>lag()</code> / <code>dif()</code></td>
+<td><code>df.shift()</code> / <code>df.diff()</code></td>
+<td>8.10</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>PROC RANK</code></td>
+<td><code>df.rank()</code></td>
+<td>8.7</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>PROC FORMAT</code> 自定义</td>
+<td><code>pd.cut</code> / <code>map</code> / <code>replace</code></td>
+<td>8.11</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>nobs</code> / <code>_N_</code></td>
+<td><code>len(df)</code> / <code>df.index</code></td>
+<td>8.4</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="82-筛选where">8.2 筛选（WHERE）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data adsl2;
+    <span class="k">set</span> adsl;
+    <span class="k">where</span> SAFFL = <span class="s">'Y'</span> <span class="k">and</span> AGE &gt;= <span class="m">65</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">adsl2</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"SAFFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">)]</span>
+<span class="c1"># 或（推荐，可读性更好）</span>
+<span class="n">adsl2</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y' and AGE &gt;= 65"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="常用条件对照表">常用条件对照表</h3>
+<table>
+<thead>
+<tr>
+<th>SAS WHERE</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x = 1</code></td>
+<td><code>df["x"] == 1</code></td>
+</tr>
+<tr>
+<td><code>x ^= 1</code> / <code>x ne 1</code></td>
+<td><code>df["x"] != 1</code></td>
+</tr>
+<tr>
+<td><code>x in (1, 2)</code></td>
+<td><code>df["x"].isin([1, 2])</code></td>
+</tr>
+<tr>
+<td><code>x not in (1, 2)</code></td>
+<td><code>~df["x"].isin([1, 2])</code></td>
+</tr>
+<tr>
+<td><code>x &gt; 1 and y &lt; 2</code></td>
+<td><code>(df["x"] &gt; 1) &amp; (df["y"] &lt; 2)</code></td>
+</tr>
+<tr>
+<td><code>x &gt; 1 or y &lt; 2</code></td>
+<td><code>(df["x"] &gt; 1) \| (df["y"] &lt; 2)</code></td>
+</tr>
+<tr>
+<td><code>x is missing</code></td>
+<td><code>df["x"].isna()</code></td>
+</tr>
+<tr>
+<td><code>x is not missing</code></td>
+<td><code>df["x"].notna()</code></td>
+</tr>
+<tr>
+<td><code>x between 1 and 2</code></td>
+<td><code>df["x"].between(1, 2)</code></td>
+</tr>
+<tr>
+<td><code>x like '%abc%'</code></td>
+<td><code>df["x"].str.contains("abc", na=False)</code></td>
+</tr>
+<tr>
+<td><code>x =: 'AB'</code>（前缀）</td>
+<td><code>df["x"].str.startswith("AB", na=False)</code></td>
+</tr>
+<tr>
+<td><code>index(x, 'AB') &gt; 0</code></td>
+<td><code>df["x"].str.contains("AB", na=False)</code></td>
+</tr>
+<tr>
+<td><code>upcase(x) = 'AB'</code></td>
+<td><code>df["x"].str.upper() == "AB"</code></td>
+</tr>
+<tr>
+<td><code>prxmatch('/^A/', x)</code></td>
+<td><code>df["x"].str.match(r"^A", na=False)</code></td>
+</tr>
+<tr>
+<td><code>x = .</code> （数值）</td>
+<td><code>df["x"].isna()</code></td>
+</tr>
+<tr>
+<td><code>x = ''</code> （字符）</td>
+<td><code>df["x"] == ""</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong><code>na=False</code> 是必须的</strong>：<code>.str.contains()</code> 遇到缺失值返回 <code>NaN</code>，
+而 <code>NaN</code> 在布尔索引里会报错。加 <code>na=False</code> 表示"缺失值视为不匹配"。</p>
+</blockquote>
+<hr />
+<h2 id="83-派生变量ifthenelse">8.3 派生变量（IF/THEN/ELSE）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data adsl2; <span class="k">set</span> adsl;
+    <span class="k">if</span> AGE &lt; <span class="m">65</span> <span class="k">then</span> AGEGR1 = <span class="s">'&lt;65'</span>;
+    <span class="k">else</span> <span class="k">if</span> AGE &lt;= <span class="m">80</span> <span class="k">then</span> AGEGR1 = <span class="s">'65-80'</span>;
+    <span class="k">else</span> AGEGR1 = <span class="s">'&gt;80'</span>;
+
+    <span class="c">/* 数值派生 */</span>
+    BMI = WEIGHTBL / (HEIGHTBL/<span class="m">100</span>)**<span class="m">2</span>;
+
+    <span class="c">/* 字符函数 */</span>
+    SITEID2 = <span class="nb">substr(</span>USUBJID, <span class="m">4</span>, <span class="m">3</span>);
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">adsl2</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1"># 多条件分支</span>
+<span class="n">adsl2</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">adsl2</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">adsl2</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 数值派生</span>
+<span class="n">adsl2</span><span class="p">[</span><span class="s2">"BMI"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl2</span><span class="p">[</span><span class="s2">"WEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">adsl2</span><span class="p">[</span><span class="s2">"HEIGHTBL"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+<span class="c1"># 字符函数（pandas 的 .str 访问器 = SAS 字符函数）</span>
+<span class="n">adsl2</span><span class="p">[</span><span class="s2">"SITEID2"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl2</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>      <span class="c1"># substr(x, 4, 3)</span>
+</code></pre></div></div>
+<blockquote>
+<p>📌 <strong><code>substr</code> → <code>.str.slice(start-1, end)</code></strong> 的换算：
+<code>substr(x, 4, 3)</code> = 从第 4 个字符起取 3 个 = Python 索引 3 到 6 = <code>.str.slice(3, 6)</code></p>
+</blockquote>
+<h3 id="sas-字符函数--pandas-str-方法对照">SAS 字符函数 → pandas <code>.str</code> 方法对照</h3>
+<table>
+<thead>
+<tr>
+<th>SAS</th>
+<th>pandas <code>.str</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>substr(x, 1, 3)</code></td>
+<td><code>.str.slice(0, 3)</code> 或 <code>.str[:3]</code></td>
+</tr>
+<tr>
+<td><code>upcase(x)</code></td>
+<td><code>.str.upper()</code></td>
+</tr>
+<tr>
+<td><code>lowcase(x)</code></td>
+<td><code>.str.lower()</code></td>
+</tr>
+<tr>
+<td><code>propcase(x)</code></td>
+<td><code>.str.title()</code></td>
+</tr>
+<tr>
+<td><code>strip(x)</code></td>
+<td><code>.str.strip()</code></td>
+</tr>
+<tr>
+<td><code>trim(x)</code></td>
+<td><code>.str.rstrip()</code></td>
+</tr>
+<tr>
+<td><code>left(x)</code></td>
+<td><code>.str.lstrip()</code></td>
+</tr>
+<tr>
+<td><code>length(x)</code></td>
+<td><code>.str.len()</code></td>
+</tr>
+<tr>
+<td><code>scan(x, 2, '-')</code></td>
+<td><code>.str.split("-").str[1]</code></td>
+</tr>
+<tr>
+<td><code>catx('-', a, b)</code></td>
+<td><code>a.str.cat(b, sep="-")</code></td>
+</tr>
+<tr>
+<td><code>tranwrd(x, 'A', 'B')</code></td>
+<td><code>.str.replace("A", "B")</code></td>
+</tr>
+<tr>
+<td><code>index(x, 'A')</code></td>
+<td><code>.str.find("A")</code></td>
+</tr>
+<tr>
+<td><code>compress(x)</code></td>
+<td><code>.str.replace(r"\s", "", regex=True)</code></td>
+</tr>
+<tr>
+<td><code>compress(x, '0123456789')</code></td>
+<td><code>.str.replace(r"\D", "", regex=True)</code></td>
+</tr>
+<tr>
+<td><code>repeat(x, 2)</code></td>
+<td><code>.str.repeat(2)</code></td>
+</tr>
+<tr>
+<td><code>reverse(x)</code></td>
+<td><code>.str[::-1]</code></td>
+</tr>
+<tr>
+<td><code>prxchange('s/a/b/', -1, x)</code></td>
+<td><code>.str.replace(r"a", "b", regex=True)</code></td>
+</tr>
+<tr>
+<td><code>put(x, $10.)</code></td>
+<td><code>.str.pad(10)</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong><code>regex=True</code> 很关键</strong>：pandas 的 <code>.str.replace()</code> 默认是<strong>字面替换</strong>
+（这点比 SAS 的 <code>tranwrd</code> 还安全），要用正则必须显式声明。</p>
+</blockquote>
+<hr />
+<h2 id="84-列操作keep--drop--rename--长度">8.4 列操作（KEEP / DROP / RENAME / 长度）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data want;
+    <span class="k">set</span> have (<span class="k">keep</span>=USUBJID AGE SEX <span class="k">rename</span>=(AGE=AGEBL));
+    <span class="k">length</span> AGEGR1 $<span class="m">10</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># keep + rename 一步完成</span>
+<span class="n">want</span> <span class="o">=</span> <span class="n">have</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"AGE"</span><span class="p">:</span> <span class="s2">"AGEBL"</span><span class="p">})</span>
+
+<span class="c1"># 用列表管理（临床程序推荐：把变量清单集中声明，便于 QC）</span>
+<span class="n">KEEP_VARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">]</span>
+<span class="n">RENAME</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"AGE"</span><span class="p">:</span> <span class="s2">"AGEBL"</span><span class="p">}</span>
+<span class="n">want</span> <span class="o">=</span> <span class="n">have</span><span class="p">[</span><span class="n">KEEP_VARS</span><span class="p">]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">RENAME</span><span class="p">)</span>
+
+<span class="c1"># 删除若干列</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="s2">"X1"</span><span class="p">])</span>
+
+<span class="c1"># 按模式删除</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)])</span>
+
+<span class="c1"># 长度语义：Python 字符串没有固定长度</span>
+<span class="c1">#   要补空格 → .str.pad(n)；要去尾空格 → .str.rstrip()</span>
+</code></pre></div></div>
+<h3 id="行数nobs--_n_">行数（NOBS / <code>_N_</code>）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>               <span class="c1"># nobs</span>
+<span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>           <span class="c1"># nobs</span>
+<span class="n">df</span><span class="o">.</span><span class="n">index</span>              <span class="c1"># 行号（对应 _N_-1）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"rowno"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>      <span class="c1"># 显式加 _N_</span>
+</code></pre></div></div>
+<hr />
+<h2 id="85-纵向堆叠与横向连接set--merge">8.5 纵向堆叠与横向连接（SET / MERGE）</h2>
+<h3 id="set--pdconcat">SET = <code>pd.concat()</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data all;
+    <span class="k">set</span> ae_ds ae_drug;      <span class="c">/* 纵向堆叠，按列名对齐 */</span>
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># axis=0 表示纵向堆叠；ignore_index 重新编号（否则行号会重复）</span>
+<span class="n">all_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ae_ds</span><span class="p">,</span> <span class="n">ae_drug</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># 保留来源标记（对应 SAS 的 in= 选项）—— QC 常用</span>
+<span class="n">all_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">ae_ds</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">_SOURCE</span><span class="o">=</span><span class="s2">"ae"</span><span class="p">),</span> <span class="n">ae_drug</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">_SOURCE</span><span class="o">=</span><span class="s2">"drug"</span><span class="p">)],</span>
+    <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<h3 id="merge--pdmerge">MERGE = <code>pd.merge()</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：必须先排序 */</span>
+<span class="kr">proc sort </span>data=adsl; <span class="k">by</span> USUBJID;<span class="kr"> run;</span>
+<span class="kr">proc sort </span>data=adex;  <span class="k">by</span> USUBJID;<span class="kr"> run;</span>
+
+<span class="kr">data </span>adam;
+    <span class="k">merge</span> adsl (<span class="k">in</span>=a) adex;
+    <span class="k">by</span> USUBJID;
+    <span class="k">if</span> a;                    <span class="c">/* 左连接：只保留 adsl 中的受试者 */</span>
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># pandas：不需要预排序</span>
+<span class="n">adam</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adex</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+<span class="c1"># 保留来源标记（对应 in=a / in=b）</span>
+<span class="n">adam</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adex</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">indicator</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">adam</span><span class="p">[</span><span class="s2">"_merge"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<span class="c1"># both          300</span>
+<span class="c1"># left_only       6      ← 这些是 adsl 有、adex 没有的（QC 关注点）</span>
+</code></pre></div></div>
+<h3 id="连接类型对照重要">连接类型对照（重要！）</h3>
+<table>
+<thead>
+<tr>
+<th>SAS 写法</th>
+<th>pandas <code>how=</code></th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>merge a(in=a) b; if a;</code></td>
+<td><code>how="left"</code></td>
+<td>保留 A 全部</td>
+</tr>
+<tr>
+<td><code>merge a b(in=b); if b;</code></td>
+<td><code>how="right"</code></td>
+<td>保留 B 全部</td>
+</tr>
+<tr>
+<td><code>merge a(in=a) b(in=b); if a and b;</code></td>
+<td><code>how="inner"</code></td>
+<td>只保留匹配上的</td>
+</tr>
+<tr>
+<td><code>merge a(in=a) b(in=b); if a or b;</code></td>
+<td><code>how="outer"</code></td>
+<td>全部保留</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 连接键名称不同时（对应 SAS 的 rename=）</span>
+<span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s2">"SUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+<span class="c1"># 多键连接（对应 by USUBJID VISITNUM）</span>
+<span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+<span class="c1"># 避免列名冲突（对应 SAS 的变量覆盖警告）</span>
+<span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">"_ADSL"</span><span class="p">,</span> <span class="s2">"_ADEX"</span><span class="p">),</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>必须校验"一对多"关系</strong>。SAS 在 M:1 时会静默覆盖，
+pandas 会<strong>直接报错</strong>（这其实是好事）：
+<code>MergeError: Merge keys are not unique in right dataset</code>
+出现这个错时，先确认是不是真的需要 <code>how="left"</code> + 多对多，
+通常意味着<strong>你的连接键选错了</strong>（漏了 VISITNUM / PARAMCD 之类的维度）。
+这个报错往往帮你发现了真实的逻辑 bug。</p>
+</blockquote>
+<h3 id="如果确实需要多对多--笛卡尔积sas-的行为">如果确实需要"多对多 + 笛卡尔积"（SAS 的行为）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"cross"</span><span class="p">)</span>   <span class="c1"># 或 how="inner" 但先 validate=None</span>
+<span class="c1"># 显式声明允许的关系（推荐，相当于写文档）</span>
+<span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"inner"</span><span class="p">,</span>
+                  <span class="n">validate</span><span class="o">=</span><span class="s2">"many_to_many"</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+<h2 id="86-排序与去重proc-sort">8.6 排序与去重（PROC SORT）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc sort data=ae <span class="k">out</span>=ae2 nodupkey; <span class="k">by</span> USUBJID AEDECOD;<span class="kr"> run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 排序</span>
+<span class="n">ae2</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">])</span>
+
+<span class="c1"># 混合升降序（对应 by USUBJID descending AEDECOD）</span>
+<span class="n">ae2</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+
+<span class="c1"># 去重（保留第一条）—— 对应 nodupkey</span>
+<span class="n">ae2</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"first"</span><span class="p">)</span>
+
+<span class="c1"># 保留最后一条（对应 SAS 的 if last.xxx）</span>
+<span class="n">ae2</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+
+<span class="c1"># 找出重复记录（QC 用）</span>
+<span class="n">dups</span> <span class="o">=</span> <span class="n">ae</span><span class="p">[</span><span class="n">ae</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+
+<span class="c1"># 保留每组某列最大/最小的那条（SAS 里要 sort + first.，pandas 一行）</span>
+<span class="n">latest</span> <span class="o">=</span> <span class="n">ae</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"VISITNUM"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong><code>drop_duplicates</code> 的行为受排序影响</strong>。
+SAS 的 <code>nodupkey</code> 也是"排序后保留第一条"。
+所以：<strong>先 <code>sort_values</code> 再 <code>drop_duplicates</code></strong>，语义才明确、可复现。</p>
+</blockquote>
+<hr />
+<h2 id="87-分组汇总proc-means--summary">8.7 分组汇总（PROC MEANS / SUMMARY）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc means data=adsl n mean std min max median maxdec=<span class="m">2</span>;
+    class TRT01P AGEGR1;
+    var AGE;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 基础版</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">])[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">,</span> <span class="s2">"min"</span><span class="p">,</span> <span class="s2">"max"</span><span class="p">,</span> <span class="s2">"median"</span><span class="p">])</span>
+
+<span class="c1"># 自定义聚合（推荐：用命名聚合，输出列名可控，便于后续报表）</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">N</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span>
+    <span class="n">Mean</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span>
+    <span class="n">SD</span><span class="o">=</span><span class="s2">"std"</span><span class="p">,</span>
+    <span class="n">Min</span><span class="o">=</span><span class="s2">"min"</span><span class="p">,</span>
+    <span class="n">Max</span><span class="o">=</span><span class="s2">"max"</span><span class="p">,</span>
+    <span class="n">Median</span><span class="o">=</span><span class="s2">"median"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 多变量 + 多统计量</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">N</span><span class="o">=</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"nunique"</span><span class="p">),</span>
+    <span class="n">AGE_MEAN</span><span class="o">=</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+    <span class="n">AGE_SD</span><span class="o">=</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">),</span>
+    <span class="n">BMI_MEAN</span><span class="o">=</span><span class="p">(</span><span class="s2">"BMI"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># SAS 的 n / nmiss 对照</span>
+<span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">N</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span>                       <span class="c1"># 非缺失个数</span>
+    <span class="n">NMISS</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<h3 id="sas-class-vs-pandas-groupby-的关键差异">SAS <code>CLASS</code> vs pandas <code>groupby</code> 的关键差异</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS <code>CLASS</code></th>
+<th>pandas <code>groupby</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缺失值分组</td>
+<td>默认<strong>单独成组</strong>（显示为 <code>.</code>）</td>
+<td>默认<strong>排除</strong>（<code>dropna=True</code>）</td>
+</tr>
+<tr>
+<td>组内缺失值</td>
+<td>默认<strong>排除</strong>（除非加 <code>missing</code> 选项）</td>
+<td>默认排除（<code>skipna=True</code>）</td>
+</tr>
+<tr>
+<td>保留分组列</td>
+<td>是</td>
+<td><code>as_index=False</code> 或 <code>reset_index()</code></td>
+</tr>
+<tr>
+<td>不存在的组合</td>
+<td><code>CLASSDATA</code> / <code>COMPLETETYPES</code></td>
+<td><code>reindex</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 让缺失值单独成组（对应 SAS 的 class 显示 .）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="c1"># 输出成"扁平"表格（不把分组键变索引）—— 报表场景几乎都要</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="c1"># 让所有组合都出现（补 0）——对应 SAS 的 COMPLETETYPES</span>
+<span class="n">pivot</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"AGEGR1"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span>
+                       <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="proc-rank--rank"><code>PROC RANK</code> → <code>rank()</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE_RANK"</span><span class="p">]</span> <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"min"</span><span class="p">)</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE_RANK_GRP"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">pct</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>              <span class="c1"># 百分位</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE_QUARTILE"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">qcut</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">],</span> <span class="mi">4</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"Q1"</span><span class="p">,</span><span class="s2">"Q2"</span><span class="p">,</span><span class="s2">"Q3"</span><span class="p">,</span><span class="s2">"Q4"</span><span class="p">])</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"GRP_RANK"</span><span class="p">]</span>      <span class="o">=</span> <span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>     <span class="c1"># 组内排名</span>
+</code></pre></div></div>
+<hr />
+<h2 id="88-频数统计proc-freq">8.8 频数统计（PROC FREQ）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc freq data=adsl;
+    tables TRT01P * AGEGR1 / nocol norow nopercent <span class="k">missing</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 单变量频数</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>      <span class="c1"># 占比</span>
+
+<span class="c1"># 交叉表（对应 tables A * B）</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">])</span>
+
+<span class="c1"># 含缺失值 + 加合计</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">adsl</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">],</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">margins</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># 长格式输出（更适合后续拼装报表）</span>
+<span class="n">freq</span> <span class="o">=</span> <span class="p">(</span><span class="n">adsl</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">],</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+             <span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"N"</span><span class="p">))</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong><code>margins=True</code> 就是 SAS 的 <code>tables A*B / ... expected</code> 里没有的那个合计行/列</strong>。
+做 CSR 报表时非常常用。</p>
+</blockquote>
+<hr />
+<h2 id="89-proc-sql--pandas">8.9 PROC SQL → pandas</h2>
+<p>SAS 的 PROC SQL 和 pandas 的对应关系比较直接：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc sql;
+    <span class="k">create</span> <span class="k">table</span> want <span class="k">as</span>
+    <span class="k">select</span>  USUBJID,
+            TRT01P,
+            AGE,
+            case when AGE &gt;= <span class="m">65</span> <span class="k">then</span> <span class="s">'Y'</span> <span class="k">else</span> <span class="s">'N'</span> <span class="k">end</span> <span class="k">as</span> ELDERLY,
+            count(<span class="k">distinct</span> AEDECOD) <span class="k">as</span> N_AE
+    <span class="k">from</span>    adsl <span class="k">as</span> a
+            left join adae <span class="k">as</span> b
+              <span class="k">on</span> a<span class="m">.</span>USUBJID = b<span class="m">.</span>USUBJID
+    <span class="k">where</span>   a<span class="m">.</span>SAFFL = <span class="s">'Y'</span>
+    <span class="k">group</span> <span class="k">by</span> USUBJID, TRT01P, AGE
+    <span class="k">having</span>  count(<span class="k">distinct</span> AEDECOD) &gt; <span class="m">0</span>
+    <span class="k">order</span> <span class="k">by</span> TRT01P, AGE desc;
+<span class="kr">quit;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># SQL 风格的等长链式写法（pandas 推荐）</span>
+<span class="n">want</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adae</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">ELDERLY</span><span class="o">=</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">))</span>
+      <span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">],</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N_AE</span><span class="o">=</span><span class="p">(</span><span class="s2">"AEDECOD"</span><span class="p">,</span> <span class="s2">"nunique"</span><span class="p">))</span>
+      <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"N_AE &gt; 0"</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+      <span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"ELDERLY"</span><span class="p">,</span> <span class="s2">"N_AE"</span><span class="p">]]</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<p><strong>逐条对照</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>SQL 子句</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>select 列</code></td>
+<td><code>df[[...]]</code> 或 <code>.agg()</code></td>
+</tr>
+<tr>
+<td><code>where</code></td>
+<td><code>.query()</code></td>
+</tr>
+<tr>
+<td><code>case when</code></td>
+<td><code>.assign(x=lambda d: np.where(...))</code></td>
+</tr>
+<tr>
+<td><code>group by</code></td>
+<td><code>.groupby()</code></td>
+</tr>
+<tr>
+<td><code>having</code></td>
+<td><code>.query()</code>（在 groupby 之后）</td>
+</tr>
+<tr>
+<td><code>order by</code></td>
+<td><code>.sort_values()</code></td>
+</tr>
+<tr>
+<td><code>left join</code></td>
+<td><code>pd.merge(..., how="left")</code></td>
+</tr>
+<tr>
+<td><code>distinct</code></td>
+<td><code>.drop_duplicates()</code></td>
+</tr>
+<tr>
+<td><code>count(distinct x)</code></td>
+<td><code>.agg(x="nunique")</code></td>
+</tr>
+<tr>
+<td><code>limit 10</code></td>
+<td><code>.head(10)</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💬 <strong>另一个选择：直接写 SQL</strong>。如果你（或 QC 同事）觉得 SQL 更顺手，
+pandas 里可以接 <strong>DuckDB</strong> 直接在 DataFrame 上跑 SQL：
+<code>python
+import duckdb
+duckdb.sql("""
+    SELECT TRT01P, COUNT(*) AS N, AVG(AGE) AS MEAN_AGE
+    FROM adsl WHERE SAFFL = 'Y' GROUP BY TRT01P
+""").df()</code>
+这在"从 SAS 迁移"的过渡期非常好用——<strong>先用 SQL 把逻辑跑对，
+再逐步改写成 pandas</strong>。第 17 章会展开。</p>
+</blockquote>
+<h3 id="chain-式的可读性技巧分步-vs-链式">chain 式的可读性技巧：分步 vs 链式</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 分步写（更好调试，推荐给临床程序——每一步可 print 核对）</span>
+<span class="n">step1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adae</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+<span class="n">step2</span> <span class="o">=</span> <span class="n">step1</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span>
+<span class="n">step3</span> <span class="o">=</span> <span class="n">step2</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"nunique"</span><span class="p">))</span>
+
+<span class="c1"># 链式写（更紧凑，但出错时难定位）</span>
+<span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adae</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SAFFL == 'Y'"</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"nunique"</span><span class="p">)))</span>
+</code></pre></div></div>
+<blockquote>
+<p>🧠 <strong>临床编程建议</strong>：<strong>优先分步写</strong>。
+因为临床程序的核心要求是<strong>可核对（QC-able）</strong>——
+每一步的中间结果都能取出来看，QC 才能逐环节比对。
+链式写法适合你已完全掌握、且逻辑很短的场景。</p>
+</blockquote>
+<hr />
+<h2 id="810-组内处理first--last--retain--lag">8.10 组内处理：FIRST. / LAST. / RETAIN / LAG</h2>
+<p>这是 SAS 里必须"靠排序 + 自动变量"才能做的事，pandas 有更直接的表达。</p>
+<h3 id="first--last">FIRST / LAST</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc sort data=lb; <span class="k">by</span> USUBJID VISITNUM;<span class="kr"> run;</span>
+<span class="kr">data </span>lb2; <span class="k">set</span> lb;
+    <span class="k">by</span> USUBJID;
+    <span class="k">if</span> first<span class="m">.</span>USUBJID <span class="k">then</span> FLAG = <span class="s">'Y'</span>;   <span class="c">/* 每个受试者的第一条 */</span>
+    <span class="k">if</span> last<span class="m">.</span>USUBJID  <span class="k">then</span> ENDF = <span class="s">'Y'</span>;   <span class="c">/* 每个受试者的最后一条 */</span>
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">lb2</span> <span class="o">=</span> <span class="n">lb</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">])</span>
+
+<span class="c1"># 方法 1：cumcount（推荐，直观）</span>
+<span class="n">lb2</span><span class="p">[</span><span class="s2">"_rn"</span><span class="p">]</span> <span class="o">=</span> <span class="n">lb2</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">cumcount</span><span class="p">()</span>          <span class="c1"># 组内序号，0 开始</span>
+<span class="n">lb2</span><span class="p">[</span><span class="s2">"FLAG"</span><span class="p">]</span> <span class="o">=</span> <span class="n">lb2</span><span class="p">[</span><span class="s2">"_rn"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>                           <span class="c1"># 第一条</span>
+<span class="n">n_per_subj</span> <span class="o">=</span> <span class="n">lb2</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"size"</span><span class="p">)</span>
+<span class="n">lb2</span><span class="p">[</span><span class="s2">"ENDF"</span><span class="p">]</span> <span class="o">=</span> <span class="n">lb2</span><span class="p">[</span><span class="s2">"_rn"</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_per_subj</span> <span class="o">-</span> <span class="mi">1</span>               <span class="c1"># 最后一条</span>
+
+<span class="c1"># 方法 2：保留每组第一条/最后一条记录（更常用）</span>
+<span class="n">first_rec</span> <span class="o">=</span> <span class="n">lb2</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"first"</span><span class="p">)</span>
+<span class="n">last_rec</span>  <span class="o">=</span> <span class="n">lb2</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="retain保持上一行的值">RETAIN（保持上一行的值）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data lb2; <span class="k">set</span> lb;
+    <span class="k">retain</span> BASE;
+    <span class="k">if</span> FIRST<span class="m">.</span>VISITNUM <span class="k">then</span> BASE = AVAL;      <span class="c">/* 首次访视作为基线 */</span>
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 取每组第一个值并广播回所有行（不是循环！）</span>
+<span class="n">lb</span><span class="p">[</span><span class="s2">"BASE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">lb</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"first"</span><span class="p">)</span>
+
+<span class="c1"># 用基线访视的值（更严谨：按 ABLFL='Y' 标记）</span>
+<span class="n">base</span> <span class="o">=</span> <span class="n">lb</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">lb</span><span class="p">[</span><span class="s2">"ABLFL"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"AVAL"</span><span class="p">:</span> <span class="s2">"BASE"</span><span class="p">})</span>
+<span class="n">lb</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+<span class="c1"># 向下填充（真正的 retain 语义：用上一个非缺失值）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"LASTFILLED"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"VALUE"</span><span class="p">]</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span>
+
+<span class="c1"># 组内向下填充</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"LASTFILLED"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"VALUE"</span><span class="p">]</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span>
+
+<span class="c1"># 组内累计（对应 retain + sum 语句）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CUMSUM"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"DOSE"</span><span class="p">]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CUMMAX"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">cummax</span><span class="p">()</span>
+</code></pre></div></div>
+<h3 id="lag--dif">LAG / DIF</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>data lb2; <span class="k">set</span> lb;
+    prev = <span class="nb">lag(</span>AVAL);
+    chg  = <span class="nb">dif(</span>AVAL);
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"PREV"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>                 <span class="c1"># lag(AVAL)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CHG"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span>                   <span class="c1"># dif(AVAL)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"CHG2"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     <span class="c1"># lag2</span>
+
+<span class="c1"># ⚠️ 关键差异：pandas 的 shift 不考虑 BY 组！</span>
+<span class="c1"># 组内 shift 必须先排序，再用 groupby().shift()</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">])</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"PREV"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>这是最容易出错的地方</strong>：SAS 的 <code>lag()</code> 在 DATA 步里天然按当前
+BY 组的顺序作用；pandas 的 <code>.shift()</code> 是<strong>整列位移</strong>，
+不分组会在受试者交界处"串行"（把上一个受试者的最后一条当成本受试者的前一条）。
+<strong>必须 <code>groupby().shift()</code>。</strong></p>
+</blockquote>
+<hr />
+<h2 id="811-自定义格式映射proc-format">8.11 自定义格式映射（PROC FORMAT）</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc <span class="k">format</span>;
+    value $sexf
+        <span class="s">'F'</span> = <span class="s">'Female'</span>
+        <span class="s">'M'</span> = <span class="s">'Male'</span>
+        other = <span class="s">'Unknown'</span>;
+    value agegrp
+        low -&lt; <span class="m">65</span> = <span class="s">'&lt;65'</span>
+        <span class="m">65</span> - <span class="m">80</span>   = <span class="s">'65-80'</span>
+        <span class="m">80</span> &lt;- high= <span class="s">'&gt;80'</span>;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 离散映射 → dict + map（对应 value $sexf）</span>
+<span class="n">SEX_FMT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"F"</span><span class="p">:</span> <span class="s2">"Female"</span><span class="p">,</span> <span class="s2">"M"</span><span class="p">:</span> <span class="s2">"Male"</span><span class="p">}</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"SEX_DECODE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">SEX_FMT</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s2">"Unknown"</span><span class="p">)</span>
+
+<span class="c1"># 或用 replace（保留未匹配的原值）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"SEX_DECODE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"SEX"</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">SEX_FMT</span><span class="p">)</span>
+
+<span class="c1"># 区间映射 → pd.cut（对应 value agegrp）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+                      <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">],</span> <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># 保留为"有顺序的分类"（对应 SAS format 的排序输出顺序）</span>
+<span class="n">TRT_ORDER</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Placebo"</span><span class="p">,</span> <span class="s2">"Xanomeline Low Dose"</span><span class="p">,</span> <span class="s2">"Xanomeline High Dose"</span><span class="p">]</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRT01P"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="n">TRT_ORDER</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>      <span class="c1"># 输出顺序 = TRT_ORDER</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong><code>pd.Categorical</code> 是复刻 SAS 输出的关键</strong>：
+临床报表要求治疗组按固定顺序（而不是字母序）输出，
+SAS 靠 <code>CLASS</code> 的顺序或 format；pandas 靠 <code>Categorical</code> 的 <code>categories</code> 顺序。
+<strong>这是报表现场最常见的"顺序不对"问题的根因。</strong></p>
+<p>注意：pandas 2.x 起 <code>groupby</code> 对 Categorical 需要 <code>observed=False</code>
+才能显示所有类别（即使计数为 0）。这在做"空治疗组也要出现在表里"时很重要。</p>
+</blockquote>
+<hr />
+<h2 id="812-综合实战一段完整-sas-程序的重写">8.12 综合实战：一段完整 SAS 程序的重写</h2>
+<p><strong>原始 SAS</strong>（典型的安全性人口学汇总）：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code>proc sort data=adsl; <span class="k">by</span> USUBJID;<span class="kr"> run;</span>
+<span class="kr">proc sort </span>data=adae;  <span class="k">by</span> USUBJID;<span class="kr"> run;</span>
+
+<span class="kr">data </span>want;
+    <span class="k">merge</span> adsl (<span class="k">in</span>=a) adae (<span class="k">in</span>=b);
+    <span class="k">by</span> USUBJID;
+    <span class="k">if</span> a;
+
+    <span class="k">if</span> AGE &lt; <span class="m">65</span> <span class="k">then</span> AGEGR1 = <span class="s">'&lt;65'</span>;
+    <span class="k">else</span> <span class="k">if</span> AGE &lt;= <span class="m">80</span> <span class="k">then</span> AGEGR1 = <span class="s">'65-80'</span>;
+    <span class="k">else</span> AGEGR1 = <span class="s">'&gt;80'</span>;
+
+    <span class="k">if</span> <span class="k">not</span> <span class="k">missing</span>(AEDECOD) <span class="k">then</span> HAS_AE = <span class="s">'Y'</span>;
+    <span class="k">else</span> HAS_AE = <span class="s">'N'</span>;
+<span class="kr">run;</span>
+
+<span class="kr">proc means </span>data=want n mean std maxdec=<span class="m">1</span>;
+    class TRT01P AGEGR1;
+    var AGE;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<p><strong>pandas 重写</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1"># 1) 连接（不需要预先排序）</span>
+<span class="n">want</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">,</span> <span class="n">adae</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AEDECOD"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+
+<span class="c1"># 2) 派生 AGEGR1</span>
+<span class="n">want</span><span class="p">[</span><span class="s2">"AGEGR1"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">want</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">want</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">],</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span>
+<span class="p">)</span>
+
+<span class="c1"># 3) 派生 HAS_AE（注意 pandas 里字符缺失是 NaN，不是 ''）</span>
+<span class="n">want</span><span class="p">[</span><span class="s2">"HAS_AE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">want</span><span class="p">[</span><span class="s2">"AEDECOD"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="s2">"Y"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">)</span>
+
+<span class="c1"># 4) 分组汇总</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="p">(</span><span class="n">want</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGEGR1"</span><span class="p">],</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"count"</span><span class="p">),</span> <span class="n">Mean</span><span class="o">=</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="n">SD</span><span class="o">=</span><span class="p">(</span><span class="s2">"AGE"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># 5) 核对</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div></div>
+<p><strong>核对清单（迁移时必做）</strong>：
+- [ ] 行数是否一致？（连接类型选对了吗）
+- [ ] 分组计数是否一致？（缺失值分组差异）
+- [ ] 数值统计量是否一致？（舍入方式差异，见第 13 章）
+- [ ] 输出顺序是否一致？（<code>Categorical</code> vs <code>CLASS</code> 顺序）</p>
+<hr />
+<h2 id="813-动手练习">8.13 动手练习</h2>
+<ol>
+<li>
+<p><strong>筛选+派生</strong>：从 <code>data/samples/adsl.csv</code> 中取出 SAFFL='Y' 且 AGE&gt;=65 的受试者，
+   派生 <code>AGEGR1</code>（用 <code>pd.cut</code>），输出人数。</p>
+</li>
+<li>
+<p><strong>连接</strong>：把 ADSL 和 ADAE 左连接，统计每个受试者的不良事件条数
+   （提示：<code>groupby</code> + <code>size</code>，注意没有 AE 的受试者应为 0 而不是缺失）。</p>
+</li>
+<li>
+<p><strong>去重</strong>：找出 ADAE 中每个受试者、每个 <code>AEDECOD</code> 的<strong>首次发生</strong>记录
+   （按 <code>ASTDT</code> 排序后取第一条）。</p>
+</li>
+<li>
+<p><strong>组内处理</strong>：在 ADAE 中，用 <code>groupby().shift()</code> 计算每个受试者
+   <strong>相邻两次不良事件的天数间隔</strong>。</p>
+</li>
+<li>
+<p><strong>完整重写</strong>：找一段你自己写过的 SAS 程序（不需要很长，20 行以内），
+   用 Python 重写，并用 8.12 节的核对清单逐项验证结果一致。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="07.html">第 07 章 · pandas 入门</a>
+<strong>下一章 →</strong> <a href="09.html">第 09 章 · 合并、重塑与分组汇总</a></p></article>
+<nav class="pager"><a class="pg-prev" href="07.html"><span class="pg-label">← 上一篇</span><span class="pg-title">pandas 入门：DataFrame 就是数据集</span></a><a class="pg-next" href="09.html"><span class="pg-label">下一篇 →</span><span class="pg-title">合并、重塑与分组汇总</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

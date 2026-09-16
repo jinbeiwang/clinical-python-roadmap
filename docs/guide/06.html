@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 06 章 · NumPy 与向量化思维</title>
+<meta name="description" content="NumPy 与向量化思维 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 06 章 · NumPy 与向量化思维">
+<meta property="og:description" content="NumPy 与向量化思维 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/06.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第二阶段 · 数据操作</div><h1>第 06 章 · NumPy 与向量化思维</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/06-NumPy%E4%B8%8E%E5%90%91%E9%87%8F%E5%8C%96%E6%80%9D%E7%BB%B4.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：完成<strong>最重要的一次思维升级</strong>。
+SAS 的 DATA 步天然逐行处理；Python 的正道是<strong>整列一起算</strong>。
+理解这一点，你的 Python 代码才会从"能跑"变成"专业"。</p>
+</blockquote>
+<hr />
+<h2 id="61-为什么不能用-python-写-sas">6.1 为什么不能"用 Python 写 SAS"</h2>
+<p>先看一段真实的性能对比。任务：对 58,700 行的 ADLBC（实验室检查）
+计算每个值的相对基线变化百分比。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/samples/adlbc_sample.csv"</span><span class="p">)</span>     <span class="c1"># 假设有 AVAL, BASE 两列</span>
+<span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="c1"># ---- 写法 A：SAS 思维（逐行循环）----</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">result_a</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"BASE"</span><span class="p">]</span>
+    <span class="n">aval</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"AVAL"</span><span class="p">]</span>
+    <span class="n">result_a</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">aval</span> <span class="o">-</span> <span class="n">base</span><span class="p">)</span> <span class="o">/</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">100</span> <span class="k">if</span> <span class="n">base</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+<span class="n">t_a</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="c1"># ---- 写法 B：向量化 ----</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">result_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">"BASE"</span><span class="p">])</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">"BASE"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+<span class="n">t_b</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"逐行循环: </span><span class="si">{</span><span class="n">t_a</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> 秒"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"向量化  : </span><span class="si">{</span><span class="n">t_b</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> 秒"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"加速比  : </span><span class="si">{</span><span class="n">t_a</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t_b</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> 倍"</span><span class="p">)</span>
+</code></pre></div></div>
+<p>在 6 万行的真实数据上，差距通常是 <strong>100–1000 倍</strong>。
+而且数据越大差距越大——因为循环是 Python 逐条解释执行，
+向量化是<strong>下层 C 代码一次算完整个数组</strong>。</p>
+<blockquote>
+<p>🔥 <strong>记住这条铁律</strong>：
+<strong>在 pandas/numpy 里看到 <code>for</code> 循环遍历行，就是代码有问题的信号。</strong>
+（少数例外：需要跨行状态、调用外部 API、写文件。）</p>
+</blockquote>
+<hr />
+<h2 id="62-numpy-是什么为什么要先学它">6.2 NumPy 是什么，为什么要先学它</h2>
+<p>NumPy 提供 <code>ndarray</code>（N 维数组）——<strong>同类型、定长的连续内存块</strong>。
+pandas 的 <code>DataFrame</code> 本质是"若干个 ndarray 组成的字典"，
+所以<strong>理解了 NumPy 就理解了 pandas 的底层行为</strong>。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SAS</th>
+<th>NumPy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值容器</td>
+<td>数据集里的数值列</td>
+<td><code>ndarray</code>（一维/多维）</td>
+</tr>
+<tr>
+<td>元素类型</td>
+<td>统一为数值（无 int/float 之分）</td>
+<td><strong>必须统一</strong>（int64/float64/…）</td>
+</tr>
+<tr>
+<td>缺失值</td>
+<td><code>.</code></td>
+<td><code>np.nan</code>（仅 float 支持）</td>
+</tr>
+<tr>
+<td>运算</td>
+<td>逐行（DATA 步）</td>
+<td><strong>整数组</strong>（向量化）</td>
+</tr>
+<tr>
+<td>数组声明</td>
+<td><code>array x{10};</code></td>
+<td><code>np.zeros(10)</code>、<code>np.arange(10)</code></td>
+</tr>
+<tr>
+<td>索引</td>
+<td><code>x{1}</code>（从 1 开始）</td>
+<td><code>x[0]</code>（从 0 开始）</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 创建</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>          <span class="c1"># 从列表</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>                              <span class="c1"># [0. 0. 0. 0. 0.]</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>                               <span class="c1"># [1. 1. 1. 1. 1.]</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>                             <span class="c1"># [0 1 2 3 4]</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>                     <span class="c1"># [0. 0.25 0.5 0.75 1.]</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mf">3.14</span><span class="p">)</span>                         <span class="c1"># 全部 3.14</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">75</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>   <span class="c1"># 正态随机（等价 SAS RAND('NORMAL')）</span>
+
+<span class="c1"># 关键属性</span>
+<span class="n">a</span><span class="o">.</span><span class="n">dtype</span>        <span class="c1"># dtype('int64')    元素类型（SAS 里没有这个概念）</span>
+<span class="n">a</span><span class="o">.</span><span class="n">shape</span>        <span class="c1"># (5,)              形状</span>
+<span class="n">a</span><span class="o">.</span><span class="n">ndim</span>         <span class="c1"># 1                 维度</span>
+<span class="n">a</span><span class="o">.</span><span class="n">size</span>         <span class="c1"># 5                 元素个数</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>         <span class="c1"># 5</span>
+</code></pre></div></div>
+<h3 id="索引与切片与-sas-数组对照">索引与切片：与 SAS 数组对照</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">])</span>
+
+<span class="c1"># SAS 数组 x{1}=10, x{2}=20 ...</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>        <span class="c1"># 10      第 1 个元素（对应 SAS x{1}）</span>
+<span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>       <span class="c1"># 50      最后一个（SAS 没有）</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>      <span class="c1"># [20 30 40]   第 2~4 个（含头不含尾）</span>
+<span class="n">a</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>       <span class="c1"># [10 20 30]</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>       <span class="c1"># [30 40 50]</span>
+
+<span class="c1"># 布尔索引（对应 SAS 的 where 子句）</span>
+<span class="n">a</span><span class="p">[</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">25</span><span class="p">]</span>              <span class="c1"># [30 40 50]</span>
+<span class="n">a</span><span class="p">[(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="mi">50</span><span class="p">)]</span> <span class="c1"># [30 40]</span>
+
+<span class="c1"># 花式索引（按位置列表取）</span>
+<span class="n">a</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>           <span class="c1"># [10 30 50]</span>
+</code></pre></div></div>
+<hr />
+<h2 id="63-向量化一次算一整列">6.3 向量化：一次算一整列</h2>
+<h3 id="算术运算与-sas-的逐元素运算结果一致">算术运算：与 SAS 的逐元素运算结果一致</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">age</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>
+
+<span class="n">age</span> <span class="o">+</span> <span class="mi">1</span>        <span class="c1"># [64 65 72 75 56]</span>
+<span class="n">age</span> <span class="o">*</span> <span class="mi">12</span>       <span class="c1"># 月龄</span>
+<span class="n">age</span> <span class="o">/</span> <span class="mi">10</span>
+<span class="n">age</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>          <span class="c1"># 对应 SAS SQRT()</span>
+<span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>           <span class="c1"># 对应 SAS LOG()</span>
+<span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>           <span class="c1"># 对应 SAS EXP()</span>
+<span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">age</span> <span class="o">-</span> <span class="mi">70</span><span class="p">)</span>      <span class="c1"># 对应 SAS ABS()</span>
+</code></pre></div></div>
+<h3 id="聚合函数对应-proc-means">聚合函数：对应 PROC MEANS</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">age</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>
+
+<span class="n">age</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>      <span class="c1"># 327      Sum</span>
+<span class="n">age</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>     <span class="c1"># 65.4     Mean</span>
+<span class="n">age</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># 样本标准差（对应 SAS STD，SAS 默认 ddof=1）</span>
+<span class="n">age</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>      <span class="c1"># 55       Minimum</span>
+<span class="n">age</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>      <span class="c1"># 74       Maximum</span>
+<span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">age</span><span class="p">)</span> <span class="c1"># 64.5     Median</span>
+<span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">75</span><span class="p">])</span>   <span class="c1"># 四分位数（对应 PROC UNIVARIATE 的 Q1/Q2/Q3）</span>
+<span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># 缺失值处理</span>
+<span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">71</span><span class="p">])</span>
+<span class="n">vals</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>             <span class="c1"># nan   ← 默认不忽略缺失！</span>
+<span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>        <span class="c1"># 134   ← 忽略缺失（对应 SAS 的默认行为）</span>
+<span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>       <span class="c1"># 67.0</span>
+<span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>         <span class="c1"># [False  True False]</span>
+<span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>   <span class="c1"># 1     缺失个数（对应 NMISS）</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>重要差异</strong>：<code>SAS 的 PROC MEANS</code> 默认排除缺失值；
+<code>numpy</code> 的 <code>sum()</code> / <code>mean()</code> <strong>默认不排除</strong>（会得到 nan）。用 <code>nan*</code> 函数族。
+pandas 的 <code>mean()</code> 默认 <code>skipna=True</code>（与 SAS 一致），所以 pandas 里反而不用操心。</p>
+</blockquote>
+<h3 id="广播broadcastingpython-独有的能力">广播（Broadcasting）：Python 独有的能力</h3>
+<p>"不同形状的数组做运算"——这是 SAS 里没有的概念，用好了极省代码：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 场景：每个受试者的年龄按"中心"的调整值校准</span>
+<span class="n">ages</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>              <span class="c1"># 5 个受试者</span>
+<span class="n">site_adj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">])</span>                    <span class="c1"># 2 个中心的调整值</span>
+
+<span class="c1"># 标量广播（最简单，SAS 也能做）</span>
+<span class="n">ages</span> <span class="o">-</span> <span class="mi">65</span>
+
+<span class="c1"># 数组广播（SAS 需要 MERGE 才能做）</span>
+<span class="n">adjusted</span> <span class="o">=</span> <span class="n">ages</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">site_adj</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="c1"># 结果 5×2 矩阵：每个年龄减去 2 个中心的调整值</span>
+
+<span class="c1"># 实用例：BMI 标准化（减均值除标准差——Z-score）</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">ages</span> <span class="o">-</span> <span class="n">ages</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="n">ages</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div></div>
+<hr />
+<h2 id="64-条件逻辑的向量化npwhere--npselect">6.4 条件逻辑的向量化：<code>np.where</code> / <code>np.select</code></h2>
+<p>这是<strong>替换 DATA 步 if-then-else 的主力</strong>。</p>
+<h3 id="单条件--npwhere">单条件 → <code>np.where</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="k">if</span> age &gt;= <span class="m">65</span> <span class="k">then</span> agegr = <span class="s">'&gt;=65'</span>;
+<span class="k">else</span> agegr = <span class="s">'&lt;65'</span>;
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">age</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>
+
+<span class="c1"># np.where(条件, 真值, 假值)  —— 完全对应 if/else</span>
+<span class="n">agegr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">age</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"&gt;=65"</span><span class="p">,</span> <span class="s2">"&lt;65"</span><span class="p">)</span>
+<span class="c1"># array(['&lt;65', '&lt;65', '&gt;=65', '&gt;=65', '&lt;65'])</span>
+</code></pre></div></div>
+<h3 id="多条件--npselect">多条件 → <code>np.select</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="k">if</span> age &lt; <span class="m">65</span> <span class="k">then</span> agegr = <span class="s">'&lt;65'</span>;
+<span class="k">else</span> <span class="k">if</span> age &lt;= <span class="m">80</span> <span class="k">then</span> agegr = <span class="s">'65-80'</span>;
+<span class="k">else</span> agegr = <span class="s">'&gt;80'</span>;
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span><span class="n">age</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">,</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">]</span>          <span class="c1"># 按顺序判断（先匹配先生效）</span>
+<span class="n">choices</span>    <span class="o">=</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">]</span>
+<span class="n">agegr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">conditions</span><span class="p">,</span> <span class="n">choices</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"&gt;80"</span><span class="p">)</span>
+<span class="c1"># array(['&lt;65', '&lt;65', '65-80', '65-80', '&lt;65'])</span>
+</code></pre></div></div>
+<blockquote>
+<p>📌 <strong><code>np.select</code> 的顺序语义和 SAS 完全一致</strong>：
+条件按列表顺序求值，<strong>第一个为真的生效</strong>，都不满足用 <code>default</code>。
+这正好对应 <code>if / else if / else</code>。</p>
+</blockquote>
+<h3 id="嵌套-where">嵌套 where</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 对应嵌套 if / 或 SAS 的 ifc()</span>
+<span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">age</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">,</span> <span class="s2">"老年"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">age</span> <span class="o">&gt;=</span> <span class="mi">18</span><span class="p">,</span> <span class="s2">"成年"</span><span class="p">,</span> <span class="s2">"未成年"</span><span class="p">))</span>
+</code></pre></div></div>
+<h3 id="连续变量分箱--pdcut--pdqcut比-sas-的-format-更直观">连续变量分箱 → <code>pd.cut</code> / <code>pd.qcut</code>（比 SAS 的 format 更直观）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">age</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">63</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">74</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">82</span><span class="p">,</span> <span class="mi">90</span><span class="p">])</span>
+
+<span class="c1"># 按自定义区间分箱（对应 SAS 自定义 format 的区间映射）</span>
+<span class="n">agegr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">],</span>
+               <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>          <span class="c1"># right=False → 左闭右开：[0,65)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">agegr</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">())</span>
+
+<span class="c1"># 按分位数等频分箱（对应 PROC RANK groups=）</span>
+<span class="n">quart</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">qcut</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"Q1"</span><span class="p">,</span> <span class="s2">"Q2"</span><span class="p">,</span> <span class="s2">"Q3"</span><span class="p">,</span> <span class="s2">"Q4"</span><span class="p">])</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>临床编程提示</strong>：ADaM 里 <code>AGEGR1</code> 这类派生，用 <code>pd.cut</code> 最安全，
+因为<strong>边界规则写在参数里，一眼可读、便于 QC</strong>；
+而 <code>np.select</code> 嵌套多层时容易漏掉边界。两者都要注意"边界取闭还是取开"——
+这决定了 65 岁的人归到 <code>&lt;65</code> 还是 <code>65-80</code>。</p>
+</blockquote>
+<hr />
+<h2 id="65-向量化常用函数清单">6.5 向量化常用函数清单</h2>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>SAS</th>
+<th>NumPy / pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>条件赋值</td>
+<td><code>if/then/else</code></td>
+<td><code>np.where</code>、<code>np.select</code></td>
+</tr>
+<tr>
+<td>分箱</td>
+<td>自定义 format</td>
+<td><code>pd.cut</code>、<code>pd.qcut</code></td>
+</tr>
+<tr>
+<td>取整</td>
+<td><code>INT()</code>、<code>FLOOR()</code>、<code>CEIL()</code></td>
+<td><code>np.floor</code>、<code>np.ceil</code>、<code>np.trunc</code>、<code>np.round</code></td>
+</tr>
+<tr>
+<td>最大值/最小值</td>
+<td><code>MAX()</code>、<code>MIN()</code>（SAS 的这两个是逐行取最大）</td>
+<td><code>np.maximum(a,b)</code>、<code>np.minimum(a,b)</code></td>
+</tr>
+<tr>
+<td>累加/累乘</td>
+<td><code>SUM</code> 语句</td>
+<td><code>np.cumsum</code>、<code>np.cumprod</code></td>
+</tr>
+<tr>
+<td>排序</td>
+<td><code>PROC SORT</code></td>
+<td><code>np.sort</code>、<code>df.sort_values</code></td>
+</tr>
+<tr>
+<td>排名</td>
+<td><code>PROC RANK</code></td>
+<td><code>df.rank()</code></td>
+</tr>
+<tr>
+<td>去重</td>
+<td><code>nodupkey</code></td>
+<td><code>np.unique</code>、<code>df.drop_duplicates</code></td>
+</tr>
+<tr>
+<td>查找匹配</td>
+<td><code>WHICHN()</code>、<code>whichc()</code></td>
+<td><code>np.isin</code>、<code>df.isin</code></td>
+</tr>
+<tr>
+<td>缺失判断</td>
+<td><code>MISSING()</code>、<code>NMISS()</code></td>
+<td><code>pd.isna</code>、<code>df.isna().sum()</code></td>
+</tr>
+<tr>
+<td>字符串拼接</td>
+<td><code>CATX()</code></td>
+<td><code>np.char.add</code> 或 pandas <code>str</code> 方法</td>
+</tr>
+<tr>
+<td>百分位</td>
+<td><code>PCTL</code></td>
+<td><code>np.percentile</code>、<code>np.quantile</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 逐行取最大（SAS 的 max(a,b,c) 是行级的！）</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>        <span class="c1"># array([4, 5, 6])   ← 对应 SAS: m = max(a, b)</span>
+
+<span class="c1"># numpy 的 max 是"整体最大"，容易混淆：</span>
+<span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>               <span class="c1"># 5  ← 对应 SAS: max_a = max(of a[*]);</span>
+</code></pre></div></div>
+<hr />
+<h2 id="66-性能实操什么时候循环是可以接受的">6.6 性能实操：什么时候循环是可以接受的</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 可以循环：需要跨行状态（上一行的值）</span>
+<span class="c1"># SAS: retain prev;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">forward_fill</span><span class="p">(</span><span class="n">series</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""用上一个非缺失值填充（对应 SAS 的 retain + if missing then 保持）"""</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="p">[],</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">series</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+<span class="c1"># pandas 内置更快：series.ffill()</span>
+
+<span class="c1"># ✅ 可以循环：调用外部 API / 写多个文件 / 处理多个数据集</span>
+<span class="k">for</span> <span class="n">dom</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"cm"</span><span class="p">]:</span>
+    <span class="n">process</span><span class="p">(</span><span class="n">dom</span><span class="p">)</span>
+
+<span class="c1"># ❌ 不该循环：任何"对每一行做相同的算术/条件变换"</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)):</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">]</span>     <span class="c1"># 用 df["a"] + df["b"]</span>
+</code></pre></div></div>
+<h3 id="分组内计算groupbytransformsas-的-by-组处理">分组内计算（<code>groupby().transform()</code>）：SAS 的 BY 组处理</h3>
+<p>这是"看起来必须用循环"但其实不该用的经典场景。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS：按受试者计算基线，再看每次访视相对基线的变化 */</span>
+<span class="kr">proc sort </span>data=lb; <span class="k">by</span> usubjid visitnum;<span class="kr"> run;</span>
+<span class="kr">data </span>lb2;
+    <span class="k">set</span> lb;
+    <span class="k">by</span> usubjid;
+    <span class="k">retain</span> base;
+    <span class="k">if</span> first<span class="m">.</span>usubjid <span class="k">then</span> base = aval;
+    chg = aval - base;
+<span class="kr">run;</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># pandas：完全无需循环</span>
+<span class="n">lb</span> <span class="o">=</span> <span class="n">lb</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"VISITNUM"</span><span class="p">])</span>
+<span class="n">lb</span><span class="p">[</span><span class="s2">"BASE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">lb</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVAL"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"first"</span><span class="p">)</span>   <span class="c1"># 每组第一个值</span>
+<span class="n">lb</span><span class="p">[</span><span class="s2">"CHG"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">lb</span><span class="p">[</span><span class="s2">"AVAL"</span><span class="p">]</span> <span class="o">-</span> <span class="n">lb</span><span class="p">[</span><span class="s2">"BASE"</span><span class="p">]</span>
+
+<span class="c1"># 其他常用的组内变换</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"n_in_group"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"count"</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"group_mean"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"mean"</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"age_diff"</span><span class="p">]</span>    <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">"group_mean"</span><span class="p">]</span>     <span class="c1"># 组内去均值（中心化）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"rank_in_grp"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"TRT01P"</span><span class="p">)[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong><code>transform</code> 是"组内计算后广播回原行数"</strong>，正好对应 SAS 的
+<code>BY 组 + retain + first.xxx</code> 模式，且不需要 <code>PROC SORT</code>（但排序后语义更清晰）。
+<strong>掌握 <code>groupby().transform()</code> 是 pandas 从入门到进阶的标志。</strong></p>
+</blockquote>
+<hr />
+<h2 id="67-动手练习">6.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>向量化改写</strong>：把下面 SAS 用一行 pandas 写出来。
+   <code>sas
+   data want; set have;
+       bmi = weight / (height/100)**2;
+       if bmi &lt; 18.5 then bmigr = 'Underweight';
+       else if bmi &lt; 25 then bmigr = 'Normal';
+       else bmigr = 'Overweight';
+   run;</code></p>
+</li>
+<li>
+<p><strong>分位数</strong>：用 <code>np.percentile</code> 计算 ADSL 中 AGE 的 Q1/Q2/Q3 和 5%/95% 分位。</p>
+</li>
+<li>
+<p><strong>广播</strong>：给定 3 个受试者的多次测量值（2 维数组 3×4），
+   计算每个受试者内心自己的值（减自己的均值）。</p>
+</li>
+<li>
+<p><strong>性能对比</strong>：用 <code>time.perf_counter()</code> 实测 6.1 节的两种写法，
+   记录加速比。（如果本地还没大文件，可用 <code>np.random</code> 造 10 万个数据）</p>
+</li>
+<li>
+<p><strong>组内变换</strong>：读 <code>data/samples/advs.csv</code>（如无则用 adae），
+   用 <code>groupby().transform()</code> 增加一列"该受试者的最大 AVAL"。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="05.html">第 05 章 · 文件与批处理自动化</a>
+<strong>下一章 →</strong> <a href="07.html">第 07 章 · pandas 入门：DataFrame 就是数据集</a></p></article>
+<nav class="pager"><a class="pg-prev" href="05.html"><span class="pg-label">← 上一篇</span><span class="pg-title">文件与批处理自动化</span></a><a class="pg-next" href="07.html"><span class="pg-label">下一篇 →</span><span class="pg-title">pandas 入门：DataFrame 就是数据集</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>

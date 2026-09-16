@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 11 章 · 读取 XPT / SAS7BDAT 与临床数据结构</title>
+<meta name="description" content="读取 XPT / SAS7BDAT 与临床数据结构 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 11 章 · 读取 XPT / SAS7BDAT 与临床数据结构">
+<meta property="og:description" content="读取 XPT / SAS7BDAT 与临床数据结构 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/11.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第二阶段 · 数据操作</div><h1>第 11 章 · 读取 XPT / SAS7BDAT 与临床数据结构</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/11-%E8%AF%BB%E5%8F%96XPT%E4%B8%8E%E4%B8%B4%E5%BA%8A%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：搞清"不装 SAS 也能读写 SAS 数据"的完整方法，
+并理解 CDISC 数据集的通用结构——<strong>这是后续所有实战的基础</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="111-三种-sas-文件格式与对应读法">11.1 三种 SAS 文件格式与对应读法</h2>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>扩展名</th>
+<th>用途</th>
+<th>Python 读法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SAS 传输格式 v5</td>
+<td><code>.xpt</code></td>
+<td><strong>CDISC 提交的标准格式</strong></td>
+<td><code>pyreadstat.read_xport()</code> / <code>pd.read_sas(format="xport")</code></td>
+</tr>
+<tr>
+<td>SAS 传输格式 v8/v9</td>
+<td><code>.xpt</code></td>
+<td>支持长变量名、UTF-8</td>
+<td><code>pyreadstat.read_xport()</code>（自动识别）</td>
+</tr>
+<tr>
+<td>SAS 数据集</td>
+<td><code>.sas7bdat</code></td>
+<td>SAS 的"原生"数据集</td>
+<td><code>pyreadstat.read_sas7bdat()</code> / <code>pd.read_sas(format="sas7bdat")</code></td>
+</tr>
+<tr>
+<td>SAS 数据集目录</td>
+<td><code>.sas7bcat</code></td>
+<td>存自定义 format</td>
+<td><code>pyreadstat.read_sas7bcat()</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+<span class="c1"># ---- 方式 A：pandas（简单，但不带变量标签）----</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sas</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"xport"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+<span class="c1"># ---- 方式 B：pyreadstat（推荐，带标签 + 值标签）----</span>
+<span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">)</span>
+<span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_sas7bdat</span><span class="p">(</span><span class="s2">"adsl.sas7bdat"</span><span class="p">)</span>
+
+<span class="c1"># 读永久数据集的目录（自定义 format）</span>
+<span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_sas7bdat</span><span class="p">(</span><span class="s2">"adsl.sas7bdat"</span><span class="p">,</span> <span class="n">catalog_file</span><span class="o">=</span><span class="s2">"formats.sas7bcat"</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="pandasread_sas-vs-pyreadstat该用哪个"><code>pandas.read_sas</code> vs <code>pyreadstat</code>：该用哪个</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>pandas.read_sas</code></th>
+<th><code>pyreadstat</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>依赖</td>
+<td>内置</td>
+<td>需 <code>pip install pyreadstat</code></td>
+</tr>
+<tr>
+<td>变量标签</td>
+<td><strong>丢失</strong></td>
+<td><strong>保留</strong>（<code>meta.column_names_to_labels</code>）</td>
+</tr>
+<tr>
+<td>值标签（format）</td>
+<td><strong>丢失</strong></td>
+<td><strong>保留</strong>（<code>meta.variable_value_labels</code>）</td>
+</tr>
+<tr>
+<td>原始类型/长度</td>
+<td>无</td>
+<td><code>meta.original_variable_types</code></td>
+</tr>
+<tr>
+<td>日期时间类型</td>
+<td>时间戳会转 datetime</td>
+<td>可控（<code>dates_as_pandas_datetime</code>）</td>
+</tr>
+<tr>
+<td>写入 XPT</td>
+<td>不支持</td>
+<td><strong>支持</strong> <code>write_xport()</code></td>
+</tr>
+<tr>
+<td>速度</td>
+<td>稍快</td>
+<td>稍慢</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>结论</strong>：
+<strong>只要涉及变量标签（临床场景几乎总是涉及），就用 <code>pyreadstat</code>。</strong>
+需要写回 XPT 时，<code>pyreadstat</code> 是唯一选择。</p>
+</blockquote>
+<hr />
+<h2 id="112-一个坑xpt-里的日期是字符串">11.2 一个坑：XPT 里的日期是字符串</h2>
+<p>这是从 SAS 转 pandas 时<strong>第一个会踩的坑</strong>。</p>
+<p>在 SAS 里 <code>TRTSDT</code> 是数值日期（format 为 <code>yymmdd10.</code>）；
+但导出成 XPT 后，<strong>CDISC 要求日期以 ISO 8601 字符串形式存储</strong>
+（SDTM 规范：<code>--DTC</code> 变量是字符型）。</p>
+<p>所以你读进来会是：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>            <span class="c1"># dtype('O')  —— 字符串！</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="c1"># 0    2014-01-02</span>
+<span class="c1"># 1    2012-08-05</span>
+</code></pre></div></div>
+<p><strong>必须先转换</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT_DT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"TRTSDT_DT"</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>         <span class="c1"># datetime64[ns]</span>
+
+<span class="c1"># 数值型变量（如 TRTDUR / AGE）如果含缺失，也会变成 float64</span>
+<span class="n">df</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<span class="c1"># float64    28</span>
+<span class="c1"># object     18</span>
+<span class="c1"># int64       2</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>不要覆盖原变量名</strong>。保留原始的 <code>TRTSDT</code>（字符串，对应 SDTM 的原始值），
+另建 <code>TRTSDT_DT</code>（datetime，用于计算）。
+这样 QC 时可以对比"原始值"和"派生值"，也符合 CDISC 的变量命名惯例。</p>
+</blockquote>
+<h3 id="为什么-age-变成-630-而不是-63">为什么 <code>AGE</code> 变成 63.0 而不是 63</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>     <span class="c1"># 63.0, 64.0, 71.0</span>
+</code></pre></div></div>
+<p>原因：整列里只要有<strong>一个缺失值</strong>，pandas 就会把整列提升为 <code>float64</code>。
+（NumPy 的 <code>int64</code> 不支持 NaN，而 <code>float64</code> 支持。）</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 需要整数显示时</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"Int64"</span><span class="p">)</span>            <span class="c1"># 大写 I = 可空整型</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>                                 <span class="c1"># 63, 64, 71</span>
+
+<span class="c1"># 或者只在输出时报表格时格式化</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+</code></pre></div></div>
+<hr />
+<h2 id="113-cdisc-数据集的通用结构">11.3 CDISC 数据集的通用结构</h2>
+<p>CDISC 数据集有很强的<strong>结构性规律</strong>，理解这些规律后，
+你可以写出"通用工具函数"而不是为每个域写一套代码。</p>
+<h3 id="三张骨架表dm--adsl--adtte-的角色">三张"骨架表"：DM / ADSL / ADTTE 的角色</h3>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>粒度</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DM</strong>（SDTM）</td>
+<td>1 行 = 1 受试者</td>
+<td>人口学与关键日期（受试者层级的主表）</td>
+</tr>
+<tr>
+<td><strong>ADSL</strong>（ADaM）</td>
+<td>1 行 = 1 受试者</td>
+<td><strong>所有分析的数据基础</strong>：人群标记 + 治疗组 + 基线值</td>
+</tr>
+<tr>
+<td><strong>BDS 类</strong>（ADAE/ADVS/ADLBC/ADTTE）</td>
+<td>1 行 = 1 测量/事件</td>
+<td>各种分析结果</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>ADSL 是一切的起点</strong>。任何分析的正确姿势都是：
+<strong>先确定分析人群（从 ADSL 筛），再与 BDS 数据集连接。</strong></p>
+</blockquote>
+<h3 id="变量命名规律记住了就能猜出变量含义">变量命名规律（记住了就能"猜"出变量含义）</h3>
+<table>
+<thead>
+<tr>
+<th>前缀/后缀</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>USUBJID</code></td>
+<td>唯一受试者标识（跨研究唯一）</td>
+<td><code>01-701-1015</code></td>
+</tr>
+<tr>
+<td><code>SUBJID</code></td>
+<td>研究内受试者编号</td>
+<td><code>1015</code></td>
+</tr>
+<tr>
+<td><code>STUDYID</code></td>
+<td>研究标识</td>
+<td><code>CDISCPILOT01</code></td>
+</tr>
+<tr>
+<td><code>DOMAIN</code></td>
+<td>域缩写（2 字符）</td>
+<td><code>DM</code>、<code>AE</code>、<code>VS</code></td>
+</tr>
+<tr>
+<td><code>--SEQ</code></td>
+<td>域内序号</td>
+<td><code>AESEQ</code>、<code>VSSEQ</code></td>
+</tr>
+<tr>
+<td><code>--DTC</code></td>
+<td>日期/时间（<strong>字符型 ISO 8601</strong>）</td>
+<td><code>AESTDTC</code>、<code>VSDTC</code></td>
+</tr>
+<tr>
+<td><code>--DY</code></td>
+<td>相对研究参考起始日的天数</td>
+<td><code>AESTDY</code>、<code>VSDY</code></td>
+</tr>
+<tr>
+<td><code>--TESTCD</code></td>
+<td>检查项目编码</td>
+<td><code>VSTESTCD='SYSBP'</code></td>
+</tr>
+<tr>
+<td><code>--ORRES</code></td>
+<td>原始结果（字符）</td>
+<td><code>VSORRES</code></td>
+</tr>
+<tr>
+<td><code>--STRESC</code></td>
+<td>标准化结果（字符）</td>
+<td><code>VSSTRESC</code></td>
+</tr>
+<tr>
+<td><code>--STRESN</code></td>
+<td>标准化结果（数值）</td>
+<td><code>VSSTRESN</code></td>
+</tr>
+<tr>
+<td><code>--BLFL</code></td>
+<td>基线记录标记（<code>Y</code>/空）</td>
+<td><code>VSBLFL</code>、<code>ABLFL</code></td>
+</tr>
+<tr>
+<td><code>TRT01P</code></td>
+<td>计划治疗（Period 1）</td>
+<td><code>Placebo</code></td>
+</tr>
+<tr>
+<td><code>TRT01A</code></td>
+<td>实际治疗</td>
+<td><code>Xanomeline High Dose</code></td>
+</tr>
+<tr>
+<td><code>TRTP</code> / <code>TRTA</code></td>
+<td>ADaM 里的计划/实际治疗</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>SAFFL</code> / <code>ITTFL</code> / <code>EFFFL</code></td>
+<td>人群标记（<code>Y</code>/<code>N</code>）</td>
+<td><code>SAFFL='Y'</code></td>
+</tr>
+<tr>
+<td><code>AVAL</code></td>
+<td>分析值（数值）</td>
+<td></td>
+</tr>
+<tr>
+<td><code>PARAMCD</code> / <code>PARAM</code></td>
+<td>分析参数编码 / 名称</td>
+<td><code>SYSBP</code> / <code>Systolic Blood Pressure</code></td>
+</tr>
+<tr>
+<td><code>CNSR</code></td>
+<td>删失标记（生存分析，<strong>1=删失</strong>）</td>
+<td><code>ADTTE</code></td>
+</tr>
+<tr>
+<td><code>AGEGR1</code> / <code>AGEGR1N</code></td>
+<td>年龄分组（字符版 / 数值版）</td>
+<td><code>&lt;65</code> / <code>1</code></td>
+</tr>
+<tr>
+<td><code>TRTEMFL</code></td>
+<td>治疗中出现标记</td>
+<td><code>ADAE</code></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 利用命名规律写出"通用域迭代器"</span>
+<span class="n">BDS_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"subject"</span><span class="p">:</span>   <span class="s2">"USUBJID"</span><span class="p">,</span>
+    <span class="s2">"param"</span><span class="p">:</span>     <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"PARAM"</span><span class="p">)],</span>
+    <span class="s2">"result"</span><span class="p">:</span>    <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"AVAL"</span><span class="p">,</span> <span class="s2">"AVALC"</span><span class="p">)],</span>
+    <span class="s2">"baseline"</span><span class="p">:</span>  <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"BASE"</span><span class="p">,</span> <span class="s2">"ABLFL"</span><span class="p">)],</span>
+    <span class="s2">"change"</span><span class="p">:</span>    <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"CHG"</span><span class="p">,</span> <span class="s2">"PCHG"</span><span class="p">)],</span>
+    <span class="s2">"visit"</span><span class="p">:</span>     <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"VISIT"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">==</span> <span class="s2">"AVISIT"</span><span class="p">],</span>
+    <span class="s2">"flag"</span><span class="p">:</span>      <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"FL"</span><span class="p">)],</span>
+    <span class="s2">"timing"</span><span class="p">:</span>    <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">"DT"</span><span class="p">,</span> <span class="s2">"DTM"</span><span class="p">,</span> <span class="s2">"DY"</span><span class="p">))],</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<h3 id="usubjid-的解剖">USUBJID 的解剖</h3>
+<p><code>01-701-1015</code> 是一个典型的 USUBJID，由三段组成：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">USUBJID_STRUCT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"01"</span><span class="p">:</span>   <span class="s2">"研究编号后缀（CDISCPILOT01 → 01）"</span><span class="p">,</span>
+    <span class="s2">"701"</span><span class="p">:</span>  <span class="s2">"中心编号（SITEID）"</span><span class="p">,</span>
+    <span class="s2">"1015"</span><span class="p">:</span> <span class="s2">"受试者编号（SUBJID）"</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 拆解 USUBJID（用正则更安全，因为分隔符可能变化）</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?P&lt;study&gt;[^-]+)-(?P&lt;site&gt;[^-]+)-(?P&lt;subj&gt;.+)$"</span><span class="p">,</span> <span class="s2">"01-701-1015"</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span>   <span class="c1"># {'study': '01', 'site': '701', 'subj': '1015'}</span>
+
+<span class="c1"># 或直接 split（结构固定时更简单）</span>
+<span class="n">df</span><span class="p">[[</span><span class="s2">"STUDY"</span><span class="p">,</span> <span class="s2">"SITEID2"</span><span class="p">,</span> <span class="s2">"SUBJID2"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>不要假设 USUBJID 总是三段</strong>。不同公司的拼接规则不同
+（有的是 <code>STUDY-SITE-SUBJ</code>，有的是 <code>STUDY_SITE_SUBJ</code>，有的还有国家码）。
+<strong>生产代码里应该用正则 + 校验</strong>，而不是硬编码 <code>split("-")</code>。</p>
+</blockquote>
+<hr />
+<h2 id="114-通用数据读取工具可直接用">11.4 通用数据读取工具（可直接用）</h2>
+<p>把这一节的内容固化成你自己的 <code>clinic/io.py</code>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""clinic/io.py —— 临床数据读取工具。"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># CDISC 里常见的"伪缺失"标记</span>
+<span class="n">NA_TOKENS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">""</span><span class="p">,</span> <span class="s2">" "</span><span class="p">,</span> <span class="s2">"NA"</span><span class="p">,</span> <span class="s2">"N/A"</span><span class="p">,</span> <span class="s2">"NULL"</span><span class="p">,</span> <span class="s2">"null"</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"UNKNOWN"</span><span class="p">,</span> <span class="s2">"Unknown"</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_xpt</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">keep_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="n">as_datetime</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""读取 SAS XPORT (.xpt)，可选保留变量标签。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : 文件路径</span>
+<span class="sd">    keep_labels : 是否把变量标签存到 df.attrs['labels']</span>
+<span class="sd">    as_datetime : 是否自动把 --DTC / *DT 结尾的字符列转成 datetime</span>
+<span class="sd">                  （默认 False，避免误转部分日期）</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">keep_labels</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">column_names_to_labels</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"source"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">as_datetime</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">"DTC"</span><span class="p">,</span> <span class="s2">"DT"</span><span class="p">))</span> <span class="ow">and</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">"object"</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"读取 </span><span class="si">%-16s</span><span class="s2"> </span><span class="si">%7d</span><span class="s2"> 行 x </span><span class="si">%2d</span><span class="s2"> 列"</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_sas7bdat</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">catalog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keep_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""读取 SAS 数据集（.sas7bdat）。"""</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_sas7bdat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">catalog_file</span><span class="o">=</span><span class="n">catalog</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">keep_labels</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">column_names_to_labels</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"value_labels"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"variable_value_labels"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_any</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""按扩展名自动选择读取方式。"""</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">".xpt"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">read_xpt</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">".sas7bdat"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">read_sas7bdat</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">".csv"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">NA_TOKENS</span><span class="p">),</span> <span class="n">keep_default_na</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".xlsx"</span><span class="p">,</span> <span class="s2">".xls"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".parquet"</span><span class="p">,</span> <span class="s2">".pq"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"不支持的文件类型: </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_domains</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">domains</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""批量加载多个域；单个失败不影响其他（见第 04 章 的容错模式）。"""</span>
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">dom</span> <span class="ow">in</span> <span class="n">domains</span><span class="p">:</span>
+        <span class="c1"># 按优先级找文件：csv -&gt; xpt -&gt; sas7bdat</span>
+        <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">([</span><span class="s2">".csv"</span><span class="p">]</span> <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">"csv"</span> <span class="k">else</span>
+                       <span class="p">[</span><span class="s2">".xpt"</span><span class="p">]</span> <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">"xpt"</span> <span class="k">else</span>
+                       <span class="p">[</span><span class="s2">".csv"</span><span class="p">,</span> <span class="s2">".xpt"</span><span class="p">,</span> <span class="s2">".sas7bdat"</span><span class="p">]):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">data_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dom</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">dom</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_any</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"读取 </span><span class="si">%s</span><span class="s2"> 失败: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"未找到 </span><span class="si">%s</span><span class="s2"> 的数据文件（已尝试 csv/xpt/sas7bdat）"</span><span class="p">,</span> <span class="n">dom</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_labels</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""取变量标签；没有则返回 {变量: 变量} 的恒等映射。"""</span>
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"labels"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
+</code></pre></div></div>
+<h3 id="用法">用法</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">clinic.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_domains</span><span class="p">,</span> <span class="n">read_xpt</span><span class="p">,</span> <span class="n">get_labels</span>
+
+<span class="c1"># 一次性加载多个域</span>
+<span class="n">src</span> <span class="o">=</span> <span class="n">load_domains</span><span class="p">(</span><span class="s2">"data/raw"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">])</span>
+
+<span class="c1"># 或者从 CSV 样本（更快，无需下载）</span>
+<span class="n">src</span> <span class="o">=</span> <span class="n">load_domains</span><span class="p">(</span><span class="s2">"data/samples"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">],</span> <span class="n">ext</span><span class="o">=</span><span class="s2">"csv"</span><span class="p">)</span>
+
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="s2">"adsl"</span><span class="p">]</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="n">get_labels</span><span class="p">(</span><span class="n">adsl</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">])</span>    <span class="c1"># 'Age'  —— SAS 的 label 被保留了</span>
+</code></pre></div></div>
+<hr />
+<h2 id="115-本项目的实际数据规模建立数字敏感度">11.5 本项目的实际数据规模（建立数字敏感度）</h2>
+<p>以下是 CDISC 试点项目 CDISCPILOT01 的真实规模。
+<strong>记住这些数字</strong>，写代码时可以快速判断"读进来要多久 / 内存够不够"。</p>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th style="text-align: right;">行数</th>
+<th style="text-align: right;">列数</th>
+<th style="text-align: right;">XPT 大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DM</td>
+<td style="text-align: right;">306</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">111 KB</td>
+<td>全部受试者（含筛选失败）</td>
+</tr>
+<tr>
+<td>ADSL</td>
+<td style="text-align: right;"><strong>254</strong></td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">115 KB</td>
+<td><strong>随机化人群</strong>（比 DM 少 52 人）</td>
+</tr>
+<tr>
+<td>AE</td>
+<td style="text-align: right;">1,191</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">1.5 MB</td>
+<td>不良事件，涉及 <strong>225</strong> 个受试者</td>
+</tr>
+<tr>
+<td>ADAE</td>
+<td style="text-align: right;">1,191</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">714 KB</td>
+<td>AE 的 ADaM 版本</td>
+</tr>
+<tr>
+<td>ADTTE</td>
+<td style="text-align: right;">254</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">92 KB</td>
+<td>时间到事件</td>
+</tr>
+<tr>
+<td>EX</td>
+<td style="text-align: right;">591</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">87 KB</td>
+<td>暴露/给药记录</td>
+</tr>
+<tr>
+<td>DS</td>
+<td style="text-align: right;">596</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">147 KB</td>
+<td>处置</td>
+</tr>
+<tr>
+<td>CM</td>
+<td style="text-align: right;">7,510</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">3.8 MB</td>
+<td>合并用药</td>
+</tr>
+<tr>
+<td>MH</td>
+<td style="text-align: right;">1,818</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">1.6 MB</td>
+<td>病史</td>
+</tr>
+<tr>
+<td>SV</td>
+<td style="text-align: right;">3,559</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">287 KB</td>
+<td>访视</td>
+</tr>
+<tr>
+<td>VS</td>
+<td style="text-align: right;">29,643</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">24 MB</td>
+<td>生命体征</td>
+</tr>
+<tr>
+<td>LB</td>
+<td style="text-align: right;">~58,700</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">34 MB</td>
+<td>实验室检查</td>
+</tr>
+<tr>
+<td>QS</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">34 MB</td>
+<td>问卷（ADAS-Cog 等）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>DM(306) ≠ ADSL(254) 是本项目里最重要的一课</strong>：
+DM 包含所有被筛选/入组的受试者，而 ADSL 只包含<strong>随机化并接受治疗</strong>的。
+<strong>任何分析的基数都应以 ADSL 为准</strong>——直接拿 DM 的 306 去算分母，
+会得到错误的百分比。这是新手（以及不细心的老手）常犯的错。</p>
+</blockquote>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 快速验证这个差异</span>
+<span class="n">dm</span> <span class="o">=</span> <span class="n">read_xpt</span><span class="p">(</span><span class="s2">"data/raw/dm.xpt"</span><span class="p">)</span>
+<span class="n">adsl</span> <span class="o">=</span> <span class="n">read_xpt</span><span class="p">(</span><span class="s2">"data/raw/adsl.xpt"</span><span class="p">)</span>
+
+<span class="n">only_dm</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dm</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"DM </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dm</span><span class="p">)</span><span class="si">}</span><span class="s2"> 人，ADSL </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">adsl</span><span class="p">)</span><span class="si">}</span><span class="s2"> 人，只在 DM 中的 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">only_dm</span><span class="p">)</span><span class="si">}</span><span class="s2"> 人"</span><span class="p">)</span>
+<span class="c1"># DM 306 人，ADSL 254 人，只在 DM 中的 52 人</span>
+
+<span class="c1"># 看看这些人为什么不在 ADSL 里（通常是筛选失败）</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">dm</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">dm</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">only_dm</span><span class="p">),</span>
+             <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"ARMCD"</span><span class="p">,</span> <span class="s2">"ARM"</span><span class="p">,</span> <span class="s2">"RFSTDTC"</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</code></pre></div></div>
+<hr />
+<h2 id="116-内存与性能数据规模多大要小心">11.6 内存与性能：数据规模多大要小心</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 查看 DataFrame 的真实内存占用（含字符串）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span>      <span class="c1"># MB</span>
+
+<span class="c1"># 优化技巧 1：把低基数的字符串列转成 category（临床数据里效果极好）</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"DOMAIN"</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">,</span> <span class="s2">"AESEV"</span><span class="p">,</span> <span class="s2">"AESER"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"category"</span><span class="p">)</span>
+<span class="c1"># 通常能省 50-80% 内存</span>
+
+<span class="c1"># 优化技巧 2：数值降位（如果范围允许）</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"AESEQ"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"AESEQ"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int16"</span><span class="p">)</span>
+
+<span class="c1"># 优化技巧 3：大文件用分块读取（对应 SAS 的 data _null_ 扫描）</span>
+<span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"huge.csv"</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">100_000</span><span class="p">):</span>
+    <span class="n">process</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+<span class="c1"># 优化技巧 4：Parquet 代替 CSV（体积小 3-5 倍，读取快 5-10 倍）</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s2">"adsl.parquet"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="s2">"adsl.parquet"</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>💡 <strong>Parquet 的额外好处</strong>：它<strong>保留数据类型</strong>（datetime 不会退化成字符串）、
+支持列式读取（只读需要的列）。对于反复使用的中间数据集，
+<strong>建议在 CSV 之外同时缓存一份 Parquet</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="117-动手练习">11.7 动手练习</h2>
+<ol>
+<li>
+<p><strong>读取对比</strong>：分别用 <code>pd.read_sas()</code> 和 <code>pyreadstat.read_xport()</code>
+   读 <code>data/raw/adsl.xpt</code>，比较两者的列名、dtype，以及后者多出来的元数据。</p>
+</li>
+<li>
+<p><strong>日期类型</strong>：读 ADSL 后，统计有多少列是 <code>object</code>（字符串）类型，
+   其中哪些是日期（以 <code>DT</code> / <code>DTC</code> 结尾）？把它们转成 datetime。</p>
+</li>
+<li>
+<p><strong>USUBJID 拆解</strong>：用正则把 <code>USUBJID</code> 拆成 study / site / subject 三列，
+   并检查 ADSL 中 <code>SITEID</code> 列与拆出的 site 是否一致。</p>
+</li>
+<li>
+<p><strong>DM vs ADSL</strong>：找出"在 DM 但不在 ADSL"的受试者，
+   打印他们的 <code>ARM</code> / <code>ARMCD</code>，并推断原因。</p>
+</li>
+<li>
+<p><strong>内存优化</strong>：读 <code>data/samples/vs_bp.csv</code>，记录初始内存占用；
+   把 <code>VSTESTCD</code> / <code>VSTEST</code> / <code>VISIT</code> / <code>VSBLFL</code> 转成 <code>category</code>，
+   再记录一次，计算节省比例。</p>
+</li>
+</ol>
+<hr />
+<p><strong>上一章 ←</strong> <a href="10.html">第 10 章 · 日期、缺失值、格式与数据质量</a>
+<strong>下一章 →</strong> <a href="12.html">第 12 章 · SDTM 数据处理实战</a></p></article>
+<nav class="pager"><a class="pg-prev" href="10.html"><span class="pg-label">← 上一篇</span><span class="pg-title">日期、缺失值、格式与数据质量</span></a><a class="pg-next" href="12.html"><span class="pg-label">下一篇 →</span><span class="pg-title">SDTM 数据处理实战</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+</body>
+</html>
