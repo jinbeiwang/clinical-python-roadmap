@@ -78,6 +78,7 @@ clinical-python-roadmap/
 │   └── agent_tools.py        #   暴露给 LLM Agent 的工具集
 ├── cheatsheets/              # SAS → Python 速查表 ★ 高频查阅
 ├── resources/                # 精选资料索引（GitHub / CDISC / PHUSE / 论文）
+├── ci/                       # GitHub Actions 工作流模板（见 ci/README.md）
 ├── scripts/                  # 数据下载与样本生成
 ├── data/samples/             # 约 5MB 样本数据（已提交，离线可用）
 └── outputs/                  # 运行结果（每次运行重新生成）
