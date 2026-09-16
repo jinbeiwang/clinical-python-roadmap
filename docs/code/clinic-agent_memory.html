@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/agent_memory.py</title>
+<meta name="description" content="agent_memory.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/agent_memory.py">
+<meta property="og:description" content="agent_memory.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-agent_memory.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/ · Agent 与工程化</div><h1>clinic/agent_memory.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/agent_memory.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/agent_memory.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">agent_memory.py</strong> · 404 行 · 13 KB<br>记忆与上下文管理（第 21 章）。</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""记忆与上下文管理（第 21 章）。</span>
+
+<span class="sd">三个核心组件：</span>
+
+<span class="sd">* :class:`MemoryStrategy` —— 三种对话记忆策略（全量 / 滑窗 / 摘要）。</span>
+<span class="sd">* :class:`KeywordRetriever` —— 零依赖的关键词检索，用于 SAP / CRF / 规范文档。</span>
+<span class="sd">* :func:`render_tool_result` —— 工具结果进上下文前的长度控制。</span>
+
+<span class="sd">一个贯穿全篇的原则：**数字必须能溯源，检索不到就说没找到**。</span>
+<span class="sd">这两条在临床场景里都不是"最佳实践"，而是底线。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.agent_core</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMClient</span><span class="p">,</span> <span class="n">Message</span><span class="p">,</span> <span class="n">rough_tokens</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"render_tool_result"</span><span class="p">,</span> <span class="s2">"cap_rows"</span><span class="p">,</span> <span class="s2">"rough_tokens"</span><span class="p">,</span>
+    <span class="s2">"Chunk"</span><span class="p">,</span> <span class="s2">"KeywordRetriever"</span><span class="p">,</span> <span class="s2">"load_corpus"</span><span class="p">,</span>
+    <span class="s2">"MemoryStrategy"</span><span class="p">,</span> <span class="s2">"FullMemory"</span><span class="p">,</span> <span class="s2">"WindowMemory"</span><span class="p">,</span> <span class="s2">"SummaryMemory"</span><span class="p">,</span>
+    <span class="s2">"ContextBudget"</span><span class="p">,</span> <span class="s2">"fact_table_text"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 1. 工具结果的长度控制</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cap_rows</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+             <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""统一的结果截断：截断 + 摘要 + **明确告知被截断**。</span>
+
+<span class="sd">    第三点最关键 —— 不写明"已截断"，模型会把前 50 行当成全部数据，</span>
+<span class="sd">    得出"只有 50 个受试者"这种**数据层面的幻觉**（比语言幻觉更危险，</span>
+<span class="sd">    因为它看起来有工具结果支撑）。</span>
+<span class="sd">    """</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">total</span> <span class="o">&lt;=</span> <span class="n">limit</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"行"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="s2">"总数"</span><span class="p">:</span> <span class="n">total</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"行"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows</span><span class="p">[:</span><span class="n">limit</span><span class="p">]),</span>
+        <span class="s2">"总数"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+        <span class="s2">"已截断"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"说明"</span><span class="p">:</span> <span class="n">hint</span> <span class="ow">or</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"仅返回前 </span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s2"> 行，共 </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> 行；"</span>
+                        <span class="sa">f</span><span class="s2">"如需完整结果，请缩小条件范围或改用汇总类工具。"</span><span class="p">),</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">render_tool_result</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把工具结果渲染进上下文；超长则保留骨架 + 前若干行。</span>
+
+<span class="sd">    这是省 token 最有效的一招：8 轮的核查任务能稳定控制在 8K token 上下，</span>
+<span class="sd">    而不是随轮次无限膨胀。</span>
+<span class="sd">    """</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_chars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"行"</span><span class="p">),</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"行"</span><span class="p">]</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_chars</span> <span class="o">//</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="n">trimmed</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">trimmed</span><span class="p">[</span><span class="s2">"行"</span><span class="p">]</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">trimmed</span><span class="p">[</span><span class="s2">"说明"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"（为控制上下文长度，此处仅展示前 </span><span class="si">{</span><span class="n">keep</span><span class="si">}</span><span class="s2"> 行，"</span>
+                          <span class="sa">f</span><span class="s2">"总数 </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'总数'</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">trimmed</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">text</span><span class="p">[:</span><span class="n">max_chars</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"…（已截断，原长 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s2"> 字符）"</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 2. 检索</span>
+<span class="c1"># ===========================================================================</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Chunk</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""一个可检索片段。**元数据必须够定位** —— 否则引用无法核查。"""</span>
+    <span class="n">doc</span><span class="p">:</span> <span class="nb">str</span>                        <span class="c1"># 文件名</span>
+    <span class="n">section</span><span class="p">:</span> <span class="nb">str</span>                    <span class="c1"># 章节号，如 "6.3.2"</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">page</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># PDF 页码（若有）</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">citation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">section</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">section</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="s2">""</span><span class="p">):</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">section</span><span class="si">}</span><span class="s2"> 节"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">page</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">page</span><span class="si">}</span><span class="s2"> 页"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="si">}</span><span class="s2"> · </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tokenize</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""中英混合分词：英文按词，中文按 2-gram。</span>
+
+<span class="sd">    对"缺失值""受试者""安全性人群"这类两字以上术语足够有效，</span>
+<span class="sd">    且**完全可解释** —— 你能说清为什么召回了这一段。</span>
+<span class="sd">    """</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-z_][a-z0-9_]{2,}"</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+    <span class="n">cjk</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[\u4e00-\u9fff]"</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="n">words</span> <span class="o">|=</span> <span class="p">{</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cjk</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cjk</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="n">words</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">KeywordRetriever</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""基于关键词打分的检索器。零依赖，对结构化文档效果好。</span>
+
+<span class="sd">    什么时候该换成向量检索：**文档超过约 200 个 chunk**。</span>
+<span class="sd">    在那之前，关键词检索的**可解释性**反而是临床场景更看重的性质。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Chunk</span><span class="p">],</span> <span class="n">min_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_score</span> <span class="o">=</span> <span class="n">min_score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="p">[</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">title</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">text</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Chunk</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">_tokenize</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">scored</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Chunk</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">chunk</span><span class="p">,</span> <span class="n">toks</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">):</span>
+            <span class="n">hit</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;</span> <span class="n">toks</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">hit</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">hit</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">_tokenize</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">title</span><span class="p">):</span>
+                <span class="n">score</span> <span class="o">+=</span> <span class="mf">0.3</span>                        <span class="c1"># 标题命中更相关</span>
+            <span class="k">if</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">_tokenize</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">section</span><span class="p">):</span>
+                <span class="n">score</span> <span class="o">+=</span> <span class="mf">0.2</span>
+            <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+        <span class="n">scored</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">scored</span><span class="p">[:</span><span class="n">top_k</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">answer_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""检索并渲染成给模型看的上下文。**低于阈值就明说没找到**。"""</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="p">)</span>
+        <span class="n">good</span> <span class="o">=</span> <span class="p">[(</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">hits</span> <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_score</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">good</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s2">"在提供的文档中没有找到与该问题相关的规定。</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="s2">"请确认文档范围，或提供相关章节 —— 不要凭推测作答。"</span><span class="p">)</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"【依据 </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">】</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">citation</span><span class="p">()</span><span class="si">}</span><span class="s2"> · </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">"</span>
+                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">_s</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">good</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+
+<span class="c1"># ------------------------------------------------------------------ 语料构建</span>
+<span class="n">_SECTION_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(#{1,3})\s+(.*)$"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_corpus</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span> <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1500</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Chunk</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""把一组 Markdown 文件切成 chunk（按标题切）。</span>
+
+<span class="sd">    做 RAG 的第一步往往不是"上向量库"，而是**把文档切对**。</span>
+<span class="sd">    结构化文档按标题切，召回质量立刻就不一样。</span>
+
+<span class="sd">    ⚠️ 两个真实陷阱（本项目实测踩过）：</span>
+
+<span class="sd">    1. **代码块里的 ``#`` 不是标题**。教程文档里常有大段示例代码，</span>
+<span class="sd">       里面的 ``# 注释`` 或 ``---- 3. 步骤 ----`` 会被朴素的行解析误判成标题，</span>
+<span class="sd">       切出一堆标题形如 ``---------- 2. 受试者一致性 -----`` 的碎片。</span>
+<span class="sd">       本函数用围栏标记（``` ``` ``）跟踪，围栏内不识别标题。</span>
+<span class="sd">    2. **没编号的标题拿不到章节号**，``section`` 会是 ``-``。</span>
+<span class="sd">       引用时不要拼成"第 - 节"（见 :meth:`Chunk.citation`）。</span>
+<span class="sd">    """</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Chunk</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">continue</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">)</span>
+        <span class="n">cur_sec</span><span class="p">,</span> <span class="n">cur_title</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span> <span class="p">[]</span>
+        <span class="n">in_fence</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">body</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Chunk</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="n">cur_sec</span> <span class="ow">or</span> <span class="s2">"-"</span><span class="p">,</span>
+                                 <span class="n">title</span><span class="o">=</span><span class="n">cur_title</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">body</span><span class="p">[:</span><span class="n">max_chars</span><span class="p">]))</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"```"</span><span class="p">):</span>
+                <span class="n">in_fence</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">in_fence</span>
+                <span class="n">buf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">in_fence</span> <span class="k">else</span> <span class="n">_SECTION_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">flush</span><span class="p">()</span>
+                <span class="n">buf</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">heading</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">num</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^([\d.]+)"</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+                <span class="n">cur_sec</span> <span class="o">=</span> <span class="n">num</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span> <span class="k">if</span> <span class="n">num</span> <span class="k">else</span> <span class="s2">"-"</span>
+                <span class="n">cur_title</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\*+"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">buf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">flush</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 3. 三种记忆策略</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryStrategy</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""构造送给模型的上下文。子类实现 ``build()``。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">content</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"轮数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctx</span><span class="p">),</span> <span class="s2">"字符数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="s2">"估算token"</span><span class="p">:</span> <span class="n">rough_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FullMemory</span><span class="p">(</span><span class="n">MemoryStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""全量保留。短任务与调试用。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">WindowMemory</span><span class="p">(</span><span class="n">MemoryStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""滑窗：保留最前 N 条 + 最近 K 条，中间以一行提示代替。</span>
+
+<span class="sd">    ⚠️ 生产中要注意一个坑：``tool`` 消息必须紧跟在对应的 ``assistant``</span>
+<span class="sd">    tool_call 消息之后。窗口边界正好切在这两者之间时，API 会报 400。</span>
+<span class="sd">    这里用 ``align`` 参数做向后对齐。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keep_recent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">keep_head</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                 <span class="n">align</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span> <span class="o">=</span> <span class="n">keep_recent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_head</span> <span class="o">=</span> <span class="n">keep_head</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">align</span> <span class="o">=</span> <span class="n">align</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="n">msgs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_head</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msgs</span>
+        <span class="n">cut</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">align</span><span class="p">:</span>                      <span class="c1"># 别把 tool 消息和它的请求切开</span>
+            <span class="k">while</span> <span class="n">cut</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="ow">and</span> <span class="n">msgs</span><span class="p">[</span><span class="n">cut</span><span class="p">]</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"tool"</span><span class="p">:</span>
+                <span class="n">cut</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">head</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">msgs</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_head</span><span class="p">],</span> <span class="n">msgs</span><span class="p">[</span><span class="n">cut</span><span class="p">:]</span>
+        <span class="n">omitted</span> <span class="o">=</span> <span class="n">cut</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_head</span>
+        <span class="k">if</span> <span class="n">omitted</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">head</span> <span class="o">=</span> <span class="n">head</span> <span class="o">+</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">"（此处省略了 </span><span class="si">{</span><span class="n">omitted</span><span class="si">}</span><span class="s2"> 条中间消息）"</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">head</span> <span class="o">+</span> <span class="n">tail</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SummaryMemory</span><span class="p">(</span><span class="n">MemoryStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""摘要压缩：把旧对话压成结构化摘要，**保留数字与结论**。</span>
+
+<span class="sd">    这是临床场景推荐的策略 —— 纯滑窗会丢掉早期的关键发现，</span>
+<span class="sd">    纯摘要有信息损失风险，两者结合最稳。</span>
+
+<span class="sd">    ``summarize_fn`` 可注入：默认走规则化摘要（离线可用），</span>
+<span class="sd">    也可以换成 LLM 摘要（更自然但有失真风险）。</span>
+<span class="sd">    """</span>
+
+    <span class="n">PROMPT</span> <span class="o">=</span> <span class="s2">"""把下面的对话压缩成结构化摘要。</span>
+<span class="s2">必须保留：① 已确认的事实与数字（含出处）② 已排除的可能性 ③ 未解决的问题</span>
+<span class="s2">不要保留：寒暄、重复的推理过程、失败尝试的细节</span>
+
+<span class="s2">输出格式：</span>
+<span class="s2">## 已确认</span>
+<span class="s2">- ...</span>
+<span class="s2">## 已排除</span>
+<span class="s2">- ...</span>
+<span class="s2">## 待解决</span>
+<span class="s2">- ..."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keep_recent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+                 <span class="n">summarize_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">max_summary_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span> <span class="o">=</span> <span class="n">keep_recent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summarize_fn</span> <span class="o">=</span> <span class="n">summarize_fn</span> <span class="ow">or</span> <span class="n">rule_based_summary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_summary_chars</span> <span class="o">=</span> <span class="n">max_summary_chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compressed_upto</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="n">msgs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msgs</span>
+        <span class="n">cut</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">cut</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="ow">and</span> <span class="n">msgs</span><span class="p">[</span><span class="n">cut</span><span class="p">]</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"tool"</span><span class="p">:</span>
+            <span class="n">cut</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="n">msgs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressed_upto</span><span class="p">:</span><span class="n">cut</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">old</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_summary</span><span class="p">,</span> <span class="n">old</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compressed_upto</span> <span class="o">=</span> <span class="n">cut</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">msgs</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>                     <span class="c1"># system</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">"## 早前对话摘要</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">msgs</span><span class="p">[</span><span class="n">cut</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prev</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">role</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">content</span><span class="p">[:</span><span class="mi">600</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">new</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summarize_fn</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">prev</span>
+                  <span class="k">else</span> <span class="n">prev</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">summarize_fn</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">merged</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_summary_chars</span><span class="p">]</span>
+
+
+<span class="n">_NUM_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\d+(?:\.\d+)?"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rule_based_summary</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_lines</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""不依赖 LLM 的规则化摘要。</span>
+
+<span class="sd">    两条规则：</span>
+<span class="sd">    1. **所有数字都保留**（数字在临床场景里就是结论本身）</span>
+<span class="sd">    2. 保留包含关键动词的行（发现、排除、确认、失败、错误）</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="n">keep</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">important</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_NUM_RE</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="ow">or</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+            <span class="sa">r</span><span class="s2">"发现|排除|确认|失败|错误|无法|缺失|不一致"</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\W+"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="n">s</span><span class="p">)[:</span><span class="mi">40</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">important</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">keep</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="mi">200</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_lines</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span><span class="p">[:</span><span class="mi">400</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">"## 已确认（规则化摘要，保留数字）</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">)</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 4. 上下文预算</span>
+<span class="c1"># ===========================================================================</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ContextBudget</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""上下文预算分配（第 21.2 节）。</span>
+
+<span class="sd">    留一份"给输出的空间"是必要的 —— 把窗口填满，</span>
+<span class="sd">    模型就没地方写答案了。</span>
+<span class="sd">    """</span>
+    <span class="n">total</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32_000</span>
+    <span class="n">system</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2_000</span>
+    <span class="n">tools</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4_000</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1_000</span>
+    <span class="n">facts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3_000</span>
+    <span class="n">recent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6_000</span>
+    <span class="n">tool_results</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8_000</span>
+    <span class="n">retrieved</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4_000</span>
+    <span class="n">reserve_output</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4_000</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">alloc</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">facts</span>
+                 <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">recent</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_results</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieved</span>
+                 <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserve_output</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alloc</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">total</span><span class="p">:</span>
+            <span class="n">over</span> <span class="o">=</span> <span class="n">alloc</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">total</span>
+            <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"预算超出 </span><span class="si">{</span><span class="n">over</span><span class="si">}</span><span class="s2"> token（分配 </span><span class="si">{</span><span class="n">alloc</span><span class="si">}</span><span class="s2"> / 总额 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total</span><span class="si">}</span><span class="s2">）"</span><span class="p">,</span>
+                    <span class="s2">"建议：减少工具数量、缩短事实表、或改用摘要记忆"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"System Prompt"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="p">),</span> <span class="p">(</span><span class="s2">"工具清单"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">"任务计划"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">),</span> <span class="p">(</span><span class="s2">"事实表"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">facts</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">"最近对话"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">),</span> <span class="p">(</span><span class="s2">"工具结果"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_results</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">"检索依据"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieved</span><span class="p">),</span> <span class="p">(</span><span class="s2">"留给输出"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserve_output</span><span class="p">)]</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"上下文预算（总额 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total</span><span class="si">}</span><span class="s2">）"</span><span class="p">,</span> <span class="s2">""</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="n">bar</span> <span class="o">=</span> <span class="s2">"█"</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">*</span> <span class="mi">40</span><span class="p">))</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">&gt;6d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">bar</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">problems</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"  ⚠️ "</span> <span class="o">+</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">problems</span> <span class="k">else</span> <span class="s2">"  ✓ 预算分配合理"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fact_table_text</span><span class="p">(</span><span class="n">facts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把事实渲染成固定格式的表（模型"读"它，而不是"回忆"）。"""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">facts</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">facts</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">"（暂无已确认的事实）"</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"| 事实 | 值 |"</span><span class="p">,</span> <span class="s2">"|---|---|"</span><span class="p">]</span>
+        <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> |"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"（暂无可渲染的事实）"</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-agent_planner.html"><span class="pg-label">← 上一篇</span><span class="pg-title">agent_planner.py</span></a><a class="pg-next" href="clinic-agent_role.html"><span class="pg-label">下一篇 →</span><span class="pg-title">agent_role.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

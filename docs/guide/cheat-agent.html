@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 开发速查表（临床数据场景）</title>
+<meta name="description" content="Agent 开发速查表 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agent 开发速查表（临床数据场景）">
+<meta property="og:description" content="Agent 开发速查表 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/cheat-agent.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>Agent 开发速查表（临床数据场景）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cheatsheets/Agent%E5%BC%80%E5%8F%91%E9%80%9F%E6%9F%A5%E8%A1%A8.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>面向<strong>要写 Agent、又要让它能上线</strong>的人。不是"如何调用 LLM"的教程 ——
+只收录那些<strong>踩过就知道疼</strong>的判断规则、检查清单和反模式。</p>
+<p>验证环境：Python 3.13 / 纯标准库可跑（第 18–24 章全部案例离线运行）。
+配套代码：<code>clinic/agent_*.py</code>、<code>clinic/config.py</code>、<code>cases/case07</code>–<code>case12</code>、<code>cases/case_http_demo.py</code>。</p>
+</blockquote>
+<p><strong>目录</strong></p>
+<ul>
+<li><a href="#0-一句话原则">0. 一句话原则</a></li>
+<li><a href="#1-分层架构与职责边界">1. 分层架构与职责边界</a></li>
+<li><a href="#2-工具契约">2. 工具契约</a></li>
+<li><a href="#3-错误分类与重试决策表">3. 错误分类与重试决策表</a></li>
+<li><a href="#4-预算三闸与优雅收尾">4. 预算三闸与优雅收尾</a></li>
+<li><a href="#5-状态断点恢复与幂等">5. 状态、断点恢复与幂等</a></li>
+<li><a href="#6-任务规划与调度">6. 任务规划与调度</a></li>
+<li><a href="#7-记忆与检索">7. 记忆与检索</a></li>
+<li><a href="#8-多-agent拓扑选型与独立性">8. 多 Agent：拓扑选型与独立性</a></li>
+<li><a href="#9-外部服务集成">9. 外部服务集成</a></li>
+<li><a href="#10-部署与可观测性">10. 部署与可观测性</a></li>
+<li><a href="#11-评估集">11. 评估集</a></li>
+<li><a href="#12-反模式-top-15">12. 反模式 Top 15</a></li>
+<li><a href="#13-上线检查清单">13. 上线检查清单</a></li>
+</ul>
+<hr />
+<h2 id="0-一句话原则">0. 一句话原则</h2>
+<p><strong>脚本错了会报错；Agent 错了会安静地给你一个像模像样的答案。</strong></p>
+<p>所以 Agent 工程的目标不是"更聪明"，而是：</p>
+<ol>
+<li><strong>边界写在代码里</strong>（不是提示词里）</li>
+<li><strong>每个数字都能追到出处</strong>（工具返回值，不是模型的记忆）</li>
+<li><strong>没查到就说没查到</strong>（绝不猜一个顶上）</li>
+<li><strong>可复现、可审计、可回滚</strong></li>
+</ol>
+<hr />
+<h2 id="1-分层架构与职责边界">1. 分层架构与职责边界</h2>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>放什么</th>
+<th>不该放什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>编排层</strong> <code>Agent.run()</code></td>
+<td>问模型 → 执行工具 → 记录状态 → 循环</td>
+<td>任何业务判断</td>
+</tr>
+<tr>
+<td><strong>工具层</strong> <code>ToolRegistry</code></td>
+<td>契约校验、白名单、副作用确认、超时、错误分类</td>
+<td>业务计算</td>
+</tr>
+<tr>
+<td><strong>领域层</strong> <code>clinic/qc.py</code> 等</td>
+<td>纯函数计算，<strong>不用装任何 API Key 就能单测</strong></td>
+<td>与 LLM / 网络有关的任何东西</td>
+</tr>
+<tr>
+<td><strong>基础设施层</strong> <code>Observer</code> / <code>Metrics</code> / 配置</td>
+<td>日志、指标、审计、配置</td>
+<td>业务知识</td>
+</tr>
+</tbody>
+</table>
+<p>判断标准一句话：<strong>"把 LLM 整个删掉，领域层还能不能跑单元测试？"</strong> 不能，就是分层错了。</p>
+<hr />
+<h2 id="2-工具契约">2. 工具契约</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span>
+          <span class="s2">"查看数据集结构：变量名、类型、缺失率。对应 SAS 的 PROC CONTENTS。"</span><span class="p">,</span>
+          <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+           <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+               <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">),</span>
+                           <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"数据集名称，如 adsl / adae"</span><span class="p">}},</span>
+           <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span>
+           <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>     <span class="c1"># ★ 必须显式关掉"多传字段"</span>
+</code></pre></div></div>
+<p><strong>契约自检清单</strong>（可写进 CI，<code>ToolRegistry.validate()</code> 已实现前两条）</p>
+<ul>
+<li>[ ] 描述 ≥ 10 字，说清"什么时候该用它"</li>
+<li>[ ] <code>type</code> 是 <code>object</code></li>
+<li>[ ] <code>additionalProperties: false</code> —— <strong>不写它，模型传的错字段会被静默忽略</strong></li>
+<li>[ ] 每个参数都有 <code>description</code></li>
+<li>[ ] 取值封闭的用 <code>enum</code>，<strong>别让模型自由发挥</strong></li>
+<li>[ ] 参数名统一（本项目约定数据集一律叫 <code>dataset</code>）</li>
+<li>[ ] <code>side_effect</code> 标对：<code>read</code> / <code>write</code> / <code>irreversible</code></li>
+</ul>
+<p><strong>路径白名单用映射，不要用拼接</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">path</span> <span class="o">=</span> <span class="n">DATA_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv"</span>        <span class="c1"># ❌ 传 ../../etc/passwd 就出去了</span>
+<span class="n">path</span> <span class="o">=</span> <span class="n">DATASETS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>                   <span class="c1"># ✅ 名字→路径的映射，名字不在表里直接拒</span>
+</code></pre></div></div>
+<blockquote>
+<p>两层防御才够：接口层校验挡"无意写错"，工具层挡"绕过接口直接调用"。
+少任何一层，都有一类调用会漏过去。</p>
+</blockquote>
+<p><strong>结构化错误：让模型自己改对</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">ToolResult</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s2">"数据集 'adls' 不在允许列表中"</span><span class="p">,</span> <span class="s2">"permission"</span><span class="p">,</span>
+                <span class="n">hint</span><span class="o">=</span><span class="s2">"可用数据集见 list_datasets"</span><span class="p">,</span>
+                <span class="n">options</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">))</span>
+</code></pre></div></div>
+<p>错误信息里带上<strong>可选值</strong>，模型下一步就能自己修正 —— 这比任何提示词都管用。</p>
+<hr />
+<h2 id="3-错误分类与重试决策表">3. 错误分类与重试决策表</h2>
+<table>
+<thead>
+<tr>
+<th>情形</th>
+<th>分类</th>
+<th>重试？</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连接重置 / 读超时 / 502 / 503</td>
+<td><code>transient</code></td>
+<td>✅ 指数退避 + <strong>抖动</strong></td>
+<td>再试一次可能就好了</td>
+</tr>
+<tr>
+<td>429 限流</td>
+<td><code>transient</code></td>
+<td>✅ <strong>听 <code>Retry-After</code></strong></td>
+<td>服务端说的优先级高于你的公式</td>
+</tr>
+<tr>
+<td>400 参数错</td>
+<td><code>validation</code></td>
+<td>❌</td>
+<td>再试一万次也一样</td>
+</tr>
+<tr>
+<td>401 / 403 权限</td>
+<td><code>auth</code></td>
+<td>❌ <strong>立即终止 + 告警</strong></td>
+<td>硬试会<strong>锁账号</strong>，全组停摆</td>
+</tr>
+<tr>
+<td>404 不存在</td>
+<td><code>not_found</code></td>
+<td>❌</td>
+<td></td>
+</tr>
+<tr>
+<td>返回体不符合契约</td>
+<td><code>contract</code></td>
+<td>❌</td>
+<td>别"猜"着兼容，宁可失败</td>
+</tr>
+<tr>
+<td>HTTP 200 但返回 HTML</td>
+<td><code>contract</code></td>
+<td>❌</td>
+<td><strong>200 不代表数据是对的</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>必须能自动断言</strong> —— <code>sleep</code> 与随机数都要可注入，否则重试逻辑等于没写：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">client</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">sleep</span><span class="o">=</span><span class="n">waits</span><span class="o">.</span><span class="n">append</span><span class="p">,</span> <span class="n">rand</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">waits</span> <span class="o">==</span> <span class="p">[</span><span class="mf">1.15</span><span class="p">,</span> <span class="mf">1.725</span><span class="p">]</span>        <span class="c1"># 比例 = backoff_base</span>
+</code></pre></div></div>
+<hr />
+<h2 id="4-预算三闸与优雅收尾">4. 预算三闸与优雅收尾</h2>
+<table>
+<thead>
+<tr>
+<th>闸门</th>
+<th>参数</th>
+<th>防什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>步数</td>
+<td><code>Budget.max_steps</code></td>
+<td>模型原地打转</td>
+</tr>
+<tr>
+<td>token</td>
+<td><code>Budget.max_tokens</code></td>
+<td>上下文爆炸 / 费用失控</td>
+</tr>
+<tr>
+<td>时间</td>
+<td><code>Budget.deadline_sec</code></td>
+<td>单请求挂死</td>
+</tr>
+</tbody>
+</table>
+<p><strong>超限的正确动作是"优雅收尾"，不是抛异常</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">if</span> <span class="p">(</span><span class="n">why</span> <span class="o">:=</span> <span class="n">state</span><span class="o">.</span><span class="n">budget</span><span class="o">.</span><span class="n">exceeded</span><span class="p">()):</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"done"</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budgeted_answer</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">why</span><span class="p">)</span>   <span class="c1"># 给已确认的部分结论 + 说明为什么停</span>
+    <span class="k">break</span>
+</code></pre></div></div>
+<blockquote>
+<p>抛异常 = 前面烧掉的钱和已确认的事实全部作废；
+优雅收尾 = 至少交付"我查到了什么、为什么没查完"。</p>
+</blockquote>
+<hr />
+<h2 id="5-状态断点恢复与幂等">5. 状态、断点恢复与幂等</h2>
+<p><code>AgentState</code> 要<strong>纯数据 + 可 JSON 序列化</strong>，断点恢复才能做：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">state</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>                  <span class="c1"># 跑到一半（比如在等人确认）</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">AgentState</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>     <span class="c1"># 第二天接着跑</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>      <span class="c1"># ★ 保留已用步数/token，不重复已完成步骤</span>
+</code></pre></div></div>
+<p><strong>恢复的前提是"跳过已完成的"</strong> —— 否则重放等于全量重跑，副作用会重复发生。</p>
+<p><strong>副作用等级驱动设计</strong></p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>例子</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read</code></td>
+<td>读数据、跑检查</td>
+<td>随便重跑（幂等）</td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td>写报告、写中间产物</td>
+<td>幂等键 + 可覆盖</td>
+</tr>
+<tr>
+<td><code>irreversible</code></td>
+<td>发邮件、递交、删数据</td>
+<td><strong>必须人工确认</strong>，且要留审批记录</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-任务规划与调度">6. 任务规划与调度</h2>
+<p><strong>状态机</strong>（<code>clinic/agent_planner.py</code>）</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>waiting ──依赖就绪──► running ──► done
+                        │
+                        ├─► failed ──(rerun_failed)──► running
+                        └─► waiting   ← 人工确认点（不是 skipped！）
+</code></pre></div></div>
+<ul>
+<li><code>settled</code> = <code>done</code> / <code>failed</code>；<code>waiting</code> <strong>不是</strong>终态，否则续跑时会被当成"已完成"跳过</li>
+<li>依赖失败 → 下游 <code>skipped</code>；<strong><code>optional</code> 依赖失败不阻塞下游</strong>（语义别写反）</li>
+<li>循环依赖 / 缺失依赖 / id 重复 → <strong>在计划校验阶段就拦</strong>，别等执行到一半</li>
+<li>部分失败要<strong>显式汇报</strong>："11 个任务成功 9 个，2 个失败" —— 不要静默交付不完整的表</li>
+</ul>
+<p><strong>并行前先确认</strong>：任务之间没有数据依赖；同一份文件不要被两个任务同时写。</p>
+<hr />
+<h2 id="7-记忆与检索">7. 记忆与检索</h2>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>什么时候用</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全量</td>
+<td>短对话 / 关键约束</td>
+<td>上下文爆炸</td>
+</tr>
+<tr>
+<td>窗口</td>
+<td>长对话的近期细节</td>
+<td>会丢早期约束</td>
+</tr>
+<tr>
+<td>摘要</td>
+<td>长对话的整体脉络</td>
+<td>细节不可追溯</td>
+</tr>
+</tbody>
+</table>
+<p><strong>红线（不可违反）</strong></p>
+<ul>
+<li>检索<strong>零命中就说零命中</strong>，绝不用"常识"补一个答案</li>
+<li>结论里的每个数字都要带 <code>source</code>（哪个工具、哪一步）</li>
+<li>阈值必须用<strong>带标注的探针集</strong>标定，不能拍脑袋</li>
+</ul>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 标定的样子：8 个应命中 + 7 个应落空，扫一遍阈值</span>
+<span class="k">for</span> <span class="n">thr</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mf">0.65</span><span class="p">):</span>
+    <span class="n">recall</span><span class="p">,</span> <span class="n">fp</span> <span class="o">=</span> <span class="n">probe</span><span class="p">(</span><span class="n">thr</span><span class="p">)</span>
+<span class="c1"># 选 0.40：召回 8/8、误命中 0/7。</span>
+<span class="c1"># 但要如实记下薄弱边缘（0.43 那条只差 0.03）→ 需要更大的回归集</span>
+</code></pre></div></div>
+<blockquote>
+<p>"我觉得 0.3 差不多"这句话，在半年后没人能复核。</p>
+</blockquote>
+<hr />
+<h2 id="8-多-agent拓扑选型与独立性">8. 多 Agent：拓扑选型与独立性</h2>
+<p><strong>先问要不要用</strong>（三条同时成立才用，缺一条就用单 Agent + 单元测试）</p>
+<ol>
+<li>存在<strong>可验证的多种正确路径</strong>（衍生口径、检验方法）</li>
+<li>单次错误的<strong>代价很高</strong>（递交物、关键 TFL）</li>
+<li>能<strong>机械比对</strong>结果（数字、表格、数据集）</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>拓扑</th>
+<th>适用</th>
+<th>关键约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>双编程</strong>（对等）</td>
+<td>同一件事两种实现，靠比对验证</td>
+<td>零交流、上下文隔离、第三方比对</td>
+</tr>
+<tr>
+<td><strong>监督者</strong></td>
+<td>任务可拆分且互不重叠</td>
+<td>角色是<strong>契约</strong>（<code>RoleCard</code>）不是人设；payload 结构化</td>
+</tr>
+<tr>
+<td><strong>流水线</strong></td>
+<td>任务有严格先后，每步改变数据结构</td>
+<td><strong>每环都要有输入契约检查</strong>，越早拦越省排查成本</td>
+</tr>
+</tbody>
+</table>
+<p><strong>独立性守卫 —— 本章最重要的一段</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">guard</span><span class="o">.</span><span class="n">record_read</span><span class="p">(</span><span class="s2">"impl_b"</span><span class="p">,</span> <span class="s2">"outputs/pair/agegr1_impl_a.json"</span><span class="p">)</span>   <span class="c1"># ★ 违规</span>
+</code></pre></div></div>
+<p>守卫必须<strong>同时</strong>记录"谁读了什么"和"谁产出了什么"：
+只记读取是查不出违规的 —— 抄的人读的是对方<strong>产出</strong>的文件，
+而那个文件对方从来没"读过"。</p>
+<p><strong>差异四级（按影响面定级，不是按"看着严不严重"）</strong></p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>判据</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>critical</code></td>
+<td>影响 ≥ 5% 受试者</td>
+<td><strong>必须人工审查后才能使用</strong></td>
+</tr>
+<tr>
+<td><code>major</code></td>
+<td>1%~5%</td>
+<td>建议人工审查</td>
+</tr>
+<tr>
+<td><code>minor</code></td>
+<td>&lt; 1%</td>
+<td>可接受，记录即可</td>
+</tr>
+<tr>
+<td><code>explainable</code></td>
+<td>两种口径都成立</td>
+<td><strong>不改，写进 ADRG</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>"零差异"只有在<strong>独立性成立</strong>时才是个好结果。
+独立性不成立时，零差异只说明"同一份错误被复制了一遍"。
+审计覆盖率 0 的"通过"同样等于没查。</p>
+</blockquote>
+<hr />
+<h2 id="9-外部服务集成">9. 外部服务集成</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>正确做法</th>
+<th>错误后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>超时</td>
+<td>connect / read <strong>两段</strong>都要显式设</td>
+<td>任务永久挂起，只能重启进程</td>
+</tr>
+<tr>
+<td>退避</td>
+<td>指数 + <strong>抖动</strong></td>
+<td>恢复瞬间被重试风暴再打垮</td>
+</tr>
+<tr>
+<td><code>Retry-After</code></td>
+<td>优先级<strong>高于</strong>自己的公式</td>
+<td>被对方当攻击者</td>
+</tr>
+<tr>
+<td>幂等键</td>
+<td><code>sha256(scope + 规范化 payload)</code></td>
+<td>POST 重试 → 重复创建脏数据</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>客户端主动令牌桶</td>
+<td>上黑名单</td>
+</tr>
+<tr>
+<td>凭证</td>
+<td>环境变量 / 密钥服务；<strong>不写进日志、不写进上下文</strong></td>
+<td>泄漏且不知泄漏了多久</td>
+</tr>
+<tr>
+<td>返回值</td>
+<td>边界处显式校验，错误带<strong>实际键名</strong></td>
+<td>凌晨两点 KeyError 炸在报表脚本里</td>
+</tr>
+<tr>
+<td>水位线</td>
+<td><strong>落盘成功之后</strong>才推进</td>
+<td><strong>静默丢数据，永远补不回来</strong></td>
+</tr>
+<tr>
+<td>降级</td>
+<td>用缓存时必须<strong>把"这是缓存 + 多久前"写进结果</strong></td>
+<td>3 天前的 CT 版本被当成最新版核实过</td>
+</tr>
+</tbody>
+</table>
+<p><strong>发数据给模型之前</strong></p>
+<ul>
+<li>[ ] 直接标识符剔除（<strong>列名 + 取值形态双层判据</strong> —— <code>VAR1</code> 里可能装着人名）</li>
+<li>[ ] 只发必需字段（合规 + 成本，一举两得）</li>
+<li>[ ] 每次调用落审计（存 sha256 摘要，不存全文；但注意 <code>preview</code> 也可能含标识符）</li>
+<li>[ ] 结论可人工复核 —— <strong>最终对递交物负责的仍然是人</strong></li>
+</ul>
+<hr />
+<h2 id="10-部署与可观测性">10. 部署与可观测性</h2>
+<p><strong>启动 fail fast</strong>（错配置起不来，比带病运行好）</p>
+<table>
+<thead>
+<tr>
+<th>检查</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>prod 不允许 mock LLM</td>
+<td>结果看似正常但数字是编的，<strong>不会被发现</strong></td>
+</tr>
+<tr>
+<td>生产必须有 API Key</td>
+<td>否则第一个用户请求时才报错</td>
+</tr>
+<tr>
+<td><code>max_steps</code> 有硬上限</td>
+<td>往往是"工具契约有问题"的征兆，放大预算只是盖住症状</td>
+</tr>
+<tr>
+<td><code>data_dir</code> 存在</td>
+<td>又是一个"启动时能发现、却拖到运行时"的问题</td>
+</tr>
+</tbody>
+</table>
+<p><strong>日志必须有的字段</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">JSON</span></div><div class="hl"><pre><code><span class="p">{</span><span class="nt">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"rid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"a3f2b1c9d8e7"</span><span class="p">,</span><span class="w"> </span><span class="nt">"step_index"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w"> </span><span class="nt">"tool_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"run_qc_checks"</span><span class="p">,</span><span class="w"> </span><span class="nt">"tool_args"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="nt">"tokens"</span><span class="p">:</span><span class="w"> </span><span class="mi">2025</span><span class="p">}</span>
+</code></pre></div></div>
+<blockquote>
+<p>没有 <code>request_id</code> 的可观测性等于没有可观测性 ——
+并发日志是交错的，光有时间戳拼不出一次请求的全貌。</p>
+</blockquote>
+<p><strong>最该盯的指标</strong></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>高了说明什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>工具错误率</strong></td>
+<td><strong>工具契约有问题</strong>（描述不清 / 参数设计不好 / 错误信息无用）—— 不是模型不行</td>
+</tr>
+<tr>
+<td>平均步数</td>
+<td>模型在打转，或工具返回的信息不够</td>
+</tr>
+<tr>
+<td>token / 请求</td>
+<td>上下文管理有问题</td>
+</tr>
+<tr>
+<td>等待人工确认</td>
+<td>流程在等人，可能瓶颈在这</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>一个<strong>永远 0% 的错误率</strong>，通常说明没人在打边界，而不是系统没问题。</p>
+</blockquote>
+<p><strong>缓存</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">data_version</span><span class="si">}</span><span class="s2">|</span><span class="si">{</span><span class="n">tool</span><span class="si">}</span><span class="s2">|</span><span class="si">{</span><span class="n">canon</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>   <span class="c1"># ★ data_version 必须参与</span>
+</code></pre></div></div>
+<ul>
+<li>只读工具才能缓存（给写工具加缓存 = <strong>调用方以为写了，其实什么也没发生</strong>）</li>
+<li>更稳的做法是<strong>换版本号</strong>而不是手工 <code>invalidate()</code> —— 前者没法忘</li>
+<li>命中/未命中是累计计数，条目数是当前占用，<strong>别混在一起看</strong></li>
+</ul>
+<p><strong>长任务异步化</strong>：内存字典存任务状态<strong>上线必崩</strong>（多进程查不到、重启全丢）→ Redis / 数据库。</p>
+<hr />
+<h2 id="11-评估集">11. 评估集</h2>
+<p><strong>没有评估集，改完只能是"感觉好像好一点"。</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">EvalCase</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"基础体检"</span><span class="p">,</span> <span class="n">goal</span><span class="o">=</span><span class="s2">"检查 adsl 数据集有什么数据质量问题"</span><span class="p">,</span>
+         <span class="n">expect_tools</span><span class="o">=</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="s2">"run_qc_checks"</span><span class="p">),</span>
+         <span class="n">expect_facts</span><span class="o">=</span><span class="p">{</span><span class="s2">"adsl.n_rows"</span><span class="p">:</span> <span class="mi">254</span><span class="p">},</span>      <span class="c1"># ★ 精确值：验证数字来自真实数据</span>
+         <span class="n">max_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">EvalCase</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"不存在的数据集不得编造数字"</span><span class="p">,</span> <span class="n">goal</span><span class="o">=</span><span class="s2">"检查 adls 数据集的缺失情况"</span><span class="p">,</span>
+         <span class="n">forbid_bare_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>               <span class="c1"># ★ 结论里一个数字都不许有</span>
+</code></pre></div></div>
+<p><strong>否定式断言比正向断言值钱</strong></p>
+<table>
+<thead>
+<tr>
+<th>断言</th>
+<th>证明了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expect_tools=("run_qc_checks",)</code></td>
+<td>流程走对了</td>
+</tr>
+<tr>
+<td><code>forbid_tools=("save_report",)</code></td>
+<td><strong>边界守住了</strong>（安全目标下没写盘）</td>
+</tr>
+<tr>
+<td><code>forbid_bare_numbers=True</code></td>
+<td><strong>没有编造</strong>（数据集不存在时给不出数字）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>不用 LLM 当裁判</strong>：位置偏见、长度偏见、不可复现、无法审计。
+（但评估<strong>报告文字质量</strong>时它确实有用 —— 只能用主观判断的地方才用，且人工抽检 10%。）</p>
+<p><strong>Mock 模式下的评估是确定性 + 零成本的 → 所以可以每次提交都跑。</strong></p>
+<blockquote>
+<p>评估集也会<strong>过拟合</strong>。判断标准：<strong>每条断言都对应一个真实发生过的错误。</strong>
+对不上的断言，删掉比留着好。</p>
+</blockquote>
+<hr />
+<h2 id="12-反模式-top-15">12. 反模式 Top 15</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>反模式</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>静默替换</strong>：认不出目标就换一个"顺手"的</td>
+<td>结论正常但对象是错的，<strong>最难发现</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>安全边界写在提示词里</td>
+<td>模型"说服"一下就绕过了</td>
+</tr>
+<tr>
+<td>3</td>
+<td>工具返回原始文本，让模型自己解析</td>
+<td>数字来源不可追溯</td>
+</tr>
+<tr>
+<td>4</td>
+<td>预算超限抛异常</td>
+<td>已烧的钱与已确认的事实全废</td>
+</tr>
+<tr>
+<td>5</td>
+<td>内存字典存任务状态</td>
+<td>多进程 / 重启即丢</td>
+</tr>
+<tr>
+<td>6</td>
+<td>缓存键不含数据版本</td>
+<td><strong>静默返回旧数据</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>给写工具加缓存</td>
+<td>调用方以为写了，其实没有</td>
+</tr>
+<tr>
+<td>8</td>
+<td>日志没有 <code>request_id</code></td>
+<td>并发下无法排查</td>
+</tr>
+<tr>
+<td>9</td>
+<td>401 自动重试</td>
+<td><strong>账号被锁，全组停摆</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>重试不加抖动</td>
+<td>重试风暴，把对方再打垮一次</td>
+</tr>
+<tr>
+<td>11</td>
+<td>先推水位线再落盘</td>
+<td><strong>静默丢数，永远补不回来</strong></td>
+</tr>
+<tr>
+<td>12</td>
+<td>数据库 200 就当成功</td>
+<td>HTML 错误页被当 JSON 解析</td>
+</tr>
+<tr>
+<td>13</td>
+<td>复用同一个 Agent 实例处理多请求</td>
+<td>上一个用户的目标泄漏进下一个上下文</td>
+</tr>
+<tr>
+<td>14</td>
+<td>检索没命中就"补充常识"</td>
+<td>编造，而且看起来完全正常</td>
+</tr>
+<tr>
+<td>15</td>
+<td>没有评估集</td>
+<td>改了不知道好坏，只能靠感觉</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-上线检查清单">13. 上线检查清单</h2>
+<p><strong>功能</strong>
+- [ ] 生产配置自检通过（<code>validate_for_prod()</code>）
+- [ ] 评估集全部通过
+- [ ] 越权用例（路径穿越、白名单外数据集）确认被拦截
+- [ ] 断点恢复在真实故障后验证过</p>
+<p><strong>安全</strong>
+- [ ] 密钥来自环境变量，不在镜像里
+- [ ] 日志脱敏生效（<strong>人工抽查 10 行日志</strong>）
+- [ ] 外发数据无直接标识符
+- [ ] 非 root 用户运行</p>
+<p><strong>可观测</strong>
+- [ ] <code>request_id</code> 贯穿日志
+- [ ] 每次 LLM 调用与工具调用都落审计
+- [ ] 关键指标可查询（成功率、步数、token、工具错误率）
+- [ ] 成本分账到人 / 项目</p>
+<p><strong>运维</strong>
+- [ ] 健康检查可用（<strong>并且暴露配置状态，不只是"活着"</strong>）
+- [ ] 有回滚方案（镜像 tag + 版本号）
+- [ ] 预算告警已配置
+- [ ] 依赖版本已锁定</p>
+<p><strong>合规</strong>
+- [ ] 审计日志保留期限符合要求
+- [ ] 人工复核环节明确（谁负责最终签字）
+- [ ] 数据处理协议（DPA）已覆盖外部服务</p>
+<hr />
+<p><strong>相关文档</strong></p>
+<ul>
+<li><a href="18.html">第 18 章 · Agent 架构设计</a> —— 分层与预算闸门</li>
+<li><a href="19.html">第 19 章 · 任务规划与调度</a> —— DAG、并行与部分失败</li>
+<li><a href="20.html">第 20 章 · 工具调用进阶</a> —— 契约、校验与边界</li>
+<li><a href="21.html">第 21 章 · 记忆与上下文管理</a> —— 检索、引用与红线</li>
+<li><a href="22.html">第 22 章 · 多 Agent 协作</a> —— 独立性与差异分级</li>
+<li><a href="23.html">第 23 章 · 与外部 API 及服务集成</a> —— 超时、重试、水位线</li>
+<li><a href="24.html">第 24 章 · 部署与监控</a> —— 接口、指标、缓存、评估集</li>
+<li><a href="https://github.com/jinbeiwang/clinical-python-roadmap/tree/master/cases"><code>cases/</code></a> —— 13 个可运行案例，每条规则都有可复现的代码</li>
+</ul></article>
+<nav class="pager"><a class="pg-prev" href="cheatsheet.html"><span class="pg-label">← 上一篇</span><span class="pg-title">SAS → Python 速查表</span></a><a class="pg-next" href="resources.html"><span class="pg-label">下一篇 →</span><span class="pg-title">资料索引 · 总览</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

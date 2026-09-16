@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/config.py</title>
+<meta name="description" content="config.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/config.py">
+<meta property="og:description" content="config.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-config.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/ · Agent 与工程化</div><h1>clinic/config.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/config.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/config.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">config.py</strong> · 334 行 · 11 KB<br>配置与密钥管理（第 24.3 节） ================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">配置与密钥管理（第 24.3 节）</span>
+<span class="sd">================================</span>
+
+<span class="sd">**本模块只做一件事：把所有"环境相关"的东西挡在业务代码之外。**</span>
+
+<span class="sd">三个必须记住的原则：</span>
+
+<span class="sd">1. **环境变量优先**（12-Factor 的第 3 条）。</span>
+<span class="sd">   代码里不留任何"测试库 / 生产库"的分支 —— 差异全部走配置。</span>
+<span class="sd">   一旦代码里出现 ``if env == "prod": url = "..."``，你就同时失去了</span>
+<span class="sd">   "本地能复现生产"和"改配置不用改代码"两个好处。</span>
+
+<span class="sd">2. **密钥不进代码、不进日志、不进对话上下文。**</span>
+<span class="sd">   ``Settings`` 提供了 :meth:`Settings.redacted`，就是为了让</span>
+<span class="sd">   "把配置打出来看看" 这个动作**不可能**泄漏密钥。</span>
+<span class="sd">   第 23 章讲外部 API 时提过的"三不进"，这里是它的落地实现。</span>
+
+<span class="sd">3. **启动时自检（fail fast）。**</span>
+<span class="sd">   :meth:`Settings.validate_for_prod` 在进程启动阶段就把错配置拦下来。</span>
+<span class="sd">   一个"能跑但配置是错的"服务，比一个"起不来"的服务危险得多：</span>
+<span class="sd">   前者会安静地产生不可信的结果，后者至少你立刻知道。</span>
+
+<span class="sd">依赖说明</span>
+<span class="sd">--------</span>
+<span class="sd">本实现**只用标准库**，接口刻意与 ``pydantic-settings`` 的 ``BaseSettings``</span>
+<span class="sd">对齐 —— 真实项目里换成::</span>
+
+<span class="sd">    from pydantic_settings import BaseSettings</span>
+<span class="sd">    class Settings(BaseSettings): ...</span>
+
+<span class="sd">即可，业务代码一行不用改。用标准库版本的理由有两个：</span>
+<span class="sd">一是本仓库坚持"离线可跑、零依赖兜底"；二是**让你看清校验到底做了什么** ——</span>
+<span class="sd">框架帮你做的事情，你应该至少亲手写一遍。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"Settings"</span><span class="p">,</span> <span class="s2">"ConfigError"</span><span class="p">,</span> <span class="s2">"SENSITIVE_FIELDS"</span><span class="p">,</span> <span class="s2">"is_sensitive"</span><span class="p">,</span>
+    <span class="s2">"load_settings"</span><span class="p">,</span> <span class="s2">"data_version_of"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># 字段名里出现这些**词**（按 ``_`` 分词后精确比对）就打码。</span>
+<span class="c1">#</span>
+<span class="c1"># ★ 为什么不是"子串匹配"：``max_tokens`` 含子串 ``token``，</span>
+<span class="c1">#   但它是配额不是密钥 —— 子串匹配会把它一起打码，</span>
+<span class="c1">#   于是日志里再也看不到真实的 token 预算。</span>
+<span class="c1">#   脱敏规则**误伤**的代价是被日志骗，比漏记还阴险，所以这里必须精确。</span>
+<span class="n">SENSITIVE_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"api_key"</span><span class="p">,</span> <span class="s2">"apikey"</span><span class="p">,</span> <span class="s2">"token"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span>
+                    <span class="s2">"passwd"</span><span class="p">,</span> <span class="s2">"credential"</span><span class="p">,</span> <span class="s2">"authorization"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">is_sensitive</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""字段名是否属于"密钥类"。按分词精确比对，避免误伤。</span>
+
+<span class="sd">    ``llm_api_key`` → True（末两段拼成 ``api_key``）</span>
+<span class="sd">    ``max_tokens``  → False（词是 ``tokens``，不是 ``token``）</span>
+<span class="sd">    ``client_secret`` → True</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)</span>
+    <span class="n">cands</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">cands</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"_"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]))</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cands</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">SENSITIVE_FIELDS</span><span class="p">))</span>
+
+<span class="c1"># 允许的取值（写出来是为了让错配置在自检阶段就暴露，而不是运行一天后才发现）</span>
+<span class="n">VALID_ENVS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dev"</span><span class="p">,</span> <span class="s2">"staging"</span><span class="p">,</span> <span class="s2">"prod"</span><span class="p">)</span>
+<span class="n">VALID_PROVIDERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"mock"</span><span class="p">,</span> <span class="s2">"openai"</span><span class="p">,</span> <span class="s2">"azure"</span><span class="p">,</span> <span class="s2">"internal"</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""配置有问题 —— 启动阶段就该抛出来，不要带病运行。"""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_truthy</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"true"</span><span class="p">,</span> <span class="s2">"yes"</span><span class="p">,</span> <span class="s2">"on"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">)</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Settings</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""全部运行配置。本地读 ``.env``，生产读环境变量。</span>
+
+<span class="sd">    字段命名与文档第 24.3 节一致；环境变量前缀 ``CPR_``</span>
+<span class="sd">    （例如 ``CPR_LLM_PROVIDER``、``CPR_MAX_STEPS``）。</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># ---- 环境标识 ----</span>
+    <span class="n">env</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"dev"</span>
+
+    <span class="c1"># ---- LLM ----</span>
+    <span class="n">llm_provider</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mock"</span>            <span class="c1"># mock / openai / azure / internal</span>
+    <span class="n">llm_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">llm_base_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">llm_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o-mini"</span>
+
+    <span class="c1"># ---- 数据 ----</span>
+    <span class="n">data_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"data/samples"</span><span class="p">)</span>
+    <span class="c1"># 默认放开本仓库 data/samples 里实际存在的域。</span>
+    <span class="c1"># 生产环境应该显式给出**这个项目允许访问的全部数据集**，</span>
+    <span class="c1"># 而不是"默认全都放开、出问题了再关" —— 白名单的意义在于默认拒绝。</span>
+    <span class="n">allowed_datasets</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"adlbc_shift"</span><span class="p">,</span> <span class="s2">"adtte"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">,</span> <span class="s2">"vs_bp"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 限额（三道预算闸的第一道：单次请求）----</span>
+    <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="n">max_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120_000</span>
+    <span class="n">request_timeout_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">300.0</span>
+
+    <span class="c1"># ---- 审计 ----</span>
+    <span class="n">audit_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"outputs/audit"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 上限（超出即视为配置错误，而不是"用户想多跑几步"）----</span>
+    <span class="n">HARD_MAX_STEPS</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span>
+    <span class="n">HARD_MAX_TIMEOUT_SEC</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3600.0</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 构造</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_env</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"CPR_"</span><span class="p">,</span>
+                 <span class="n">env_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">".env"</span><span class="p">,</span>
+                 <span class="n">environ</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Settings"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""从环境变量构造。**环境变量优先于 .env 文件。**</span>
+
+<span class="sd">        优先级（高 → 低）：显式传入的 environ &gt; 进程环境变量 &gt; .env &gt; 默认值。</span>
+<span class="sd">        这条顺序很重要：容器里注入的环境变量必须能覆盖镜像里带的 .env，</span>
+<span class="sd">        否则"同一镜像多环境"就跑不起来。</span>
+<span class="sd">        """</span>
+        <span class="n">src</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">env_file</span><span class="p">:</span>
+            <span class="n">src</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_read_dotenv</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">env_file</span><span class="p">)))</span>
+        <span class="n">src</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">environ</span><span class="p">:</span>
+            <span class="n">src</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">environ</span><span class="p">)</span>
+
+        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"HARD_"</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_coerce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 自检：宁可起不来，也不要带着错配置跑</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""**所有环境**都要通过的检查（含 dev）。"""</span>
+        <span class="n">problems</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_ENVS</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"env=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="si">!r}</span><span class="s2"> 不在 </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">VALID_ENVS</span><span class="p">)</span><span class="si">}</span><span class="s2"> 中"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_provider</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_PROVIDERS</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"llm_provider=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_provider</span><span class="si">!r}</span><span class="s2"> 不在 </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">VALID_PROVIDERS</span><span class="p">)</span><span class="si">}</span><span class="s2"> 中"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max_steps=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="si">}</span><span class="s2"> 必须 ≥ 1"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_datasets</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"allowed_datasets 为空 —— 一个数据集都不放开，服务没有意义"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_timeout_sec</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"request_timeout_sec=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">request_timeout_sec</span><span class="si">}</span><span class="s2"> 必须 &gt; 0"</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raise</span><span class="p">(</span><span class="n">problems</span><span class="p">,</span> <span class="s2">"基础配置校验失败"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_for_prod</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""**生产环境**启动前的自检 —— 这是本模块最重要的一段代码。</span>
+
+<span class="sd">        每一条都会真实地拦过事故，逐条解释：</span>
+
+<span class="sd">        * ``mock`` LLM：结果看起来正常，但数字是编的。在临床场景里</span>
+<span class="sd">          这比崩溃危险得多 —— 它不会被发现。</span>
+<span class="sd">        * 缺 API Key：会在第一个用户请求时才报错，而不是启动时。</span>
+<span class="sd">        * ``max_steps`` 过大：单次请求可能烧掉不可思议的 token，</span>
+<span class="sd">          而且往往是"工具契约有问题、模型在反复试错"的征兆，</span>
+<span class="sd">          放大预算只是把症状盖住。</span>
+<span class="sd">        * ``data_dir`` 不存在：服务能起来，但每个请求都失败 ——</span>
+<span class="sd">          又是一个"启动时能发现、却拖到运行时"的问题。</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">!=</span> <span class="s2">"prod"</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">problems</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_provider</span> <span class="o">==</span> <span class="s2">"mock"</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">"生产环境不允许使用 mock LLM（结果看似正常但数字是编的）"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_provider</span> <span class="o">!=</span> <span class="s2">"mock"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_api_key</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"缺少 CPR_LLM_API_KEY"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">HARD_MAX_STEPS</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"max_steps=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="si">}</span><span class="s2"> 超过硬上限 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">HARD_MAX_STEPS</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_timeout_sec</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">HARD_MAX_TIMEOUT_SEC</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"request_timeout_sec=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">request_timeout_sec</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"超过硬上限 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">HARD_MAX_TIMEOUT_SEC</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"data_dir=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="si">}</span><span class="s2"> 不存在"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audit_dir</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"audit_dir 为空 —— 受监管环境必须有审计落盘路径"</span><span class="p">)</span>
+
+        <span class="c1"># 顺序也很重要：基础校验先跑，否则错误信息会互相掩盖</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raise</span><span class="p">(</span><span class="n">problems</span><span class="p">,</span> <span class="s2">"生产配置校验失败（fail fast：宁可起不来）"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``validate()`` + ``validate_for_prod()``，启动时调用这一个就够。"""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_for_prod</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_raise</span><span class="p">(</span><span class="n">problems</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="n">title</span> <span class="o">+</span> <span class="s2">"：</span><span class="se">\n</span><span class="s2">  - "</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  - "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">items</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 安全输出</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">redact</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""导出为字典，供日志/健康检查使用。</span>
+
+<span class="sd">        ``redact=True``（默认）会把密钥类字段替换成 ``"***已设置***"`` /</span>
+<span class="sd">        ``"未设置"`` —— **只暴露"有没有"，不暴露"是什么"**。</span>
+<span class="sd">        这样"把配置打出来看看"就不会成为一次泄漏事故。</span>
+<span class="sd">        """</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"HARD_"</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">redact</span> <span class="ow">and</span> <span class="n">is_sensitive</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"***已设置***"</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="s2">"未设置"</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">Path</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Path</span><span class="p">)</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""一行行的可读摘要（已脱敏），适合启动日志。"""</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_prod</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">==</span> <span class="s2">"prod"</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 辅助</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_dotenv</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""极简 ``.env`` 解析：``KEY=VALUE``，支持 ``#`` 注释与引号。</span>
+
+<span class="sd">    不追求覆盖所有语法 —— 完整的实现交给 ``python-dotenv``。</span>
+<span class="sd">    这里之所以自己写，是为了让"配置从哪来"这件事完全透明：</span>
+<span class="sd">    当你排查"为什么这个值不对"时，能一条路径走到底。</span>
+<span class="sd">    """</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"export "</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"export "</span><span class="p">):]</span>
+        <span class="k">if</span> <span class="s2">"="</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"="</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="c1"># 去掉成对引号（含"值里有空格必须加引号"这种常见写法）</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"'"</span><span class="p">,</span> <span class="s1">'"'</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce</span><span class="p">(</span><span class="n">tp</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把环境变量字符串转成字段类型。</span>
+
+<span class="sd">    ``from __future__ import annotations`` 让 ``field.type`` 变成字符串，</span>
+<span class="sd">    所以这里按**字符串名**判断，而不是按类型对象。</span>
+<span class="sd">    """</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">tp</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">"__name__"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s2">"tuple"</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"int"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"float"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"bool"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_truthy</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"Path"</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">raw</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">data_version_of</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""算出一批数据文件的"版本"指纹（第 24.6 节缓存用）。</span>
+
+<span class="sd">    ★ **为什么必须算这个**：缓存键如果只有"工具名 + 参数"，</span>
+<span class="sd">    数据更新后会返回**旧结果** —— 而且不会有任何报错。</span>
+<span class="sd">    这是"静默返回错数据"这类事故里最常见的一种。</span>
+
+<span class="sd">    用 ``mtime + size`` 而不是文件内容哈希：后者在几百 MB 的</span>
+<span class="sd">    XPT 上每次请求都要全量读一遍，代价远大于收益。</span>
+<span class="sd">    跨环境共享缓存时才需要内容哈希 —— 那时换成 sha256 并单独存储。</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">st</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:missing"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"|"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_settings</span><span class="p">(</span><span class="n">environ</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">env_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">".env"</span><span class="p">,</span>
+                  <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"CPR_"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Settings</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""一步到位：读配置 → 校验 → 返回。**启动代码只应该调这个函数。**"""</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Settings</span><span class="o">.</span><span class="n">from_env</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">env_file</span><span class="o">=</span><span class="n">env_file</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">validate_all</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">s</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-agent_http.html"><span class="pg-label">← 上一篇</span><span class="pg-title">agent_http.py</span></a><a class="pg-next" href="clinic-agent_eval.html"><span class="pg-label">下一篇 →</span><span class="pg-title">agent_eval.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

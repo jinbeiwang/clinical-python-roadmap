@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 23 章 · 与外部 API 及服务集成</title>
+<meta name="description" content="与外部 API 及服务集成 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 23 章 · 与外部 API 及服务集成">
+<meta property="og:description" content="与外部 API 及服务集成 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/23.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第六阶段 · Agent 工程化</div><h1>第 23 章 · 与外部 API 及服务集成</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/23-%E5%A4%96%E9%83%A8API%E4%B8%8E%E6%9C%8D%E5%8A%A1%E9%9B%86%E6%88%90.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：让 Agent 安全地和 EDC、统计平台、外部 API 打交道 ——
+包括超时重试、密钥管理、以及临床场景<strong>必须守住的合规底线</strong>。
+<strong>配套模块</strong>：<a href="../code/clinic-agent_http.html"><code>clinic/agent_http.py</code></a></p>
+</blockquote>
+<hr />
+<h2 id="231-为什么这一章对临床程序员格外重要">23.1 为什么这一章对临床程序员格外重要</h2>
+<p>前面 22 章的数据都在你本地硬盘上。真实工作里不是这样：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>                    ┌──────────────────┐
+                    │   EDC 系统        │  ← 临床数据源
+                    │  (Medidata/RAVE)  │
+                    └────────┬─────────┘
+                             │ ① 导出/接口
+                             ▼
+┌───────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  CTMS 系统     │───▶│   统计编程环境     │───▶│  统计平台/TLF 交付 │
+│ (试验管理)     │    │  SAS / Python     │    │                  │
+└───────────────┘    └────────┬─────────┘    └──────────────────┘
+                              │ ② 取术语/规则/外部数据
+                              ▼
+                    ┌──────────────────┐
+                    │  CDISC CT 服务    │
+                    │  外部 LLM API     │
+                    │  实验室正常值范围  │
+                    └──────────────────┘
+</code></pre></div></div>
+<p>只要开始走"网络"，就同时引入了<strong>四类新的失败模式</strong>和<strong>一条合规红线</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>新问题</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网络不可靠</td>
+<td>请求超时、连接重置</td>
+</tr>
+<tr>
+<td>对方服务不稳定</td>
+<td>5xx、限流（429）</td>
+</tr>
+<tr>
+<td>鉴权会过期</td>
+<td>token 失效导致批量任务中途全挂</td>
+</tr>
+<tr>
+<td><strong>数据会离开你的环境</strong></td>
+<td><strong>★ 合规风险</strong></td>
+</tr>
+</tbody>
+</table>
+<p>最后一条是临床场景独有的、也是最需要慎重对待的。</p>
+<hr />
+<h2 id="232-http-基础那个必须写的参数">23.2 HTTP 基础：那个必须写的参数</h2>
+<p>先看一个真实事故：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 这一行可能永久挂住</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"https://api.example.com/data"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><code>requests</code> 的<strong>默认超时是"永不超时"</strong>。对方服务半死不活时，
+这个请求会一直挂着 —— 你的 Agent 任务卡在那里，看起来像"正在工作"。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 超时必须显式指定，而且分两段</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
+
+<span class="n">resp</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">"https://api.example.com/data"</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="o">=</span><span class="n">httpx</span><span class="o">.</span><span class="n">Timeout</span><span class="p">(</span><span class="n">connect</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="mf">30.0</span><span class="p">),</span>   <span class="c1"># 连接 5s，读取 30s</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<p>两段超时的区别很重要：</p>
+<table>
+<thead>
+<tr>
+<th>超时类型</th>
+<th>含义</th>
+<th>建议值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>connect</code></td>
+<td>建立 TCP 连接</td>
+<td>3–5 秒（连不上说明网络或服务有问题）</td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>等待响应数据</td>
+<td>10–60 秒（取决于对方处理时间）</td>
+</tr>
+</tbody>
+</table>
+<p><code>httpx</code> 比 <code>requests</code> 多两个好处：<strong>支持 HTTP/2</strong>、<strong>同一套 API 支持异步</strong>。
+本仓库的封装用 <code>httpx</code>（在 <code>requirements.txt</code> 里），但如果你只用 <code>requests</code>，
+所有概念都一样。</p>
+<h3 id="一个够用的封装">一个够用的封装</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_http.py（节选）</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HttpClient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""带重试、退避、限流与审计的 HTTP 客户端。</span>
+
+<span class="sd">    设计原则：调用方只需要关心"要什么数据"，</span>
+<span class="sd">    超时/重试/限流的细节全部封装在这里。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">connect_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">read_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>
+                 <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">backoff_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                 <span class="n">rate_limit_per_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span>
+                 <span class="n">audit_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="o">...</span>
+</code></pre></div></div>
+<hr />
+<h2 id="233-鉴权密钥永远不进代码">23.3 鉴权：密钥永远不进代码</h2>
+<h3 id="三种常见方式">三种常见方式</h3>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>头部写法</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API Key</td>
+<td><code>X-API-Key: &lt;key&gt;</code> 或 <code>Authorization: Bearer &lt;key&gt;</code></td>
+<td>内部服务、简单场景</td>
+</tr>
+<tr>
+<td>OAuth2 Client Credentials</td>
+<td><code>Authorization: Bearer &lt;access_token&gt;</code></td>
+<td>企业系统（EDC/CTMS 常见）</td>
+</tr>
+<tr>
+<td>签名（HMAC）</td>
+<td><code>X-Signature: &lt;hmac&gt;</code></td>
+<td>高安全要求</td>
+</tr>
+</tbody>
+</table>
+<h3 id="密钥管理三条铁律">密钥管理：三条铁律</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 铁律 1：绝不硬编码</span>
+<span class="n">API_KEY</span> <span class="o">=</span> <span class="s2">"sk-abc123..."</span>                     <span class="c1"># 提交到 git 就完了</span>
+
+<span class="c1"># ❌ 铁律 2：绝不写进日志</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"调用 API，token=</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>       <span class="c1"># 日志会被收集、会被看到</span>
+
+<span class="c1"># ❌ 铁律 3：绝不放进 Agent 的上下文</span>
+<span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"system"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"你的 token 是 </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
+<span class="c1">#    ↑ 灾难：token 会进入模型 API 请求，也进入 state 序列化文件</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 正确做法</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_token</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""从环境变量读取。本地用 .env（已 gitignore），生产用密钥管理服务。"""</span>
+    <span class="n">tok</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CDISC_API_TOKEN"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tok</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">"未设置环境变量 CDISC_API_TOKEN。</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="s2">"本地开发：在 .env 里写 CDISC_API_TOKEN=xxx（.env 已在 .gitignore）</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="s2">"生产环境：使用密钥管理服务注入环境变量"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">tok</span>
+</code></pre></div></div>
+<p><code>clinic/agent_http.py</code> 里做了一个<strong>自动脱敏</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">SENSITIVE_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"token"</span><span class="p">,</span> <span class="s2">"key"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"authorization"</span><span class="p">,</span> <span class="s2">"cookie"</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mask</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""打码。保留前几位是为了**认出这是哪把钥匙**，不是为了好看。"""</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"***"</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">scheme</span><span class="p">,</span> <span class="n">sep</span><span class="p">,</span> <span class="n">cred</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">" "</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sep</span> <span class="ow">and</span> <span class="n">cred</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">scheme</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">12</span><span class="p">:</span>          <span class="c1"># ★ 形如 "Bearer &lt;credential&gt;"</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cred</span><span class="p">[:</span><span class="n">prefix_keep</span><span class="p">]</span><span class="si">}</span><span class="s2">***"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="p">[:</span><span class="n">prefix_keep</span><span class="p">]</span><span class="si">}</span><span class="s2">***"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">prefix_keep</span> <span class="k">else</span> <span class="s2">"***"</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ 那个 <code>Bearer</code> 分支不是多余的：如果只是简单地"保留前 4 个字符"，
+<code>Authorization: Bearer sk-xxx</code> 会被打成 <strong><code>Bear***</code></strong> ——
+等于什么都没保留。多环境多密钥时，你还是分不清用的是哪一把。</p>
+<p>脱敏规则<strong>误伤</strong>的代价同样要考虑：本项目 <code>clinic/config.py</code> 的
+<code>is_sensitive()</code> 是按字段名<strong>分词精确匹配</strong>的，因为子串匹配
+会把 <code>max_tokens</code>（配额，不是密钥）一起打码，让日志里的预算永远显示不出来。
+<strong>被日志骗，比少记一条更阴险。</strong></p>
+<p>🔥 <strong>审计日志和密钥泄漏是一对矛盾</strong>。你想记全请求细节以便追溯，
+但请求头里就有 token。解决方案不是"少记点"，
+而是<strong>"记之前先脱敏"</strong> —— 这是个必须写进客户端的固定动作，不能靠自觉。</p>
+</blockquote>
+<hr />
+<h2 id="234-重试退避与限流">23.4 重试、退避与限流</h2>
+<h3 id="哪些请求能重试">哪些请求能重试</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">RETRYABLE_STATUS</span> <span class="o">=</span> <span class="p">{</span><span class="mi">408</span><span class="p">,</span> <span class="mi">425</span><span class="p">,</span> <span class="mi">429</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">502</span><span class="p">,</span> <span class="mi">503</span><span class="p">,</span> <span class="mi">504</span><span class="p">}</span>
+</code></pre></div></div>
+<p><strong>但状态码只是第一关，更关键的是幂等性</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>幂等？</th>
+<th>能重试吗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td>是</td>
+<td>可以</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td>是</td>
+<td>可以</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td>是</td>
+<td>可以（但要确认语义）</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><strong>通常不是</strong></td>
+<td><strong>只有在带幂等键时才可以</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 危险：POST 失败就重试 → 可能创建两份</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">post</span><span class="p">(</span><span class="s2">"/api/submissions"</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+        <span class="k">break</span>
+    <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
+        <span class="k">continue</span>        <span class="c1"># 第一次其实成功了，只是响应超时 → 现在有两份提交</span>
+
+<span class="c1"># ✅ 带幂等键，服务端负责去重</span>
+<span class="n">post</span><span class="p">(</span><span class="s2">"/api/submissions"</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+     <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Idempotency-Key"</span><span class="p">:</span> <span class="n">stable_key</span><span class="p">(</span><span class="n">payload</span><span class="p">)})</span>
+</code></pre></div></div>
+<p><code>stable_key()</code> 要能根据<strong>内容</strong>算出稳定值：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">stable_key</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">32</span><span class="p">]</span>
+</code></pre></div></div>
+<p>同一份内容重试，key 相同 → 服务端识别为重复 → 不重复创建。</p>
+<h3 id="指数退避--抖动">指数退避 + 抖动</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">_backoff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attempt</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">retry_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""计算等待秒数。尊重服务端的 Retry-After。"""</span>
+    <span class="k">if</span> <span class="n">retry_after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">retry_after</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">)</span>                 <span class="c1"># 服务端说了算</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backoff_base</span> <span class="o">**</span> <span class="n">attempt</span>               <span class="c1"># 1.5, 2.25, 3.375...</span>
+    <span class="n">jitter</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">)</span>            <span class="c1"># ★ 抖动</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">base</span> <span class="o">+</span> <span class="n">jitter</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>抖动（jitter）不是装饰</strong>。批量任务里 50 个并发请求同时失败、
+同时重试，会把刚恢复的服务再打垮一次。加随机抖动让重试错开。</p>
+</blockquote>
+<h3 id="限流客户端要主动">限流：客户端要主动</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">class</span><span class="w"> </span><span class="nc">RateLimiter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""简单的令牌桶。避免把对方服务打挂，也避免自己上黑名单。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">burst</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">per_sec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burst</span> <span class="o">=</span> <span class="n">burst</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">per_sec</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">burst</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">burst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">+</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="n">now</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">-=</span> <span class="mi">1</span>
+</code></pre></div></div>
+<p>同时<strong>必须尊重 <code>Retry-After</code></strong> —— 对方明确告诉你要等多久时，
+自己算退避时间是没意义的。</p>
+<hr />
+<h2 id="235-错误分类与降级">23.5 错误分类与降级</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">classify</span><span class="p">(</span><span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exc</span><span class="p">:</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""返回 (错误类型, 是否可重试)。"""</span>
+    <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="p">(</span><span class="n">httpx</span><span class="o">.</span><span class="n">ConnectTimeout</span><span class="p">,</span> <span class="n">httpx</span><span class="o">.</span><span class="n">ReadTimeout</span><span class="p">,</span>
+                            <span class="n">httpx</span><span class="o">.</span><span class="n">ConnectError</span><span class="p">,</span> <span class="n">httpx</span><span class="o">.</span><span class="n">ReadError</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="s2">"internal"</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="mi">422</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="kc">False</span>        <span class="c1"># 请求本身有问题，重试无用</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="mi">403</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"permission"</span><span class="p">,</span> <span class="kc">False</span>        <span class="c1"># ★ 终止并告警，不要自动重试</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"not_found"</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">429</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>          <span class="c1"># 限流，退避后重试</span>
+    <span class="k">if</span> <span class="mi">500</span> <span class="o">&lt;=</span> <span class="n">status</span> <span class="o">&lt;</span> <span class="mi">600</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="s2">"internal"</span><span class="p">,</span> <span class="kc">False</span>
+</code></pre></div></div>
+<p>注意 <code>401/403</code> 的处理：<strong>绝不能自动重试</strong>。
+拿错误 token 狂试 50 次，在很多系统里会<strong>触发账号锁定</strong>。</p>
+<h3 id="降级拿不到就明说">降级：拿不到就明说</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">class</span><span class="w"> </span><span class="nc">CachedFallback</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""外部数据取不到时，回退到上次的缓存，并明确标注数据时间。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"实时获取（</span><span class="si">{</span><span class="n">_now</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
+        <span class="k">except</span> <span class="n">TransientError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">age</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">ts</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3600</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"⚠️ 使用缓存数据（获取于 </span><span class="si">{</span><span class="n">age</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 小时前）"</span>
+            <span class="k">raise</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>降级时必须把"这是缓存"写进结果</strong>。在临床场景里，
+一份"用 3 天前的 CT 版本做的核查"如果不标注，
+会被当成"用最新版本核实过" —— 这是不可接受的。</p>
+</blockquote>
+<hr />
+<h2 id="236-对方返回的数据不可信">23.6 对方返回的数据不可信</h2>
+<p>即使对方是正经的临床系统，返回的 JSON 也可能不合预期：
+字段缺失、类型变了、枚举值新增、版本升级改了字段名。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 直接信任</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"results"</span><span class="p">])</span>          <span class="c1"># KeyError: 'results'</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"age"</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"age"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>           <span class="c1"># ValueError: 有 "N/A"</span>
+
+<span class="c1"># ✅ 显式校验</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_subjects</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"results"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"响应缺少 results 字段。实际顶层键：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">payload</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"results"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"results 应为数组，实际为 </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"subjectId"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第 </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> 条记录缺少 subjectId：</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)[:</span><span class="mi">120</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"subject_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"subjectId"</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="s2">"age"</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"age"</span><span class="p">),</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">),</span>   <span class="c1"># 宽容转数值</span>
+            <span class="s2">"sex"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sex"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">out</span>
+</code></pre></div></div>
+<p>用 Pydantic 会更简洁（<code>pip install pydantic</code>），但<strong>手写校验的价值是
+错误信息完全可控</strong> —— 你能把"哪里不对、实际是什么"写清楚，
+这对 Agent 自己修错很重要（见第 20 章）。</p>
+<h3 id="api-版本要锁">API 版本要锁</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/subjects"</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"API-Version"</span><span class="p">:</span> <span class="s2">"2024-06-01"</span><span class="p">})</span>
+</code></pre></div></div>
+<p>不锁版本的接口，对方一升级你的脚本就崩。<strong>在请求头里写死日期版本</strong>
+是很多临床平台的惯例。</p>
+<hr />
+<h2 id="237-三种集成模式">23.7 三种集成模式</h2>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>机制</th>
+<th>临床场景</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>拉（Poll）</strong></td>
+<td>定时调接口问"有没有新数据"</td>
+<td>EDC 数据导出、快照</td>
+<td>要记录"上次拉到哪"（水位线）</td>
+</tr>
+<tr>
+<td><strong>推（Webhook）</strong></td>
+<td>对方主动 POST 给你</td>
+<td>数据变更通知</td>
+<td>需要验签、防重放、幂等</td>
+</tr>
+<tr>
+<td><strong>流（Stream）</strong></td>
+<td>长连接持续收</td>
+<td>实时监控</td>
+<td>连接管理、断线重连</td>
+</tr>
+</tbody>
+</table>
+<p>临床数据集成<strong>绝大多数是"拉"</strong>，因为：
+- 数据更新是批量的（夜间跑批）
+- 需要可重放的完整快照，而不是增量事件
+- 审计要求"某时刻的数据状态"可复现</p>
+<p>"拉"模式的关键是<strong>水位线（watermark）</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Watermark</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""记录上次成功拉取到哪，避免重复拉、避免漏拉。"""</span>
+    <span class="n">last_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_ts</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">updated_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Watermark"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)))</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>水位线要在"数据落盘成功后"才更新</strong>。
+先更新水位线再落盘，中途崩溃就会丢数据 —— 而且<strong>永远不会被再次拉到</strong>。
+这是数据集成里最经典的静默丢数事故。</p>
+</blockquote>
+<hr />
+<h2 id="238-合规临床场景的红线">23.8 合规：临床场景的红线</h2>
+<p>这一节的内容，比前面所有技术细节都重要。</p>
+<h3 id="红线一受试者标识不能外发">红线一：受试者标识不能外发</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 灾难：把可识别信息发给了外部 LLM</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">请分析受试者 </span><span class="si">{</span><span class="n">subj</span><span class="o">.</span><span class="n">subject_name</span><span class="si">}</span><span class="s2">（出生日期 </span><span class="si">{</span><span class="n">subj</span><span class="o">.</span><span class="n">dob</span><span class="si">}</span><span class="s2">，</span>
+<span class="s2">身份证号 </span><span class="si">{</span><span class="n">subj</span><span class="o">.</span><span class="n">id_number</span><span class="si">}</span><span class="s2">）的实验室结果：</span>
+<span class="si">{</span><span class="n">lab_results</span><span class="si">}</span>
+<span class="s2">"""</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 只发研究编号 + 必要的分析字段</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">请分析受试者 </span><span class="si">{</span><span class="n">row</span><span class="o">.</span><span class="n">USUBJID</span><span class="si">}</span><span class="s2"> 在访视 </span><span class="si">{</span><span class="n">row</span><span class="o">.</span><span class="n">VISIT</span><span class="si">}</span><span class="s2"> 的实验室结果：</span>
+<span class="si">{</span><span class="n">deidentified_labs</span><span class="si">}</span>
+<span class="s2">"""</span>
+</code></pre></div></div>
+<p><code>USUBJID</code>（研究编号）通常是<strong>假名化（pseudonymized）</strong>标识 ——
+它在研究内唯一，但脱离研究上下文无法关联到自然人。
+而姓名、身份证、精确出生日期、联系方式属于<strong>直接标识符</strong>，绝不能外发。</p>
+<blockquote>
+<p>🔥 <strong>假名化 ≠ 匿名化</strong>。假名化的数据仍然属于个人数据
+（因为研究方持有对应表），受 GDPR / 个人信息保护法约束。
+"已经用编号了所以随便发"是常见的误解。</p>
+</blockquote>
+<h3 id="红线二最小必要">红线二：最小必要</h3>
+<p>只发送完成当前任务<strong>必需的字段</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">build_llm_payload</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">need</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""只把需要的列发给模型。多一列就多一分风险，也多一分 token。"""</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">need</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"缺少必需列：</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">need</span><span class="p">]</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="红线三审计日志要能回答发出去过什么">红线三：审计日志要能回答"发出去过什么"</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">log_llm_call</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">audit_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"outputs/audit"</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""每次模型调用落一行。这是"可追溯"的最小实现。"""</span>
+    <span class="n">audit_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rec</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"ts"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
+        <span class="s2">"model"</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+        <span class="s2">"prompt_chars"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">prompt</span><span class="p">),</span>
+        <span class="s2">"prompt_sha256"</span><span class="p">:</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">prompt</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">16</span><span class="p">],</span>
+        <span class="s2">"response_chars"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">),</span>
+        <span class="s2">"prompt_preview"</span><span class="p">:</span> <span class="n">prompt</span><span class="p">[:</span><span class="mi">200</span><span class="p">],</span>          <span class="c1"># 只留预览，不存全文</span>
+    <span class="p">}</span>
+    <span class="k">with</span> <span class="p">(</span><span class="n">audit_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"llm_calls_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="si">:</span><span class="s2">%Y%m</span><span class="si">}</span><span class="s2">.jsonl"</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+<p>注意存的是 <strong>sha256 摘要</strong>而不是全文：既能证明"发的是哪一份"，
+又不会把完整数据留在日志里。</p>
+<h3 id="一张自查表">一张自查表</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>外发数据里有直接标识符吗</td>
+<td>姓名/身份证/电话/精确生日 —— <strong>必须剔除</strong></td>
+</tr>
+<tr>
+<td>只发了必需字段吗</td>
+<td>逐列确认用途</td>
+</tr>
+<tr>
+<td>有数据出境问题吗</td>
+<td>模型服务商在哪个司法辖区</td>
+</tr>
+<tr>
+<td>有 DPA / 授权吗</td>
+<td>与供应商签的数据处理协议</td>
+</tr>
+<tr>
+<td>审计日志记了吗</td>
+<td>谁、何时、发了什么（摘要）</td>
+</tr>
+<tr>
+<td>能人工复核吗</td>
+<td>关键结论可追溯到源数据</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>最后一条是临床统计的根本</strong>：无论 Agent 多自动化，
+<strong>最终对递交物负责的仍然是人</strong>。所以系统设计的目标不是
+"全自动出结果"，而是"让人的复核效率更高、更可靠"。</p>
+</blockquote>
+<hr />
+<h2 id="239-完整示例带审计的外部数据源客户端">23.9 完整示例：带审计的外部数据源客户端</h2>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># cases/case_http_demo.py（本章配套，见 clinic/agent_http.py）</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.agent_http</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpClient</span><span class="p">,</span> <span class="n">MockTransport</span>
+
+<span class="c1"># 离线演示：用 MockTransport，不真的发网络请求</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ct.example.org"</span><span class="p">,</span>
+    <span class="n">token</span><span class="o">=</span><span class="s2">"demo-token"</span><span class="p">,</span>
+    <span class="n">transport</span><span class="o">=</span><span class="n">MockTransport</span><span class="p">({</span>                      <span class="c1"># ★ 可注入的传输层</span>
+        <span class="s2">"/api/v2/codelists/AE"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"version"</span><span class="p">:</span> <span class="s2">"2024-06-01"</span><span class="p">,</span>
+            <span class="s2">"items"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"code"</span><span class="p">:</span> <span class="s2">"HEADACHE"</span><span class="p">,</span> <span class="s2">"term"</span><span class="p">:</span> <span class="s2">"Headache"</span><span class="p">},</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">}),</span>
+    <span class="c1"># ★ 让"等多久"可断言：不真的睡，也不真的随机</span>
+    <span class="n">sleep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">waits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">),</span>
+    <span class="n">rand</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">)</span>      <span class="c1"># 返回统一封装的 Response</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>                             <span class="c1"># 显式解析，非法 JSON 会抛 ContractError</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"取到 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">'items'</span><span class="p">])</span><span class="si">}</span><span class="s2"> 条术语，版本 </span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">'version'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># 审计日志（自动脱敏）</span>
+<span class="n">client</span><span class="o">.</span><span class="n">dump_audit</span><span class="p">(</span><span class="s2">"outputs/http/audit_snapshot.json"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong><code>transport</code> 可注入</strong>是这里的关键设计 —— 它让"外部依赖"
+在测试和演示里变成可控的：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">class</span><span class="w"> </span><span class="nc">MockTransport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""离线传输层：不打网络，按路径返回预置数据。"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">routes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fail_paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fail_times</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># routes     正常返回</span>
+        <span class="c1"># fail_paths 永久失败（int 状态码 / Exception / 带响应头的 Response）</span>
+        <span class="c1"># fail_times 前 N 次失败、之后成功 —— 专门用来验证重试</span>
+        <span class="o">...</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="o">...</span>
+</code></pre></div></div>
+<p>三种失败方式对应三种真实故障，缺一个都测不全：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>模拟的现实</th>
+<th>验证什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fail_paths={p: 503}</code></td>
+<td>服务端持续报错</td>
+<td>最终会失败，且<strong>错误分类正确</strong></td>
+</tr>
+<tr>
+<td><code>fail_paths={p: TimeoutError(...)}</code></td>
+<td>网络读超时</td>
+<td>会重试，退避序列符合预期</td>
+</tr>
+<tr>
+<td><code>fail_paths={p: Response(429, headers={"Retry-After": "7"})}</code></td>
+<td>被限流</td>
+<td><strong>听服务端的 <code>Retry-After</code></strong> 而不是自己的公式</td>
+</tr>
+<tr>
+<td><code>fail_times={p: 2}</code></td>
+<td>抖了两下就好</td>
+<td>重试<strong>真的会发生，且只发生必要次数</strong></td>
+</tr>
+</tbody>
+</table>
+<p>这和 <code>clinic/io.py</code> 用 CSV 代替 XPT、<code>case07</code> 用 MockLLM 代替真实 API
+是同一种思路：<strong>把外部依赖变成可注入的接口，使系统可在离线环境下完整验证</strong>。</p>
+<hr />
+<h2 id="2310-常见误区">23.10 常见误区</h2>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>后果</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不设 timeout</td>
+<td>任务永久挂起</td>
+<td>显式 connect/read 两段超时</td>
+</tr>
+<tr>
+<td>硬编码密钥</td>
+<td>泄漏 + 无法轮换</td>
+<td>环境变量 / 密钥服务</td>
+</tr>
+<tr>
+<td>把 token 写进日志</td>
+<td>泄漏</td>
+<td>落日志前统一脱敏</td>
+</tr>
+<tr>
+<td>POST 失败就重试</td>
+<td>重复创建</td>
+<td>幂等键</td>
+</tr>
+<tr>
+<td>重试不加抖动</td>
+<td>恢复瞬间把对方再打垮</td>
+<td>指数退避 + 随机抖动</td>
+</tr>
+<tr>
+<td>401 自动重试</td>
+<td><strong>账号被锁</strong></td>
+<td>权限错误立即终止告警</td>
+</tr>
+<tr>
+<td>信任对方返回的 JSON</td>
+<td>KeyError / 类型错误</td>
+<td>显式校验 + 清晰报错</td>
+</tr>
+<tr>
+<td>不锁 API 版本</td>
+<td>对方升级即崩</td>
+<td>请求头写版本</td>
+</tr>
+<tr>
+<td>先更新水位线再落盘</td>
+<td><strong>静默丢数据</strong></td>
+<td>落盘成功后才更新</td>
+</tr>
+<tr>
+<td>把受试者标识发给外部模型</td>
+<td><strong>合规事故</strong></td>
+<td>假名化 + 最小必要 + 审计</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2311-本章小结">23.11 本章小结</h2>
+<ol>
+<li><strong>超时是必填项</strong> —— <code>requests</code> 默认永不超时</li>
+<li><strong>密钥三不进</strong> —— 不进代码、不进日志、不进上下文</li>
+<li><strong>重试要看幂等性</strong> —— POST 需要幂等键；401 绝不能重试</li>
+<li><strong>退避要加抖动</strong> —— 否则重试风暴</li>
+<li><strong>外部数据不可信</strong> —— 显式校验，报错要说清哪里不对</li>
+<li><strong>水位线在落盘后更新</strong> —— 否则静默丢数</li>
+<li><strong>合规三条红线</strong> —— 无直接标识符外发、最小必要、可审计</li>
+</ol>
+<p><strong>下一章</strong>：把 Agent 从脚本变成服务 —— 部署、监控、评估与成本控制。</p>
+<hr />
+<h2 id="2312-动手练习">23.12 动手练习</h2>
+<ol>
+<li>用 <code>MockTransport</code> 构造一个"前两次超时、第三次成功"的场景，
+   验证 <code>HttpClient</code> 的重试逻辑与退避时间。</li>
+<li>给 <code>_redact()</code> 加一条规则：任何长度 ≥ 32 的十六进制字符串都替换为 <code>***</code>。
+   想想这会误伤什么。</li>
+<li>写一个 <code>check_deidentification(df) -&gt; list[str]</code>，
+   扫描 DataFrame 的列名，返回疑似直接标识符的列
+   （提示：列名匹配 <code>name|dob|birth|phone|id_card|addr</code> 等模式，
+   并且检查取值是否是"看起来像人名/日期"的字符串）。</li>
+<li>给 <code>Watermark</code> 加一个 <code>.verify()</code> 方法：拉取时如果发现
+   <code>last_ts</code> 比服务端的 <code>earliest_available</code> 还早，说明<strong>数据有缺口</strong>，报警。</li>
+<li><strong>思考题</strong>：如果公司要求"所有 LLM 调用必须经过内部网关"，
+   你会怎么改 <code>HttpClient</code>？（提示：<code>base_url</code> + 统一 header + 审计上报）</li>
+</ol></article>
+<nav class="pager"><a class="pg-prev" href="22.html"><span class="pg-label">← 上一篇</span><span class="pg-title">多 Agent 协作</span></a><a class="pg-next" href="24.html"><span class="pg-label">下一篇 →</span><span class="pg-title">部署与监控</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

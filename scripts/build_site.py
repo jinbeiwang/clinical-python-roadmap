@@ -10,8 +10,8 @@
 
 产物（全部生成到 docs/，GitHub Pages 从 master 分支的 /docs 目录发布）:
     docs/index.html            首页（hero + 卡片 + README 正文）
-    docs/guide/*.html          18 章教程 + 速查表 + 资料索引
-    docs/code/*.html           7 个案例、clinic 工具包、构建脚本的源码阅读页
+    docs/guide/*.html          25 章教程 + 速查表 + 资料索引
+    docs/code/*.html           13 个案例、clinic 工具包、构建脚本的源码阅读页
     docs/assets/style.css      样式（无任何 CDN 依赖）
     docs/assets/app.js         交互逻辑
     docs/assets/nav-data.js    导航与搜索索引（本脚本生成）
@@ -44,8 +44,8 @@ REPO = "jinbeiwang/clinical-python-roadmap"
 BRANCH = "master"
 SITE_NAME = "临床统计程序员的 Python 进阶路线图"
 SITE_SHORT = "临床 Python 进阶路线图"
-SITE_DESC = ("面向「熟 SAS、Python 只会一点点」的临床统计程序员：18 章教程 + 7 个可运行案例，"
-             "全部基于 CDISC 公开真实数据（SDTM/ADaM），从语法速通到 AI Agent 开发。")
+SITE_DESC = ("面向「熟 SAS、Python 只会一点点」的临床统计程序员：25 章教程 + 13 个可运行案例，"
+             "全部基于 CDISC 公开真实数据（SDTM/ADaM），从语法速通到 AI Agent 开发与部署。")
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs"
@@ -74,12 +74,22 @@ CHAPTERS = [
     ("第四阶段 · AI 与工程化", "15", "15", "AI 辅助编程与代码迁移", "docs/15-AI辅助编程与代码迁移.md"),
     ("第四阶段 · AI 与工程化", "16", "16", "Agent 开发入门：临床 QC Agent", "docs/16-Agent开发入门.md"),
     ("第四阶段 · AI 与工程化", "17", "17", "工程化与后续进阶", "docs/17-工程化与后续进阶.md"),
+    ("第五阶段 · Agent 核心能力", "18", "18", "Agent 架构设计", "docs/18-Agent架构设计.md"),
+    ("第五阶段 · Agent 核心能力", "19", "19", "任务规划与调度", "docs/19-任务规划与调度.md"),
+    ("第五阶段 · Agent 核心能力", "20", "20", "工具调用进阶：契约、校验与边界", "docs/20-工具调用进阶.md"),
+    ("第五阶段 · Agent 核心能力", "21", "21", "记忆与上下文管理", "docs/21-记忆与上下文管理.md"),
+    ("第六阶段 · Agent 工程化", "22", "22", "多 Agent 协作", "docs/22-多Agent协作.md"),
+    ("第六阶段 · Agent 工程化", "23", "23", "与外部 API 及服务集成", "docs/23-外部API与服务集成.md"),
+    ("第六阶段 · Agent 工程化", "24", "24", "部署与监控", "docs/24-部署与监控.md"),
 ]
 
 EXTRAS = [
     ("速查与资料", "cheatsheet", "★", "SAS → Python 速查表",
      "cheatsheets/SAS-to-Python速查表.md",
      "14 类语法对照 + 常见坑 Top 20，从 SAS 迁 Python 的高频查阅页"),
+    ("速查与资料", "cheat-agent", "★", "Agent 开发速查表",
+     "cheatsheets/Agent开发速查表.md",
+     "分层架构 / 工具契约 / 重试决策表 / 独立性与反模式 Top 15 / 上线检查清单"),
     ("速查与资料", "resources", "◆", "资料索引 · 总览",
      "resources/README.md",
      "本仓库精选的外部资料总入口，所有链接均已核对可访问"),
@@ -95,24 +105,52 @@ EXTRAS = [
     ("速查与资料", "res-04", "4", "Python 学习资源与工具链",
      "resources/04-Python学习资源与工具链.md",
      "官方文档、必装库、IDE 与工程化工具"),
+    ("速查与资料", "res-05", "5", "Agent 开发与 LLM 资料",
+     "resources/05-Agent开发与LLM资料.md",
+     "Agent 工程化、评估与测试，以及临床 / 受监管场景的 AI 官方材料"),
 ]
+
+G_DATA = "实战案例 · 数据与报表"
+G_AGENT = "实战案例 · Agent 开发"
 
 CASES = [
-    ("case01", "01", "数据体检", "cases/case01_数据体检.py"),
-    ("case02", "02", "人口学表", "cases/case02_人口学表.py"),
-    ("case03", "03", "不良事件汇总表", "cases/case03_不良事件汇总表.py"),
-    ("case04", "04", "实验室移位表", "cases/case04_实验室移位表.py"),
-    ("case05", "05", "ADSL 衍生与双编程验证", "cases/case05_ADSL衍生.py"),
-    ("case06", "06", "批处理自动化", "cases/case06_批处理自动化.py"),
-    ("case07", "07", "临床数据 QC Agent", "cases/case07_临床数据QC_Agent.py"),
+    ("case01", "01", "数据体检", "cases/case01_数据体检.py", G_DATA),
+    ("case02", "02", "人口学表", "cases/case02_人口学表.py", G_DATA),
+    ("case03", "03", "不良事件汇总表", "cases/case03_不良事件汇总表.py", G_DATA),
+    ("case04", "04", "实验室移位表", "cases/case04_实验室移位表.py", G_DATA),
+    ("case05", "05", "ADSL 衍生与双编程验证", "cases/case05_ADSL衍生.py", G_DATA),
+    ("case06", "06", "批处理自动化", "cases/case06_批处理自动化.py", G_DATA),
+    ("case07", "07", "临床数据 QC Agent", "cases/case07_临床数据QC_Agent.py", G_AGENT),
+    ("case08", "08", "分层架构 QC Agent（架构 / 工具 / 记忆 / 预算）",
+     "cases/case08_分层架构QC_Agent.py", G_AGENT),
+    ("case09", "09", "SDTM 一致性核查 Agent（记忆检索 / 阈值标定）",
+     "cases/case09_SDTM一致性核查Agent.py", G_AGENT),
+    ("case10", "10", "TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）",
+     "cases/case10_TLF生成流水线.py", G_AGENT),
+    ("case11", "11", "双编程 Agent 对（多 Agent / 独立性审计）",
+     "cases/case11_双编程Agent对.py", G_AGENT),
+    ("case12", "12", "QC Agent 服务化（接口 / 指标 / 缓存 / 评估集）",
+     "cases/case12_QC_Agent服务化.py", G_AGENT),
+    ("caseA", "A", "外部数据源客户端（第 23 章配套）",
+     "cases/case_http_demo.py", G_AGENT),
 ]
 
+G_CORE = "工具包 clinic/ · 数据与报表"
+G_AG = "工具包 clinic/ · Agent 与工程化"
+
 MODULES = [
-    ("io", "读 XPT / sas7bdat，保留变量标签，清洗 CDISC 伪缺失值"),
-    ("derive", "SAS 语义舍入、年龄分组边界、日期与部分日期处理"),
-    ("report", "TFL 报表构造件：n (%)、Mean (SD)、移位表、p 值格式化"),
-    ("qc", "数据质量检查、跨域一致性、PROC COMPARE 等价物"),
-    ("agent_tools", "暴露给 LLM 的 8 个临床数据工具（含数据集白名单硬边界）"),
+    ("io", "读 XPT / sas7bdat，保留变量标签，清洗 CDISC 伪缺失值", G_CORE),
+    ("derive", "SAS 语义舍入、年龄分组边界、日期与部分日期处理", G_CORE),
+    ("report", "TFL 报表构造件：n (%)、Mean (SD)、移位表、p 值格式化", G_CORE),
+    ("qc", "数据质量检查、跨域一致性、PROC COMPARE 等价物", G_CORE),
+    ("agent_tools", "暴露给 LLM 的 8 个临床数据工具（含数据集白名单硬边界）", G_AG),
+    ("agent_core", "Agent 主循环、工具契约与注册表、预算闸门、观察者、指标、LLM 客户端", G_AG),
+    ("agent_planner", "任务 DAG 与拓扑排序、并行调度、重试、部分失败、人工确认与续跑", G_AG),
+    ("agent_memory", "分层记忆、结构化事实表、CJK 2-gram 关键词检索与引用", G_AG),
+    ("agent_role", "多 Agent 拓扑、角色契约、结构化消息、差异分级、独立性守卫", G_AG),
+    ("agent_http", "带重试 / 退避 / 限流 / 脱敏审计的 HTTP 客户端与可注入传输层", G_AG),
+    ("config", "12-Factor 配置、启动自检（fail fast）、密钥脱敏、数据版本指纹", G_AG),
+    ("agent_eval", "确定性评估集：正向断言 + 否定式安全断言 + 报告渲染", G_AG),
 ]
 
 SCRIPTS = [
@@ -154,11 +192,20 @@ def rel_href(target_out: str, from_out: str) -> str:
 
 
 def versioned_asset(name: str) -> str:
-    """给静态资源加上内容指纹，避免浏览器用到旧缓存。"""
+    """算出静态资源的内容指纹（**只返回指纹本身**，不带文件名）。
+
+    调用方在模板里已经写成 ``style.css?v=__CSSV__``，
+    所以这里只能返回 ``c1eb1978`` 这样的裸摘要。
+
+    ⚠️ 这里曾经返回 ``"style.css?v=c1eb1978"``，与模板拼起来变成
+    ``style.css?v=style.css?v=c1eb1978`` —— 页面照样能加载（查询串被静态
+    服务器忽略），所以这个错**不会报错、也不会被肉眼发现**，
+    只会让版本号看起来像乱码。构建产物里的每个链接都值得用
+    ``scripts/check_site.py`` 过一遍，就是防这一类问题。
+    """
     import hashlib
     p = ASSETS / name
-    digest = hashlib.md5(p.read_bytes()).hexdigest()[:8] if p.exists() else "0"
-    return f"{name}?v={digest}"
+    return hashlib.md5(p.read_bytes()).hexdigest()[:8] if p.exists() else "0"
 
 
 def sniff_lang(code: str) -> str:
@@ -475,20 +522,20 @@ def main() -> int:
         pages.append(dict(group=group, pid=pid, num=num, label=label, src=src, out=out_rel))
 
     case_pages = []
-    for cid, num, label, src in CASES:
+    for cid, num, label, src, grp in CASES:
         out_rel = f"code/{cid}.html"
         outmap[src] = out_rel
-        case_pages.append(dict(group="实战案例源码", pid=cid, num=num, label=label,
+        case_pages.append(dict(group=grp, pid=cid, num=num, label=label,
                                src=src, out=out_rel, lang="python",
                                doc_title=f"案例 {num} · {label}"))
     mod_pages = []
-    for name, desc in MODULES:
+    for name, desc, grp in MODULES:
         src = f"clinic/{name}.py"
         if not (ROOT / src).exists():
             continue
         out_rel = f"code/clinic-{name}.html"
         outmap[src] = out_rel
-        mod_pages.append(dict(group="工具包 clinic/", pid=f"clinic-{name}", num="",
+        mod_pages.append(dict(group=grp, pid=f"clinic-{name}", num="",
                               label=f"{name}.py", src=src, out=out_rel, lang="python",
                               doc_title=f"clinic/{name}.py"))
     script_pages = []
@@ -612,6 +659,13 @@ def extract_docstring(text: str) -> str:
         if len(" ".join(out)) > 150:
             break
     s = " ".join(out).strip()
+    # 这段摘要是塞进 HTML 的纯文本，所以要先把 Markdown 标记去掉 ——
+    # 否则页面上会原样显示 ``**目标**`` 这种记号（看起来像构建出错）。
+    s = re.sub(r"`([^`]*)`", r"\1", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"\1", s)
+    s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"\1", s)
+    s = re.sub(r"^[-*+]\s+", "", s)
+    s = re.sub(r"\s+", " ", s)
     return (s[:170] + "…") if len(s) > 170 else s
 
 
@@ -646,10 +700,10 @@ def write_index(rewriter: LinkRewriter, pages: list[dict], case_pages: list[dict
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
   </div>
   <div class="hero-stats">
-    <div class="hs"><b>18</b><span>章系统教程</span></div>
-    <div class="hs"><b>7</b><span>个可运行案例</span></div>
+    <div class="hs"><b>25</b><span>章系统教程</span></div>
+    <div class="hs"><b>13</b><span>个可运行案例</span></div>
+    <div class="hs"><b>12</b><span>个可复用模块</span></div>
     <div class="hs"><b>254</b><span>真实受试者</span></div>
-    <div class="hs"><b>28</b><span>个 ADSL 变量双编程验证</span></div>
   </div>
   <h2 style="font-size:19px;margin:30px 0 12px">章节总览</h2>
   {''.join(cards)}

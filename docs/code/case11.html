@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 11 · 双编程 Agent 对（多 Agent / 独立性审计）</title>
+<meta name="description" content="双编程 Agent 对（多 Agent / 独立性审计） — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 11 · 双编程 Agent 对（多 Agent / 独立性审计）">
+<meta property="og:description" content="双编程 Agent 对（多 Agent / 独立性审计） — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case11.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例 · Agent 开发</div><h1>案例 11 · 双编程 Agent 对（多 Agent / 独立性审计）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case11_%E5%8F%8C%E7%BC%96%E7%A8%8BAgent%E5%AF%B9.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case11_%E5%8F%8C%E7%BC%96%E7%A8%8BAgent%E5%AF%B9.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case11_双编程Agent对.py</strong> · 686 行 · 24 KB<br>案例 11 · 双编程 Agent 对（多 Agent 协作的正确用法） ====================================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 11 · 双编程 Agent 对（多 Agent 协作的正确用法）</span>
+<span class="sd">====================================================</span>
+
+<span class="sd">**目标**：用两个**互不通信**的独立实现去验证同一份衍生逻辑，</span>
+<span class="sd">并让差异分级、根因、受影响记录全部自动化 —— 也就是把</span>
+<span class="sd">临床统计里的"双编程（double programming）"变成一个可复跑的流程。</span>
+
+<span class="sd">**覆盖章节**：第 22 章（多 Agent 协作）、第 12/13 章（ADaM 衍生与 TFL）</span>
+
+<span class="sd">先说一个反直觉的结论</span>
+<span class="sd">--------------------</span>
+<span class="sd">多 Agent 的价值**不在数量，而在独立性**。</span>
+
+<span class="sd">    两个互相看得见对方代码的 Agent，得到"完全一致"的结论 —— 这个结论一文不值。</span>
+<span class="sd">    两个完全独立的 Agent，得到 3 处差异 —— 这 3 处才是真正的验证产出。</span>
+
+<span class="sd">所以本案例里最重要的代码不是"怎么让两个 Agent 协作"，</span>
+<span class="sd">而是 :class:`IndependenceGuard` 那 40 行：**它把"独立性"变成一条可以断言的规则**。</span>
+
+<span class="sd">五个场景</span>
+<span class="sd">--------</span>
+<span class="sd">a) **两个独立实现** —— 同一份 AGEGR1 派生 + AE 汇总，写法完全不同</span>
+<span class="sd">b) **机器比对与差异分级** —— critical / major / minor / explainable</span>
+<span class="sd">c) **迭代收敛** —— 修一轮、再比对一轮，直到只剩口径差异</span>
+<span class="sd">d) **独立性被破坏会怎样** —— 零差异反而不可信（本案例的关键一击）</span>
+<span class="sd">e) **另两种拓扑** —— Supervisor（契约化分派）与 Pipeline（阶段契约检查）</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case11_双编程Agent对.py</span>
+<span class="sd">    python cases/case11_双编程Agent对.py --only d</span>
+
+<span class="sd">离线可跑：两个实现都是确定性代码（真实数据处理），比对器也不是 LLM。</span>
+<span class="sd">差异出在**口径**上，不是在幻觉上 —— 这正是双编程要抓的东西。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">agent_role</span> <span class="k">as</span> <span class="n">role</span>                            <span class="c1"># noqa: E402</span>
+
+<span class="n">OUT</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+<span class="n">PAIR_DIR</span> <span class="o">=</span> <span class="n">OUT</span> <span class="o">/</span> <span class="s2">"pair"</span>
+<span class="n">ADSL</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"adsl.csv"</span>
+<span class="n">AE</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"ae.csv"</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># 独立性审计要登记的输入清单。</span>
+<span class="c1"># ★ 这些不是"写好看"用的：守卫只会检查它被告知的东西，</span>
+<span class="c1">#   漏登记会让审计结论从"已核实"退化成"没查"（coverage=0 时报告会明确标出）。</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">SHARED_INPUTS</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">AE</span><span class="p">)]</span>
+
+<span class="c1"># 每一对实现**如实**登记各自读过的来源（守卫只检查它被告知的东西）</span>
+<span class="n">READS_AGEGR1_A</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ADSL</span><span class="p">)]</span>                  <span class="c1"># AGEGR1 只用到 ADSL</span>
+<span class="n">READS_AGEGR1_B</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ADSL</span><span class="p">)]</span>
+<span class="n">READS_AE_A</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">AE</span><span class="p">)]</span>             <span class="c1"># AE 汇总要先从 ADSL 取 TEAE 人群</span>
+<span class="n">READS_AE_B</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">AE</span><span class="p">)]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_read</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">low_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 a 的两个实现：同一目标，两种写法，两套口径</span>
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># ★ 注意看：A 与 B 的**写法故意完全不同**</span>
+<span class="c1">#   （A 用 pd.cut + groupby，B 用逐行 apply），这不是为了好看——</span>
+<span class="c1">#   如果两份实现连结构都一样，那它们的错误也会一样，"独立"就失去意义了。</span>
+
+<span class="n">AGE_LABELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">,</span> <span class="s2">"65-80"</span><span class="p">,</span> <span class="s2">"&gt;80"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_a_age_groups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""实现 A：AGEGR1 = &lt;65 / 65-80 / &gt;80（区间左闭右开）。"""</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">)</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">grp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">81</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">AGE_LABELS</span><span class="p">,</span>
+                 <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>                     <span class="c1"># ← 65 落在 "65-80"</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">grp</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">AGE_LABELS</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"A：左闭右开（65 属 65-80）"</span><span class="p">,</span>
+            <span class="s2">"分组人数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"分组明细"</span><span class="p">:</span> <span class="p">{</span><span class="n">lab</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">adsl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">grp</span> <span class="o">==</span> <span class="n">lab</span><span class="p">,</span> <span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                         <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">AGE_LABELS</span><span class="p">}}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_b_age_groups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""实现 B：逐行判断（等价于区间**左开右闭**）。</span>
+
+<span class="sd">    ``age &lt;= 65`` 这类写法在真实报告里非常常见 ——</span>
+<span class="sd">    它把 AGE=65 的受试者放进了 "&lt;65"，与 SAP 的边界定义相反。</span>
+<span class="sd">    这就是双编程最该抓的一类问题：**不是崩溃，而是悄悄错 4 个人**。</span>
+<span class="sd">    """</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">)</span>
+    <span class="n">buckets</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">AGE_LABELS</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">adsl</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">age</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">])</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">65</span><span class="p">:</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">age</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">:</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"65-80"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"&gt;80"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"B：左开右闭（65 属 &lt;65）"</span><span class="p">,</span>
+            <span class="s2">"分组人数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">buckets</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"分组明细"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">buckets</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ae_teae</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">adsl</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""取出 TEAE 记录：AESTDTC ≥ 首次给药日（TRTSDT）。"""</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">adsl</span><span class="p">[[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"TRTSDT"</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"left"</span><span class="p">)</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"AESTDTC"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"TRTSDT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">m</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_a_ae_summary</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""实现 A：分子 = **不重复受试者数**（受试者层级，TFL 的标准口径）。"""</span>
+    <span class="n">adsl</span><span class="p">,</span> <span class="n">ae</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="n">_read</span><span class="p">(</span><span class="n">AE</span><span class="p">)</span>
+    <span class="n">tea</span> <span class="o">=</span> <span class="n">_ae_teae</span><span class="p">(</span><span class="n">ae</span><span class="p">,</span> <span class="n">adsl</span><span class="p">)</span>
+    <span class="n">per_soc</span> <span class="o">=</span> <span class="p">(</span><span class="n">tea</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"AESOC"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"A：分子 = 不重复受试者数"</span><span class="p">,</span>
+            <span class="s2">"受试者总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">tea</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()),</span>
+            <span class="s2">"记录总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tea</span><span class="p">)),</span>
+            <span class="s2">"SOC受试者数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">per_soc</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"顺序"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">per_soc</span><span class="o">.</span><span class="n">index</span><span class="p">)}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_b_ae_summary</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""实现 B：分子 = **记录数**（事件层级）。</span>
+
+<span class="sd">    ``groupby().size()`` 与 ``nunique()`` 只差一个词，</span>
+<span class="sd">    在 AE 表上就变成"事件数"和"受试者数"的差别 ——</span>
+<span class="sd">    这是临床统计最经典的错误之一（第 13 章专门提过）。</span>
+<span class="sd">    """</span>
+    <span class="n">adsl</span><span class="p">,</span> <span class="n">ae</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="n">_read</span><span class="p">(</span><span class="n">AE</span><span class="p">)</span>
+    <span class="n">tea</span> <span class="o">=</span> <span class="n">_ae_teae</span><span class="p">(</span><span class="n">ae</span><span class="p">,</span> <span class="n">adsl</span><span class="p">)</span>
+    <span class="n">per_soc</span> <span class="o">=</span> <span class="n">tea</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"AESOC"</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"B：分子 = 记录（事件）数"</span><span class="p">,</span>
+            <span class="s2">"受试者总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">tea</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()),</span>
+            <span class="s2">"记录总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tea</span><span class="p">)),</span>
+            <span class="s2">"SOC受试者数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">per_soc</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"顺序"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">per_soc</span><span class="o">.</span><span class="n">index</span><span class="p">)}</span>          <span class="c1"># ← 另外：按字母序排</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 比对器：确定性代码，不是 LLM</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""逐分组比对人数；受影响记录 = 落在不同分组的 USUBJID。"""</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">AGE_LABELS</span><span class="p">:</span>
+        <span class="n">na</span><span class="p">,</span> <span class="n">nb</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">"分组人数"</span><span class="p">][</span><span class="n">lab</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">"分组人数"</span><span class="p">][</span><span class="n">lab</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">na</span> <span class="o">!=</span> <span class="n">nb</span><span class="p">:</span>
+            <span class="n">sa</span><span class="p">,</span> <span class="n">sb</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"分组明细"</span><span class="p">][</span><span class="n">lab</span><span class="p">]),</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">"分组明细"</span><span class="p">][</span><span class="n">lab</span><span class="p">])</span>
+            <span class="n">affected</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sa</span> <span class="o">^</span> <span class="n">sb</span><span class="p">)</span>          <span class="c1"># 对称差：进/出该组的人</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="sa">f</span><span class="s2">"AGEGR1[</span><span class="si">{</span><span class="n">lab</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">na</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">nb</span><span class="p">,</span> <span class="n">affected</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">affected</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_ae_summary</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""比对每个 SOC 的分子，以及排序口径。"""</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">total_a</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"SOC受试者数"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">soc</span><span class="p">,</span> <span class="n">na</span> <span class="ow">in</span> <span class="n">a</span><span class="p">[</span><span class="s2">"SOC受试者数"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">nb</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span><span class="s2">"SOC受试者数"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">soc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">na</span> <span class="o">!=</span> <span class="n">nb</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="sa">f</span><span class="s2">"AESOC[</span><span class="si">{</span><span class="n">soc</span><span class="p">[:</span><span class="mi">34</span><span class="p">]</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">na</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">nb</span><span class="p">,</span>
+                <span class="n">root_cause</span><span class="o">=</span><span class="s2">"分子口径不同：受试者数（去重）vs 事件数（记录数）"</span><span class="p">))</span>
+    <span class="c1"># 排序口径：数字一致，只是呈现顺序不同 → 属于"可解释差异"</span>
+    <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="s2">"顺序"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">b</span><span class="p">[</span><span class="s2">"顺序"</span><span class="p">]:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="s2">"SOC 呈现顺序"</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s2">"按受试者数降序"</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="s2">"按字母序"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"explainable"</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1"># 白名单：两种口径都成立、只需记录进 ADRG 的差异</span>
+<span class="n">EXPLAINABLE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"SOC 呈现顺序"</span><span class="p">:</span> <span class="s2">"两种排序都常见（频数降序 / 字母序），不影响数字；"</span>
+                    <span class="s2">"本项目采用频数降序，记录进 ADRG。"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">classify_all</span><span class="p">(</span><span class="n">disps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">],</span>
+                 <span class="n">denom</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">254</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">Discrepancy</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""给每条差异定级。**定级靠影响面，不靠感觉。**"""</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">disps</span><span class="p">:</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> \
+                <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">a</span><span class="p">))</span>
+            <span class="n">ratio</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">b</span><span class="p">))</span> <span class="o">/</span> <span class="n">base</span>
+            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">affected</span><span class="p">:</span>
+                <span class="n">ratio</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">affected</span><span class="p">)</span> <span class="o">/</span> <span class="n">denom</span><span class="p">)</span>
+        <span class="n">role</span><span class="o">.</span><span class="n">classify_discrepancy</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">EXPLAINABLE</span><span class="p">,</span> <span class="n">ratio</span><span class="p">)</span>
+    <span class="c1"># critical 优先展示</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"critical"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"major"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"minor"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"explainable"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+    <span class="n">disps</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="mi">9</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">disps</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_show</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="n">role</span><span class="o">.</span><span class="n">PairReport</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"   "</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">render</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">   "</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   → 结论：</span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">verdict</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   → 独立性：</span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2">"</span>
+          <span class="sa">f</span><span class="s2">"（审计覆盖 </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">coverage</span><span class="si">}</span><span class="s2"> 个来源）"</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 a · 两个独立实现</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_a</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 a · 两个独立实现：同一目标，两种写法"</span><span class="p">)</span>
+
+    <span class="n">a1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">impl_a_age_groups</span><span class="p">(),</span> <span class="n">impl_b_age_groups</span><span class="p">()</span>
+    <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">impl_a_ae_summary</span><span class="p">(),</span> <span class="n">impl_b_ae_summary</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"【AGEGR1 年龄分组】"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">a1</span><span class="p">[</span><span class="s1">'实现'</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">b1</span><span class="p">[</span><span class="s1">'实现'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="s1">'分组'</span><span class="si">:</span><span class="s2">10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'A 人数'</span><span class="si">:</span><span class="s2">&gt;8s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'B 人数'</span><span class="si">:</span><span class="s2">&gt;8s</span><span class="si">}</span><span class="s2">   差"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">AGE_LABELS</span><span class="p">:</span>
+        <span class="n">na</span><span class="p">,</span> <span class="n">nb</span> <span class="o">=</span> <span class="n">a1</span><span class="p">[</span><span class="s2">"分组人数"</span><span class="p">][</span><span class="n">lab</span><span class="p">],</span> <span class="n">b1</span><span class="p">[</span><span class="s2">"分组人数"</span><span class="p">][</span><span class="n">lab</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">lab</span><span class="si">:</span><span class="s2">10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">na</span><span class="si">:</span><span class="s2">&gt;8d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">nb</span><span class="si">:</span><span class="s2">&gt;8d</span><span class="si">}</span><span class="s2">   </span><span class="si">{</span><span class="n">nb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">na</span><span class="si">:</span><span class="s2">+d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【AE 按 SOC 汇总（TEAE，前 5 个 SOC）】"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">a2</span><span class="p">[</span><span class="s1">'实现'</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">b2</span><span class="p">[</span><span class="s1">'实现'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  A 的 TEAE 受试者总数 </span><span class="si">{</span><span class="n">a2</span><span class="p">[</span><span class="s1">'受试者总数'</span><span class="p">]</span><span class="si">}</span><span class="s2">，记录总数 </span><span class="si">{</span><span class="n">a2</span><span class="p">[</span><span class="s1">'记录总数'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="s1">'SOC（截断）'</span><span class="si">:</span><span class="s2">38s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'A 受试者数'</span><span class="si">:</span><span class="s2">&gt;10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'B 记录数'</span><span class="si">:</span><span class="s2">&gt;9s</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">soc</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">a2</span><span class="p">[</span><span class="s2">"SOC受试者数"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())[:</span><span class="mi">5</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">soc</span><span class="p">[:</span><span class="mi">38</span><span class="p">]</span><span class="si">:</span><span class="s2">38s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">&gt;10d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">b2</span><span class="p">[</span><span class="s1">'SOC受试者数'</span><span class="p">][</span><span class="n">soc</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;9d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">两份实现的**结构故意写得不一样**（A 用 pd.cut + groupby，B 用逐行 apply）。</span>
+
+<span class="s2">为什么要这样？</span>
+<span class="s2">  双编程的价值来自"两条独立的思考路径同时犯错"的概率很低。</span>
+<span class="s2">  如果两个人用同一个模板、照着同一份伪代码写，</span>
+<span class="s2">  他们的**盲区也会重合** —— 那就不叫双编程，叫"抄一遍"。</span>
+
+<span class="s2">  反过来说：本案例里 A 和 B 的差异都是真实的**口径分歧**：</span>
+<span class="s2">    ① AGE=65 归哪一组（&lt;65 还是 65-80）——边界定义</span>
+<span class="s2">    ② AE 表的分子是受试者数还是事件数 —— 分子口径</span>
+<span class="s2">    ③ SOC 的排列顺序（频数降序 / 字母序）—— 呈现口径</span>
+<span class="s2">  这三个都是临床统计里真实存在的分歧，也都真实造成过递交问题。"""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 b · 机器比对与差异分级</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">PairReport</span><span class="p">]:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 b · 机器比对与差异分级"</span><span class="p">)</span>
+
+    <span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">PairReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># ---- 第一对：AGEGR1 ----</span>
+    <span class="n">pair</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"agegr1"</span><span class="p">,</span>
+        <span class="n">impl_a</span><span class="o">=</span><span class="n">impl_a_age_groups</span><span class="p">,</span> <span class="n">impl_b</span><span class="o">=</span><span class="n">impl_b_age_groups</span><span class="p">,</span>
+        <span class="n">comparator</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+        <span class="n">summarize_a</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"实现"</span><span class="p">],</span> <span class="n">summarize_b</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"实现"</span><span class="p">],</span>
+        <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+    <span class="n">rep</span> <span class="o">=</span> <span class="n">pair</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AGEGR1_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">READS_AGEGR1_B</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"【比对 1 · AGEGR1 派生】"</span><span class="p">)</span>
+    <span class="n">_show</span><span class="p">(</span><span class="n">rep</span><span class="p">)</span>
+    <span class="n">reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rep</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第二对：AE 汇总 ----</span>
+    <span class="n">pair2</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"ae_summary"</span><span class="p">,</span>
+        <span class="n">impl_a</span><span class="o">=</span><span class="n">impl_a_ae_summary</span><span class="p">,</span> <span class="n">impl_b</span><span class="o">=</span><span class="n">impl_b_ae_summary</span><span class="p">,</span>
+        <span class="n">comparator</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_ae_summary</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+        <span class="n">summarize_a</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"实现"</span><span class="p">],</span> <span class="n">summarize_b</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"实现"</span><span class="p">],</span>
+        <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+    <span class="n">rep2</span> <span class="o">=</span> <span class="n">pair2</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AE_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">READS_AE_B</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【比对 2 · AE 按 SOC 汇总】（只展示前 3 处差异）"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">rep2</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">[:</span><span class="mi">3</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"   "</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">render</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">   "</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   …… 共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep2</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处差异"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   → 结论：</span><span class="si">{</span><span class="n">rep2</span><span class="o">.</span><span class="n">verdict</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rep2</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">差异分四级（第 22.6 节），定级依据是**影响面**，不是"看着严不严重"：</span>
+
+<span class="s2">  critical     影响 ≥ 5% 的受试者 → 必须人工审查后才能用</span>
+<span class="s2">  major        影响 1%~5%        → 建议人工审查</span>
+<span class="s2">  minor        影响 &lt; 1%         → 可接受，记录即可</span>
+<span class="s2">  explainable  两种口径都成立     → **不改，记录进 ADRG**</span>
+
+<span class="s2">  ⚠️ 最后一级最容易被忽略，也最重要：</span>
+<span class="s2">     "差异"不等于"有人写错了"。像 SOC 的排列顺序，</span>
+<span class="s2">     两种口径都能自圆其说 —— 硬要"消灭"它，只会把时间浪费在</span>
+<span class="s2">     一个没有对错的问题上。正确的动作是**记录选择与理由**。</span>
+
+<span class="s2">  而本案例里的 ① 和 ② 不是口径问题，是真错：</span>
+<span class="s2">     ① AGE=65 的 4 个人被放错组（与 SAP 的边界定义相反）；</span>
+<span class="s2">     ② AE 表报出的是事件数而不是受试者数 —— 数字会整体偏大，</span>
+<span class="s2">        而且**不会有任何报错**，表看起来完全正常。</span>
+<span class="s2">   这就是为什么双编程不能省。"""</span><span class="p">)</span>
+
+    <span class="p">(</span><span class="n">PAIR_DIR</span> <span class="o">/</span> <span class="s2">"case11_report.md"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+        <span class="s2">"# 双编程比对报告汇总</span><span class="se">\n\n</span><span class="s2">"</span> <span class="o">+</span>
+        <span class="s2">"</span><span class="se">\n\n</span><span class="s2">---</span><span class="se">\n\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">render</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reports</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+        <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">两份报告已落盘：</span><span class="si">{</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'case11_report.md'</span><span class="p">)</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">BASE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">（另有每个实现的中间产物 JSON 与独立性审计 MD，便于事后复核）"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reports</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 c · 迭代收敛</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_b_ae_fixed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""修好分子口径后的 B（改 nunique，顺序仍用字母序）。"""</span>
+    <span class="n">adsl</span><span class="p">,</span> <span class="n">ae</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">),</span> <span class="n">_read</span><span class="p">(</span><span class="n">AE</span><span class="p">)</span>
+    <span class="n">tea</span> <span class="o">=</span> <span class="n">_ae_teae</span><span class="p">(</span><span class="n">ae</span><span class="p">,</span> <span class="n">adsl</span><span class="p">)</span>
+    <span class="n">per_soc</span> <span class="o">=</span> <span class="n">tea</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"AESOC"</span><span class="p">)[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"B′：分子改为不重复受试者数"</span><span class="p">,</span>
+            <span class="s2">"受试者总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">tea</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()),</span>
+            <span class="s2">"记录总数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tea</span><span class="p">)),</span>
+            <span class="s2">"SOC受试者数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">per_soc</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"顺序"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">per_soc</span><span class="o">.</span><span class="n">index</span><span class="p">)}</span>          <span class="c1"># 仍按字母序 → 保留一条可解释差异</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_b_age_fixed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""修好边界后的 B（65 归 65-80）。"""</span>
+    <span class="n">adsl</span> <span class="o">=</span> <span class="n">_read</span><span class="p">(</span><span class="n">ADSL</span><span class="p">)</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"AGE"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="n">buckets</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">AGE_LABELS</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">usubjid</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">adsl</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">],</span> <span class="n">age</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mi">65</span><span class="p">:</span>                                  <span class="c1"># ← 改成严格小于</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"&lt;65"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">usubjid</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">80</span><span class="p">:</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"65-80"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">usubjid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">buckets</span><span class="p">[</span><span class="s2">"&gt;80"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">usubjid</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"B″：边界与 SAP 对齐（65 属 65-80）"</span><span class="p">,</span>
+            <span class="s2">"分组人数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">buckets</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s2">"分组明细"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">buckets</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_c</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 c · 迭代收敛：每修一轮，重比对一轮"</span><span class="p">)</span>
+
+    <span class="n">rounds</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"第 1 轮（原始 B）"</span><span class="p">,</span> <span class="n">impl_b_age_groups</span><span class="p">,</span> <span class="n">impl_b_ae_summary</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"第 2 轮（B 修正分子口径）"</span><span class="p">,</span> <span class="n">impl_b_age_groups</span><span class="p">,</span> <span class="n">impl_b_ae_fixed</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"第 3 轮（B 再修正边界）"</span><span class="p">,</span> <span class="n">impl_b_age_fixed</span><span class="p">,</span> <span class="n">impl_b_ae_fixed</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">age_fn</span><span class="p">,</span> <span class="n">ae_fn</span> <span class="ow">in</span> <span class="n">rounds</span><span class="p">:</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+            <span class="s2">"agegr1"</span><span class="p">,</span> <span class="n">impl_a_age_groups</span><span class="p">,</span> <span class="n">age_fn</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+            <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+            <span class="s2">"ae_summary"</span><span class="p">,</span> <span class="n">impl_a_ae_summary</span><span class="p">,</span> <span class="n">ae_fn</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_ae_summary</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+            <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="n">p1</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AGEGR1_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">READS_AGEGR1_B</span><span class="p">)</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">p2</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AE_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">READS_AE_B</span><span class="p">)</span>
+        <span class="n">lv</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">level</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">r1</span><span class="o">.</span><span class="n">discrepancies</span> <span class="o">+</span> <span class="n">r2</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">】"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   AGEGR1 ：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">r1</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处差异 </span><span class="si">{</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">level</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">r1</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   AE 汇总：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">r2</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处差异 "</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">level</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">r2</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   剩余最高级别：</span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">lv</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span><span class="w"> </span><span class="n">x</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="s1">'critical'</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="s1">'major'</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s1">'minor'</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="s1">'explainable'</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">))</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">lv</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'无'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">三轮之后只剩一条 explainable（SOC 排列顺序）—— 这就是**收敛**：</span>
+
+<span class="s2">    差异 → 定级 → 修 → 重比对 → 差异减少 → …… → 只剩口径差异 → 收工</span>
+
+<span class="s2">两个必须写进流程的纪律：</span>
+
+<span class="s2">  ① **每修一轮都要重新跑完整比对**。</span>
+<span class="s2">     修改一个口径常常会带出新的差异（比如改了边界，某个分组的人数又变了）。</span>
+<span class="s2">     "我改好了"必须由机器重新验证，不能由修改者自己声明 ——</span>
+<span class="s2">     修改者恰恰是最容易有盲区的人。</span>
+
+<span class="s2">  ② **"只剩 explainable"才算完成**。</span>
+<span class="s2">     如果剩下的差异里有任何一条是 major 以上，"收敛"就没发生。</span>
+<span class="s2">     这时候的正确动作不是"再看看"，而是**找 SAP 裁决**：</span>
+<span class="s2">     口径分歧的最终裁判是方案，不是程序员的偏好。</span>
+
+<span class="s2">  ⚠️ 现实中的坑：`explainable` 必须写进 ADRG（分析数据说明文件）</span>
+<span class="s2">     并说明选了哪一个、为什么。否则下一个项目的人会再吵一遍。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 d · 独立性被破坏会怎样</span>
+<span class="c1"># ==========================================================================</span>
+<span class="n">COPIED_NAME</span> <span class="o">=</span> <span class="s2">"agegr1_copied"</span>
+<span class="n">COPIED_ARTIFACT</span> <span class="o">=</span> <span class="n">PAIR_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">COPIED_NAME</span><span class="si">}</span><span class="s2">_impl_a.json"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">impl_b_copied</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""实现 B'：**读 A 的产物**再原样交回来（"抄"在工程上的真实形态）。</span>
+
+<span class="sd">    注意：抄作业很少表现为复制粘贴代码。更常见的是 ——</span>
+<span class="sd">    B 从共享目录里读到了 A 的中间结果，然后"参考"着往下写。</span>
+<span class="sd">    所以这里就让 B' 真的去读 A 落盘的 JSON。</span>
+
+<span class="sd">    ★ 这个函数会被 :class:`IndependenceGuard` 抓到，不是靠我们手工标记，</span>
+<span class="sd">      而是因为守卫同时记录了"谁读了什么"和"谁产出了什么"。</span>
+<span class="sd">    """</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">COPIED_ARTIFACT</span>
+    <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span>
+        <span class="n">people</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"分组明细"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"实现"</span><span class="p">:</span> <span class="s2">"B'：读取了 A 的产物（独立性已破坏）"</span><span class="p">,</span>
+                <span class="s2">"分组人数"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">people</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+                <span class="s2">"分组明细"</span><span class="p">:</span> <span class="n">people</span><span class="p">}</span>
+    <span class="c1"># 拿不到 A 的产物就只能老实自己算 —— 但那时它就不是"抄"了</span>
+    <span class="k">return</span> <span class="n">impl_b_age_groups</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_d</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 d · 独立性被破坏：零差异反而不可信 ★"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 反例：B' 直接读 A 的产物 ----</span>
+    <span class="n">reads_b_bad</span> <span class="o">=</span> <span class="n">READS_AGEGR1_B</span> <span class="o">+</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">COPIED_ARTIFACT</span><span class="p">)]</span>
+    <span class="n">pair_bad</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+        <span class="n">COPIED_NAME</span><span class="p">,</span> <span class="n">impl_a_age_groups</span><span class="p">,</span> <span class="n">impl_b_copied</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+        <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+    <span class="n">rep_bad</span> <span class="o">=</span> <span class="n">pair_bad</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AGEGR1_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">reads_b_bad</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"【独立性审计 · B' 读了 A 的产物】"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">pair_bad</span><span class="o">.</span><span class="n">guard</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pair_bad</span><span class="o">.</span><span class="n">guard</span><span class="o">.</span><span class="n">assert_independent</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">role</span><span class="o">.</span><span class="n">IndependenceError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">抛出 IndependenceError"</span>
+              <span class="sa">f</span><span class="s2">"（守卫把「独立性」变成了一条可失败的断言）：</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【比对结果】差异 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_bad</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   verdict = </span><span class="si">{</span><span class="n">rep_bad</span><span class="o">.</span><span class="n">verdict</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   独立性  = </span><span class="si">{</span><span class="n">rep_bad</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 正例：真正独立的两个实现 ----</span>
+    <span class="n">pair_ok</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+        <span class="s2">"agegr1"</span><span class="p">,</span> <span class="n">impl_a_age_groups</span><span class="p">,</span> <span class="n">impl_b_age_groups</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)),</span>
+        <span class="n">shared_inputs</span><span class="o">=</span><span class="n">SHARED_INPUTS</span><span class="p">)</span>
+    <span class="n">rep_ok</span> <span class="o">=</span> <span class="n">pair_ok</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">,</span> <span class="n">reads_a</span><span class="o">=</span><span class="n">READS_AGEGR1_A</span><span class="p">,</span> <span class="n">reads_b</span><span class="o">=</span><span class="n">READS_AGEGR1_B</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【对照：真正独立的两个实现】差异 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处，"</span>
+          <span class="sa">f</span><span class="s2">"独立性 </span><span class="si">{</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2">（覆盖 </span><span class="si">{</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">coverage</span><span class="si">}</span><span class="s2"> 个来源）"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 第三种情况：根本没有登记任何来源 ----</span>
+    <span class="n">pair_gap</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">DualProgrammingPair</span><span class="p">(</span>
+        <span class="s2">"agegr1_unaudited"</span><span class="p">,</span> <span class="n">impl_a_age_groups</span><span class="p">,</span> <span class="n">impl_b_age_groups</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">classify_all</span><span class="p">(</span><span class="n">compare_age_groups</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)))</span>
+    <span class="n">rep_gap</span> <span class="o">=</span> <span class="n">pair_gap</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">PAIR_DIR</span><span class="p">)</span>          <span class="c1"># ← 故意不传 reads</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"【反面教训：审计没登记任何来源】差异 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_gap</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> 处，"</span>
+          <span class="sa">f</span><span class="s2">"独立性 </span><span class="si">{</span><span class="n">rep_gap</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"   ↑ 这份报告一个字也不能信：它没查过，只是没记账而已。"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">这三组结果的对比，就是本案例想说清的**唯一一件事**：</span>
+
+<span class="s2">  ┌────────────────────────────┬────────┬────────────────────┬──────────────────┐</span>
+<span class="s2">  │ 情形                       │ 差异数 │ 独立性             │ 结论的可信度     │</span>
+<span class="s2">  ├────────────────────────────┼────────┼────────────────────┼──────────────────┤</span>
+<span class="s2">  │ B' 读 A 的产物             │  0 处  │ ✗ 已破坏           │ **零价值**       │</span>
+<span class="s2">  │ 真正独立的 A、B            │  2 处  │ ✓ 通过             │ 找到 2 个真问题  │</span>
+<span class="s2">  │ 审计没登记任何来源         │  2 处  │ 未审计（覆盖 0）   │ 数字对，结论存疑 │</span>
+<span class="s2">  └────────────────────────────┴────────┴────────────────────┴──────────────────┘</span>
+
+<span class="s2">  ① "零差异"只有在**独立性成立**时才是一个好结果。</span>
+<span class="s2">     独立性不成立时，零差异只说明"同一份错误被复制了一遍"。</span>
+<span class="s2">     —— 这正是本案例把 :meth:`PairReport.verdict` 写成"独立性优先于差异数量"</span>
+<span class="s2">     的原因：独立性一旦破坏，报告的第一行就是"不可采信"，不管差异有几处。</span>
+
+<span class="s2">  ② **审计有覆盖范围，覆盖率 0 的"通过"等于没查。**</span>
+<span class="s2">     守卫只检查你告知它的路径；漏登记不会报错，只会让结论静默失效。</span>
+<span class="s2">     所以 :meth:`PairReport.independence_label` 有三种状态而不是两种：</span>
+<span class="s2">     通过 / 已破坏 / 未审计。</span>
+
+<span class="s2">  所以真实系统里，独立性**必须靠架构强制**，不能靠自觉：</span>
+<span class="s2">    · 两个 Agent 的对话上下文物理隔离（不共用 messages）；</span>
+<span class="s2">    · A 的产物对 B 不可读（不同工作目录 / 不同命名空间）；</span>
+<span class="s2">    · 比对由**第三方**（确定性代码）执行，而不是让 A 或 B 自己比；</span>
+<span class="s2">    · 独立性审计要落盘（就是上面那份 independence.md），并且**覆盖率要够**。</span>
+
+<span class="s2">  ⚠️ 最危险的破坏方式不是"抄代码"，而是**不经意地共享上下文**：</span>
+<span class="s2">     在同一个对话里先让 A 做，再让 B 做 —— B 能看到 A 的全部输出。</span>
+<span class="s2">     这不是"双编程"，是"同一个 Agent 说了两遍"。</span>
+
+<span class="s2">多 Agent 什么时候值得用？（第 22.2 节的判据）</span>
+<span class="s2">  ① 任务存在**可验证的多种正确路径**（衍生口径、检验方法）；</span>
+<span class="s2">  ② 单次错误的**代价很高**（递交物、关键 TFL）；</span>
+<span class="s2">  ③ 能**机械比对**结果（数字、表格、数据集）。</span>
+<span class="s2">  三条同时成立 → 用。缺一条 → 用单 Agent + 单元测试更划算。</span>
+<span class="s2">  本案例三条都成立，所以值得。</span>
+
+<span class="s2">最后一个判断题：**先证明单 Agent 不够用，再上多 Agent。**</span>
+<span class="s2">  多 Agent 的成本是通信开销、上下文开销、以及"冲突处理"的复杂度。</span>
+<span class="s2">  如果你的任务可以用一个脚本 + 一个单元测试解决 —— 那就那么做。"""</span><span class="p">)</span>
+
+    <span class="p">(</span><span class="n">PAIR_DIR</span> <span class="o">/</span> <span class="s2">"case11_independence_contrast.md"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+        <span class="s2">"# 独立性对照（三种结果）</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"| 情形 | 差异数 | 独立性 | 结论 |</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"| --- | --- | --- | --- |</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"| B' 读了 A 的产物 | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_bad</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> | "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rep_bad</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2"> | 不可采信 |</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"| 真正独立 | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> | "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2">（覆盖 </span><span class="si">{</span><span class="n">rep_ok</span><span class="o">.</span><span class="n">coverage</span><span class="si">}</span><span class="s2">） | 可采信 |</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"| 未登记来源 | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_gap</span><span class="o">.</span><span class="n">discrepancies</span><span class="p">)</span><span class="si">}</span><span class="s2"> | "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rep_gap</span><span class="o">.</span><span class="n">independence_label</span><span class="si">}</span><span class="s2"> | 存疑 |</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+        <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 e · 另两种拓扑</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_e</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 e · 另两种拓扑：Supervisor 与 Pipeline"</span><span class="p">)</span>
+
+    <span class="c1"># ---------------- Supervisor：协调者 + 契约化角色 ----------------</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"① Supervisor（监督者）—— 每个角色是一份**契约**，不是一句人设</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">cards</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">role</span><span class="o">.</span><span class="n">RoleCard</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"data-qc"</span><span class="p">,</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">"确认源数据的完整性与可用性"</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="s2">"检查各域记录数与关键变量的缺失情况。"</span><span class="p">,</span>
+            <span class="n">tools</span><span class="o">=</span><span class="p">(</span><span class="s2">"list_datasets"</span><span class="p">,</span> <span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="s2">"run_qc_checks"</span><span class="p">),</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(),</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="s2">"记录数"</span><span class="p">,</span> <span class="s2">"高优先级问题数"</span><span class="p">),</span>
+            <span class="n">forbidden</span><span class="o">=</span><span class="p">(</span><span class="s2">"不要做任何衍生计算"</span><span class="p">,</span> <span class="s2">"不要修改数据"</span><span class="p">)),</span>
+        <span class="n">role</span><span class="o">.</span><span class="n">RoleCard</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"table-dev"</span><span class="p">,</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">"按 SAP 生成 TFL 数据"</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="s2">"严格按 SAP 的分子分母口径生成表。"</span><span class="p">,</span>
+            <span class="n">tools</span><span class="o">=</span><span class="p">(</span><span class="s2">"demo_table"</span><span class="p">,</span> <span class="s2">"ae_table"</span><span class="p">,</span> <span class="s2">"shift_table"</span><span class="p">),</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="s2">"记录数"</span><span class="p">,),</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="s2">"表1"</span><span class="p">,</span> <span class="s2">"表2"</span><span class="p">),</span>
+            <span class="n">forbidden</span><span class="o">=</span><span class="p">(</span><span class="s2">"不要自行改变分母口径"</span><span class="p">,</span> <span class="s2">"不要修改原始数据"</span><span class="p">)),</span>
+        <span class="n">role</span><span class="o">.</span><span class="n">RoleCard</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"reviewer"</span><span class="p">,</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">"独立复核并有权提出结构化质疑"</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="s2">"只做复核，不做实现。发现不一致必须给 expected/actual。"</span><span class="p">,</span>
+            <span class="n">tools</span><span class="o">=</span><span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="s2">"compare_datasets"</span><span class="p">),</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="s2">"表1"</span><span class="p">,</span> <span class="s2">"表2"</span><span class="p">),</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="s2">"复核结论"</span><span class="p">,),</span>
+            <span class="n">forbidden</span><span class="o">=</span><span class="p">(</span><span class="s2">"不要直接改实现"</span><span class="p">,</span> <span class="s2">"不要在无证据时下结论"</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cards</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   · </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">scope</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   角色 </span><span class="si">{</span><span class="n">cards</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> 的禁用清单：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">cards</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">forbidden</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">sup</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">Supervisor</span><span class="p">(</span><span class="n">cards</span><span class="p">)</span>
+    <span class="n">sup</span><span class="o">.</span><span class="n">dispatch</span><span class="p">([</span><span class="s2">"data-qc"</span><span class="p">],</span> <span class="p">{</span><span class="s2">"stage"</span><span class="p">:</span> <span class="s2">"kickoff"</span><span class="p">,</span> <span class="s2">"study"</span><span class="p">:</span> <span class="s2">"CDISCPILOT01"</span><span class="p">})</span>
+    <span class="c1"># ---- 契约校验：少产出就报错，不让"半成品"往下流 ----</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">sup</span><span class="o">.</span><span class="n">collect</span><span class="p">(</span><span class="s2">"data-qc"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"记录数"</span><span class="p">:</span> <span class="mi">306</span><span class="p">})</span>          <span class="c1"># 少了"高优先级问题数"</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">   契约校验拦住了：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">sup</span><span class="o">.</span><span class="n">collect</span><span class="p">(</span><span class="s2">"data-qc"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"记录数"</span><span class="p">:</span> <span class="mi">306</span><span class="p">,</span> <span class="s2">"高优先级问题数"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+                <span class="n">evidence</span><span class="o">=</span><span class="p">(</span><span class="s2">"data/samples/"</span><span class="p">,</span> <span class="s2">"outputs/audit/case11.jsonl"</span><span class="p">))</span>
+    <span class="n">sup</span><span class="o">.</span><span class="n">dispatch</span><span class="p">([</span><span class="s2">"table-dev"</span><span class="p">],</span> <span class="p">{</span><span class="s2">"stage"</span><span class="p">:</span> <span class="s2">"tables"</span><span class="p">,</span> <span class="s2">"sap"</span><span class="p">:</span> <span class="s2">"v2.1"</span><span class="p">})</span>
+    <span class="n">sup</span><span class="o">.</span><span class="n">collect</span><span class="p">(</span><span class="s2">"table-dev"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"表1"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">,</span> <span class="s2">"表2"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">})</span>
+    <span class="c1"># ---- 结构化质疑：必须带 expected / actual ----</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">sup</span><span class="o">.</span><span class="n">challenge</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="s2">"表2.TEAE 受试者数"</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"分子口径与 SAP 6.2 节不符"</span><span class="p">,</span>
+                        <span class="n">expected</span><span class="o">=</span><span class="s2">"不重复受试者数"</span><span class="p">,</span> <span class="n">actual</span><span class="o">=</span><span class="s2">"记录数"</span><span class="p">,</span>
+                        <span class="n">affected</span><span class="o">=</span><span class="p">(</span><span class="s2">"01-701-1015"</span><span class="p">,</span> <span class="s2">"01-701-1023"</span><span class="p">),</span>
+                        <span class="n">severity</span><span class="o">=</span><span class="s2">"critical"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">   质疑消息：</span><span class="si">{</span><span class="n">msg</span><span class="o">.</span><span class="n">render</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">   消息总数 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sup</span><span class="o">.</span><span class="n">messages</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条；"</span>
+          <span class="sa">f</span><span class="s2">"已汇总产出键 </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">sup</span><span class="o">.</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">   为什么要强制"结构化 payload + 契约"？</span>
+<span class="s2">     · ``collect()`` 会检查角色是否**按 card.outputs 交齐了产出**。</span>
+<span class="s2">       少交一个键就报错 —— 而不是让协调者拿到半成品继续往下做。</span>
+<span class="s2">     · ``Challenge`` 必须带 expected / actual / affected。</span>
+<span class="s2">       "我觉得不对" 无法核查；"我期望 X、实际是 Y、影响这 2 条记录" 可以。</span>
+<span class="s2">     · ``forbidden`` 的作用是防止角色越权：</span>
+<span class="s2">       复核者不能改实现（否则它就不再是独立复核），</span>
+<span class="s2">       实现者不能改分母口径（否则口径分歧会被悄悄消灭）。</span>
+
+<span class="s2">   ⚠️ Supervisor 拓扑的两个真实风险：</span>
+<span class="s2">     ① 协调者成为瓶颈/单点 —— 它的上下文会累积所有子任务的返回；</span>
+<span class="s2">     ② 协调者"误解"子任务返回 —— 所以 payload 必须结构化，</span>
+<span class="s2">        且子任务必须给出 refs（产物路径），让协调者可以核对原始产物。"""</span><span class="p">)</span>
+
+    <span class="c1"># ---------------- Pipeline：阶段契约检查 ----------------</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">② Pipeline（流水线）—— 每一环都要有输入契约检查</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">stages</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"读数据"</span><span class="p">,</span> <span class="s2">"衍生"</span><span class="p">,</span> <span class="s2">"出表"</span><span class="p">,</span> <span class="s2">"QC"</span><span class="p">]</span>
+    <span class="n">handlers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"读数据"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="p">{</span><span class="s2">"adsl"</span><span class="p">:</span> <span class="mi">254</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">:</span> <span class="mi">1191</span><span class="p">},</span>
+        <span class="s2">"衍生"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">d</span><span class="p">,</span> <span class="s2">"ADSL"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"SAFFL"</span><span class="p">:</span> <span class="mi">254</span><span class="p">,</span> <span class="s2">"EFFFL"</span><span class="p">:</span> <span class="mi">240</span><span class="p">}},</span>
+        <span class="s2">"出表"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">d</span><span class="p">,</span> <span class="s2">"表1"</span><span class="p">:</span> <span class="s2">"Table 1（254 行）"</span><span class="p">},</span>
+        <span class="s2">"QC"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">d</span><span class="p">,</span> <span class="s2">"QC"</span><span class="p">:</span> <span class="s2">"通过"</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">validators</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"读数据"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"adsl"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"adsl 记录数为 0"</span><span class="p">,</span>
+        <span class="c1"># ★ 这个校验故意会失败：衍生结果缺少必需的 AGEGR1</span>
+        <span class="s2">"衍生"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="s2">"AGEGR1"</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ADSL"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">else</span> <span class="s2">"ADSL 缺少必需变量 AGEGR1（SAP 6.1 节要求）"</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">Pipeline</span><span class="p">(</span><span class="n">stages</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pipe</span><span class="o">.</span><span class="n">run</span><span class="p">({},</span> <span class="n">handlers</span><span class="p">,</span> <span class="n">validators</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   流水线在阶段中断：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">pipe</span><span class="o">.</span><span class="n">report</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"   "</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">   注意 Pipeline 失败时的行为：**在阶段边界抛出**，而不是让错误数据流到最后一环。</span>
+
+<span class="s2">     · 如果"衍生"产出缺 AGEGR1 却继续出表 → 表里会静默少一个分组，</span>
+<span class="s2">       而这张表看起来完全正常。这就是第 19 章说过的"看起来完整"的危险。</span>
+<span class="s2">     · 契约检查写在哪一环，就在哪一环拦住 —— **越早拦住，排查成本越低**。</span>
+
+<span class="s2">   三种拓扑的选用（第 22.3 节的总结）：</span>
+
+<span class="s2">     双编程（对等）  两个人/两个 Agent 做同一件事，靠比对验证 → 本案例主角</span>
+<span class="s2">     监督者          任务可拆分且**互不重叠**，需要协调与汇总 → 多角色核查</span>
+<span class="s2">     流水线          任务有**严格先后**，每一步都改变数据结构 → 数据加工链</span>
+
+<span class="s2">     ⚠️ 不要为了"用多 Agent"而用多 Agent。</span>
+<span class="s2">        能用一个脚本 + 一个单元测试解决的，就别上多 Agent ——</span>
+<span class="s2">        通信开销和冲突处理成本会超过收益。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"案例 11 · 双编程 Agent 对（多 Agent 协作的正确用法）"</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--only"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"all"</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">])</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">):</span>
+        <span class="n">scenario_a</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">):</span>
+        <span class="n">scenario_b</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">):</span>
+        <span class="n">scenario_c</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">):</span>
+        <span class="n">scenario_d</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">):</span>
+        <span class="n">scenario_e</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"案例 11 结束。下一步："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  · 案例 12 —— 把 QC Agent 做成服务：接口、指标、日志、评估集"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case10.html"><span class="pg-label">← 上一篇</span><span class="pg-title">TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）</span></a><a class="pg-next" href="case12.html"><span class="pg-label">下一篇 →</span><span class="pg-title">QC Agent 服务化（接口 / 指标 / 缓存 / 评估集）</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

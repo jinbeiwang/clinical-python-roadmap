@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="临床 Python 进阶路线图">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
 <script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
-<link rel="stylesheet" href="../assets/style.css?v=style.css?v=c1eb1978">
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
 </head>
 <body data-base="../" data-page="code/clinic-agent_tools.html">
 <header class="topbar">
@@ -37,7 +37,7 @@
 <div class="layout">
 <aside class="sidebar" id="sidebar"></aside>
 <main class="content">
-  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/</div><h1>clinic/agent_tools.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/agent_tools.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/agent_tools.py">下载</a></div></div>
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/ · Agent 与工程化</div><h1>clinic/agent_tools.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/agent_tools.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/agent_tools.py">下载</a></div></div>
   <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">agent_tools.py</strong> · 520 行 · 17 KB<br>clinic.agent_tools —— 暴露给 LLM Agent 的工具集</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="sd">"""</span>
 <span class="sd">clinic.agent_tools —— 暴露给 LLM Agent 的工具集</span>
 
@@ -558,7 +558,7 @@
         <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"工具 </span><span class="si">%s</span><span class="s2"> 执行失败: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"错误"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">},</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </code></pre></div></div></article>
-<nav class="pager"><a class="pg-prev" href="clinic-qc.html"><span class="pg-label">← 上一篇</span><span class="pg-title">qc.py</span></a><a class="pg-next" href="script-download_data.html"><span class="pg-label">下一篇 →</span><span class="pg-title">download_data.py</span></a></nav>
+<nav class="pager"><a class="pg-prev" href="clinic-qc.html"><span class="pg-label">← 上一篇</span><span class="pg-title">qc.py</span></a><a class="pg-next" href="clinic-agent_core.html"><span class="pg-label">下一篇 →</span><span class="pg-title">agent_core.py</span></a></nav>
 </main>
 <aside class="toc" id="toc"></aside>
 </div>
@@ -572,6 +572,6 @@
 <button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
 <div class="overlay" id="overlay"></div>
 <script src="../assets/nav-data.js"></script>
-<script src="../assets/app.js?v=app.js?v=d227960b"></script>
+<script src="../assets/app.js?v=d227960b"></script>
 </body>
 </html>

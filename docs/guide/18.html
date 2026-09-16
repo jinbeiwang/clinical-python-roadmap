@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 18 章 · Agent 架构设计：从 200 行循环到可维护的系统</title>
+<meta name="description" content="Agent 架构设计 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 18 章 · Agent 架构设计：从 200 行循环到可维护的系统">
+<meta property="og:description" content="Agent 架构设计 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/18.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第五阶段 · Agent 核心能力</div><h1>第 18 章 · Agent 架构设计：从 200 行循环到可维护的系统</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/18-Agent%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把第 16 章那个"能跑"的 while 循环，拆成在真实项目里能维护、
+能审计、能扩展的分层架构 —— 同时明确<strong>什么时候根本不该用 Agent</strong>。
+<strong>配套模块</strong>：<a href="../code/clinic-agent_core.html"><code>clinic/agent_core.py</code></a>
+<strong>配套案例</strong>：<a href="../code/case08.html"><code>cases/case08_分层架构QC_Agent.py</code></a></p>
+</blockquote>
+<hr />
+<h2 id="181-先承认第-16-章那个循环有四块天花板">18.1 先承认：第 16 章那个循环有四块天花板</h2>
+<p>第 16 章的 <code>run_agent()</code> 只有几十行，教学上够用。但把它放进一个要在
+真实项目里跑三年的工具，会撞到四堵墙：</p>
+<table>
+<thead>
+<tr>
+<th>天花板</th>
+<th>现象</th>
+<th>在临床场景里的后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>状态在内存里</strong></td>
+<td>所有对话都在 <code>messages</code> 列表里，进程一断全没</td>
+<td>跑了 20 步的核查任务，网络抖一下就得重来</td>
+</tr>
+<tr>
+<td><strong>工具没有契约</strong></td>
+<td>工具是普通函数，参数靠 LLM"猜对"</td>
+<td>LLM 传了 <code>USUBJID="01-701-1015"</code> 而工具期待列表 → 报错堆栈直接抛给模型</td>
+</tr>
+<tr>
+<td><strong>副作用不可分级</strong></td>
+<td>读数据的工具和写文件的工具长得一样</td>
+<td>LLM 可能自己决定覆盖一份输出文件</td>
+</tr>
+<tr>
+<td><strong>过程不可重放</strong></td>
+<td>只留下最终答案</td>
+<td>监管问"这个结论怎么来的"，你只有一段自然语言</td>
+</tr>
+</tbody>
+</table>
+<p>这四件事<strong>都不是"提示词写得不够好"能解决的</strong>。它们必须在架构层面处理。</p>
+<hr />
+<h2 id="182-五种主流架构模式">18.2 五种主流架构模式</h2>
+<p>在动手拆之前，先看清有哪些成熟套路。它们不是互斥的，真实系统通常是组合。</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>控制流</th>
+<th>适合什么</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ReAct</strong></td>
+<td>想一步 → 做一步 → 看结果 → 再想</td>
+<td>探索型任务，路径未知</td>
+<td>步数不可预测，可能绕圈子</td>
+</tr>
+<tr>
+<td><strong>Plan-and-Execute</strong></td>
+<td>先出完整计划 → 再逐步执行</td>
+<td>步骤可枚举、要求可复现</td>
+<td>计划错则全错，需要重规划机制</td>
+</tr>
+<tr>
+<td><strong>Reflection</strong></td>
+<td>产出 → 自我批评 → 修订</td>
+<td>写报告、写代码、找自己的错</td>
+<td>token 翻倍，可能"越改越差"</td>
+</tr>
+<tr>
+<td><strong>Router</strong></td>
+<td>先分类 → 分派给专门的处理器</td>
+<td>入口杂、子任务差异大</td>
+<td>分类错了后面全错</td>
+</tr>
+<tr>
+<td><strong>Graph / 状态机</strong></td>
+<td>节点 + 边 + 条件跳转，<strong>流程写死在代码里</strong></td>
+<td>受监管、要求可审计</td>
+<td>灵活性最低，但确定性最高</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>ReAct              Plan-Execute          Graph（显式状态机）
+
+  ┌───┐              ┌──────┐              ┌──────┐
+  │想 │              │ 规划 │              │ 读取 │
+  └─┬─┘              └──┬───┘              └──┬───┘
+    ▼                   ▼                     ▼
+  ┌───┐              ┌──────┐              ┌──────┐
+  │做 │              │步骤 1│──────────────▶│ 校验 │──┐ 不通过
+  └─┬─┘              └──┬───┘              └──┬───┘◀─┘
+    ▼                   ▼                     ▼
+  ┌───┐              ┌──────┐              ┌──────┐
+  │看 │──┐           │步骤 2│              │ 汇总 │
+  └───┘  │           └──┬───┘              └──────┘
+         │              ▼
+         └──再想      ┌──────┐
+                     │ 汇总 │
+                     └──────┘
+  自由度最高          自由度中等           自由度最低
+  可复现性最低        可复现性中等         可复现性最高
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>给临床程序员的判断法则</strong>：把"可复现性"当成一个要买的属性。
+越靠近<strong>监管递交物</strong>（SDTM/ADaM 数据集、TLF、define.xml），
+越应该往 Graph/显式流程靠；越靠近<strong>探索与辅助</strong>（数据体检、代码迁移、
+文档检索），越可以放开用 ReAct。</p>
+<p>一句话：<strong>Agent 只应该用在"步骤事先说不清"的地方。</strong></p>
+</blockquote>
+<h3 id="用-sas-类比">用 SAS 类比</h3>
+<table>
+<thead>
+<tr>
+<th>SAS 里的东西</th>
+<th>对应的 Agent 架构</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一段写死的 <code>DATA</code> 步</td>
+<td>Graph / 显式流程 —— 确定性，可复现</td>
+</tr>
+<tr>
+<td><code>%MACRO</code> 带参数，内部还是固定步骤</td>
+<td>Plan-and-Execute —— 结构固定，参数变</td>
+</tr>
+<tr>
+<td>一个交互式的 EG 会话，分析师边看边改</td>
+<td>ReAct —— 路径由人现场决定</td>
+</tr>
+<tr>
+<td>先跑一遍看结果，再回头改程序</td>
+<td>Reflection</td>
+</tr>
+</tbody>
+</table>
+<p>你绝不会把递交用的 ADaM 程序写成"每次跑的形状都不太一样"。
+Agent 的架构选择，遵循的是同一个直觉。</p>
+<hr />
+<h2 id="183-分层架构让-llm-只负责决策这一件事">18.3 分层架构：让 LLM 只负责"决策"这一件事</h2>
+<p>这是本章最重要的一句话：</p>
+<blockquote>
+<p><strong>确定性的部分用代码写死，不确定性的部分才交给 LLM。</strong>
+LLM 的职责范围只有一个 —— <strong>决定下一步做什么</strong>。除此之外全是普通 Python。</p>
+</blockquote>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>┌─────────────────────────────────────────────────────────────┐
+│  ①  编排层 Orchestration                                     │
+│     · 主循环：想 → 调用 → 观察 → 再想                        │
+│     · 状态外置：AgentState 可序列化 / 可恢复 / 可重放         │
+│     · 预算控制：步数 / token / 时间三个硬闸门                 │
+│     · 人工确认点（HITL）                                     │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ 只用 ToolSpec 定义的契约说话
+┌───────────────────────────▼─────────────────────────────────┐
+│  ②  工具层 Tools                                            │
+│     · ToolSpec：名字 + 描述 + JSON Schema + 副作用等级        │
+│     · ToolRegistry：注册、查找、统一执行、统一记日志          │
+│     · 参数校验 / 权限校验 / 超时 / 错误分类                   │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ 调用普通函数
+┌───────────────────────────▼─────────────────────────────────┐
+│  ③  领域层 Domain（复用第 1–15 章的成果）                    │
+│     clinic.io / derive / report / qc  ——  纯 pandas，无 LLM  │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│  ④  基础设施层 Infrastructure                                │
+│     LLM 客户端（真实 / Mock）· 日志追踪 · 用量统计 · 存储      │
+└─────────────────────────────────────────────────────────────┘
+</code></pre></div></div>
+<p>四层的<strong>依赖方向是单向的</strong>：上层依赖下层，下层<strong>永远不知道上面有 LLM</strong>。</p>
+<p>这一条纪律带来三个直接好处：</p>
+<ol>
+<li><strong>领域层可以单独测试</strong> —— <code>clinic/qc.py</code> 不需要任何 API Key 就能跑单元测试</li>
+<li><strong>换模型不用改业务代码</strong> —— 换成国产模型、本地模型、Mock，只动第 ④ 层</li>
+<li><strong>Mock 是架构的自然产物，不是补丁</strong> —— 第 ② 层的工具本来就是纯函数</li>
+</ol>
+<blockquote>
+<p>🔥 <strong>检验架构好坏的一个土办法</strong>：把 LLM 客户端换成"总是返回固定答案的假货"，
+你的系统还能不能跑完整个流程？
+能跑完 —— 说明确定性部分真的独立了。
+跑不完 —— 说明 LLM 被塞进了不该去的位置。</p>
+</blockquote>
+<hr />
+<h2 id="184-状态外置让-agent-可中断可恢复可重放">18.4 状态外置：让 Agent 可中断、可恢复、可重放</h2>
+<h3 id="反例状态藏在闭包里">反例：状态藏在闭包里</h3>
+<p>第 16 章的写法是这样：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">run_agent</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">25</span><span class="p">):</span>
+    <span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"system"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">SYSTEM_PROMPT</span><span class="p">}]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+        <span class="n">reply</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">TOOLS</span><span class="p">)</span>      <span class="c1"># ← 状态只活在这个函数里</span>
+        <span class="o">...</span>
+    <span class="k">return</span> <span class="n">report</span><span class="p">,</span> <span class="n">messages</span>
+</code></pre></div></div>
+<p>进程一断，<code>messages</code> 就没了。更麻烦的是：<strong>你无法回答"第 7 步当时看到的是什么"</strong>。</p>
+<h3 id="正例状态是一个可序列化的对象">正例：状态是一个可序列化的对象</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_core.py（节选）</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentState</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Agent 的全部可变状态。刻意做成可 JSON 序列化的普通数据。"""</span>
+    <span class="n">goal</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">step_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"running"</span>          <span class="c1"># running / waiting_confirm / done / failed</span>
+    <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Step</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>   <span class="c1"># 中间产物</span>
+    <span class="n">budget</span><span class="p">:</span> <span class="n">Budget</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">Budget</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"AgentState"</span><span class="p">:</span>
+        <span class="o">...</span>
+</code></pre></div></div>
+<p>有了它，三个能力顺手就有了：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 1) 断点恢复</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">AgentState</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"checkpoint.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>          <span class="c1"># 从第 8 步继续</span>
+
+<span class="c1"># 2) 事后复盘（监管最关心这个）</span>
+<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">steps</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="s2">"→"</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+
+<span class="c1"># 3) 回归测试：把线上真实跑过的状态当固定用例</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_replay</span><span class="p">():</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">AgentState</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">FIXTURE</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">replay</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="s2">"结论"</span><span class="p">]</span> <span class="o">==</span> <span class="n">EXPECTED</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>踩坑提醒</strong>：<code>json.dumps</code> 遇到 <code>Timestamp</code> / <code>numpy.int64</code> / <code>DataFrame</code>
+会直接抛 <code>TypeError</code>。所以上面的 <code>to_json</code> 里加了 <code>default=str</code>。
+更稳妥的做法是在<strong>写入状态前</strong>就把值转成基本类型（这正是工具层该做的事，
+见第 20 章"工具结果必须可序列化"）。</p>
+</blockquote>
+<p><code>Step</code> 的字段设计也值得说一句 —— <strong>它决定了你的审计日志长什么样</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Step</span><span class="p">:</span>
+    <span class="n">index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span>                        <span class="c1"># think / tool / answer / error</span>
+    <span class="n">tool</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">elapsed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</code></pre></div></div>
+<p>在临床环境里，<code>args</code> 和 <code>result</code> 就是你的<strong>稽查追踪（audit trail）</strong>。
+监管要的不是"模型说它检查过了"，而是"它在 14:32:07 调用了 <code>run_qc_checks</code>，
+参数是 <code>{"dataset": "adsl", "checks": ["required_vars"]}</code>，
+返回了 3 条中度问题"。这两者是完全不同量级的东西。</p>
+<hr />
+<h2 id="185-副作用分级把能做什么写进工具契约">18.5 副作用分级：把"能做什么"写进工具契约</h2>
+<p>Agent 出事的方式和实习生出事的方式一模一样：<strong>不是态度问题，是权限问题</strong>。</p>
+<p>所以工具的第一个属性不是"功能"，而是"危险程度"：</p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>含义</th>
+<th>例子</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read</code></td>
+<td>只读，无副作用</td>
+<td><code>describe_dataset</code>、<code>run_qc_checks</code></td>
+<td>可自由调用</td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td>写文件 / 写数据库，可覆盖</td>
+<td><code>write_report</code>、<code>write_xpt</code></td>
+<td>需确认或限制目录</td>
+</tr>
+<tr>
+<td><code>irreversible</code></td>
+<td>不可撤销（发邮件、提交、删除）</td>
+<td>推送数据、删除数据集</td>
+<td><strong>必须人工确认</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToolSpec</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span>                    <span class="c1"># JSON Schema</span>
+    <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">ToolResult</span><span class="p">]</span>
+    <span class="n">side_effect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"read"</span>           <span class="c1"># read / write / irreversible</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>          <span class="c1"># 便于做策略匹配，如 ("clinical", "qc")</span>
+</code></pre></div></div>
+<p>执行时统一拦截，<strong>而不是靠提示词哀求模型别乱来</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">policy</span><span class="p">:</span> <span class="n">Policy</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">AgentState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolResult</span><span class="p">:</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ToolResult</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="sa">f</span><span class="s2">"未知工具 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">error_type</span><span class="o">=</span><span class="s2">"validation"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">side_effect</span> <span class="o">!=</span> <span class="s2">"read"</span> <span class="ow">and</span> <span class="n">policy</span><span class="o">.</span><span class="n">confirm_side_effects</span><span class="p">:</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"waiting_confirm"</span>          <span class="c1"># ← 交还控制权给人类</span>
+        <span class="k">return</span> <span class="n">ToolResult</span><span class="o">.</span><span class="n">pending</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> 需要人工确认：</span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="o">...</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>第 16 章那条"安全边界必须在代码里，不能靠提示词"，
+在架构上的落地形式就是这个 <code>side_effect</code> 字段。</strong>
+提示词是"建议"，<code>if spec.side_effect != "read"</code> 是"物理隔离"。</p>
+</blockquote>
+<p>再配一条白名单（第 16 章已出现，这里升级为策略对象）：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Policy</span><span class="p">:</span>
+    <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span>
+    <span class="n">max_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120_000</span>
+    <span class="n">deadline_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">300.0</span>
+    <span class="n">tool_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span>
+    <span class="n">confirm_side_effects</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">allowed_datasets</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"vs"</span><span class="p">,</span> <span class="s2">"adlbc"</span><span class="p">})</span>
+</code></pre></div></div>
+<hr />
+<h2 id="186-三个硬闸门步数token时间">18.6 三个硬闸门：步数、token、时间</h2>
+<p>Agent 最常见的两种死法：<strong>绕圈子</strong>（同样的信息反复查）和<strong>烧钱</strong>（一轮对话几万 token）。</p>
+<p>三个闸门缺一不可，因为它们的失败模式不同：</p>
+<table>
+<thead>
+<tr>
+<th>闸门</th>
+<th>拦住什么</th>
+<th>不设的后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max_steps</code></td>
+<td>逻辑死循环</td>
+<td>循环到 API 额度耗尽</td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td>成本失控（上下文越滚越大）</td>
+<td>一次任务烧掉几十元</td>
+</tr>
+<tr>
+<td><code>deadline_sec</code></td>
+<td>单个工具卡死</td>
+<td>任务挂着不返回，用户以为崩了</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Budget</span><span class="p">:</span>
+    <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span>
+    <span class="n">max_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120_000</span>
+    <span class="n">deadline_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">300.0</span>
+    <span class="n">steps_used</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">tokens_used</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">started_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">exceeded</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""返回超限原因，None 表示还正常。"""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps_used</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">"步数超限（</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">steps_used</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="si">}</span><span class="s2">）"</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens_used</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">"token 超限（</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tokens_used</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="si">}</span><span class="s2">）"</span>
+        <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">started_at</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_sec</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">"时间超限（</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">started_at</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s）"</span>
+        <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>注意"超限"不等于"失败"</strong>。超限时应该返回<strong>已经拿到的部分结论</strong>，
+并明确标注"因预算用尽而提前结束"。直接抛异常会让用户丢掉前面 20 步的成果 ——
+这在实际使用中非常恼人。</p>
+</blockquote>
+<hr />
+<h2 id="187-决策树这个任务到底该不该用-agent">18.7 决策树：这个任务到底该不该用 Agent</h2>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>                    需要处理一个临床数据任务
+                              │
+                 步骤能不能事先完整写下来？
+                    │                     │
+                   能                     不能
+                    │                     │
+             写普通脚本/流水线        结果需要 100% 可复现吗？
+             （不要用 Agent）         │              │
+                                    需要            不需要
+                                     │              │
+                              Graph/状态机    任务是"取信息"还是"做判断"？
+                              + LLM 只做       │            │
+                                局部辅助      取信息        做判断
+                                              │            │
+                                        RAG/检索       ReAct Agent
+                                        （不是 Agent）  （可以放开）
+</code></pre></div></div>
+<p>把这个决策树翻译成临床场景的实例：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>生成 ADaM 数据集</td>
+<td><strong>纯脚本</strong></td>
+<td>步骤完全确定，可复现性是硬要求</td>
+</tr>
+<tr>
+<td>生成 TLF</td>
+<td><strong>纯脚本 + 参数</strong></td>
+<td>上面那条的推论</td>
+</tr>
+<tr>
+<td>批量数据体检（几十个域）</td>
+<td><strong>脚本 + LLM 解读报告</strong></td>
+<td>检查项确定，结论表述可以交给 LLM</td>
+</tr>
+<tr>
+<td>"这批数据有什么异常？"</td>
+<td><strong>ReAct Agent</strong></td>
+<td>异常类型事先说不清</td>
+</tr>
+<tr>
+<td>"从 SAP 里找出这条规则"</td>
+<td><strong>RAG 检索</strong></td>
+<td>是取信息，不是做决策</td>
+</tr>
+<tr>
+<td>SDTM 映射（CRF 字段 → SDTM 变量）</td>
+<td><strong>LLM 建议 + 人工确认</strong></td>
+<td>涉及判断，但必须留痕</td>
+</tr>
+<tr>
+<td>递交前的 200 项自动检查</td>
+<td><strong>脚本 + 显式清单</strong></td>
+<td>检查项必须可枚举、可签字</td>
+</tr>
+<tr>
+<td>代码审查（SAS→Python 迁移）</td>
+<td><strong>Reflection</strong></td>
+<td>产出 + 自我批评，天然适合</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>一句话总结</strong>：<strong>Agent 是把"说不清的步骤"变成"可执行的探索"，
+而不是把"说得清的步骤"变得更花哨。</strong></p>
+</blockquote>
+<hr />
+<h2 id="188-动手把-case07-重构成分层架构">18.8 动手：把 case07 重构成分层架构</h2>
+<p>重构前后对比：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>case07（教学版，单文件）               case08（工程版，分层）
+
+case07_临床数据QC_Agent.py            clinic/agent_core.py
+├── SYSTEM_PROMPT                     ├── Message / ToolCall / Step
+├── MockLLMClient                     ├── ToolSpec / ToolRegistry / ToolResult
+├── OpenAIClient                      ├── AgentState / Budget（可序列化）
+├── TOOLS（JSON Schema）              ├── Policy（安全边界）
+├── TOOL_IMPL（函数字典）             └── Agent（主循环）
+├── execute_tool()                    
+├── run_agent()  ← 一个 80 行大函数   clinic/agent_tools.py
+└── main()                            └── build_registry() → ToolRegistry
+
+                                      cases/case08_分层架构QC_Agent.py
+                                      ├── 组装：注册工具 + 选策略 + 选客户端
+                                      ├── 演示：正常跑完一个核查任务
+                                      ├── 演示：断点保存 → 恢复 → 继续
+                                      ├── 演示：命中"需人工确认"的写操作
+                                      └── 演示：token 预算耗尽时的优雅收尾
+</code></pre></div></div>
+<p>重构后的主循环长这样 —— 注意它有多"薄"：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_core.py 中 Agent.run() 的骨架</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">AgentState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentState</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">state</span> <span class="ow">or</span> <span class="n">AgentState</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="n">goal</span><span class="p">,</span> <span class="n">budget</span><span class="o">=</span><span class="n">Budget</span><span class="p">(</span><span class="o">**</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">budget</span><span class="p">)))</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">))</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">why</span> <span class="o">:=</span> <span class="n">state</span><span class="o">.</span><span class="n">budget</span><span class="o">.</span><span class="n">exceeded</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finish</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"因预算限制提前结束：</span><span class="si">{</span><span class="n">why</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="n">reply</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">schemas</span><span class="p">())</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">budget</span><span class="o">.</span><span class="n">tokens_used</span> <span class="o">+=</span> <span class="n">reply</span><span class="o">.</span><span class="n">tokens</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reply</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reply</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>                       <span class="c1"># 模型给出最终答案</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finish</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">reply</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">reply</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">call</span><span class="o">.</span><span class="n">arguments</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"waiting_confirm"</span><span class="p">:</span>       <span class="c1"># 交还控制权</span>
+                <span class="k">return</span> <span class="n">state</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">to_llm_text</span><span class="p">()))</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Step</span><span class="p">(</span><span class="o">...</span><span class="p">))</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">budget</span><span class="o">.</span><span class="n">steps_used</span> <span class="o">+=</span> <span class="mi">1</span>
+</code></pre></div></div>
+<p><strong>主循环里没有一行业务逻辑</strong> —— 业务全在工具里，安全全在策略里，
+可观测性全在 Observer 里。这就是分层架构的样子。</p>
+<p>运行：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>python<span class="w"> </span>cases/case08_分层架构QC_Agent.py<span class="w">                 </span><span class="c1"># 离线 Mock，直接跑通</span>
+python<span class="w"> </span>cases/case08_分层架构QC_Agent.py<span class="w"> </span>--resume<span class="w"> </span>out.json<span class="w">   </span>#<span class="w"> </span>演示断点恢复
+</code></pre></div></div>
+<hr />
+<h2 id="189-常见误区">18.9 常见误区</h2>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>为什么错</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"把工具拆得越细越好"</td>
+<td>LLM 要在 40 个工具里选，选择错误率飙升</td>
+<td>一个工具=一个<strong>业务动作</strong>，控制在 5–15 个</td>
+</tr>
+<tr>
+<td>"把 System Prompt 写长一点就能约束住"</td>
+<td>提示词是概率性的，压力/诱导/幻觉下会失效</td>
+<td>边界写成 <code>if</code>，不写成祈使句</td>
+</tr>
+<tr>
+<td>"加个 <code>try/except</code> 就够了"</td>
+<td>错误信息直接喂给模型，它会"编一个"参数再试</td>
+<td>结构化错误（第 20 章），明确告诉它怎么改</td>
+</tr>
+<tr>
+<td>"让它自己决定要不要重试"</td>
+<td>幂等性没保证，可能重复写</td>
+<td>工具层标记 <code>retryable</code>，由框架决定</td>
+</tr>
+<tr>
+<td>"多 Agent 一定比单 Agent 强"</td>
+<td>通信开销与冲突成本常常超过收益</td>
+<td>见第 22 章：先证明单 Agent 不够用</td>
+</tr>
+<tr>
+<td>"先跑起来，日志以后再加"</td>
+<td>出问题时你连"它当时看到了什么"都不知道</td>
+<td><code>Step</code> 从第一天就记全</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1810-本章小结">18.10 本章小结</h2>
+<ol>
+<li><strong>架构的核心是把确定性从不确定性里剥出来</strong> —— LLM 只决定"下一步做什么"</li>
+<li><strong>状态必须外置</strong> —— 可序列化才能断点恢复、事后复盘、回归测试</li>
+<li><strong>副作用必须分级</strong> —— <code>read / write / irreversible</code>，用代码而不是提示词拦截</li>
+<li><strong>预算必须有三道闸门</strong> —— 步数、token、时间，且超限要优雅收尾</li>
+<li><strong>能用脚本写的，不要用 Agent</strong> —— 这是最重要的一条</li>
+</ol>
+<p><strong>下一章</strong>：Agent 拿到目标后，怎么把它拆成可执行、可并行、可重试的任务图。</p>
+<hr />
+<h2 id="1811-动手练习">18.11 动手练习</h2>
+<ol>
+<li>打开 <code>cases/case08_分层架构QC_Agent.py</code>，把 <code>Policy.max_steps</code> 改成 3，
+   观察 Agent 是被"截断"还是"优雅收尾"。改 <code>Budget</code> 的实现，让它返回部分结论。</li>
+<li>给 <code>ToolRegistry.execute()</code> 加一条规则：某个工具在<strong>同一轮任务里被调用超过 3 次</strong>
+   时，返回结构化错误提示模型"换个思路"。（提示：在 <code>AgentState</code> 里记调用计数）</li>
+<li>把 <code>clinic/agent_core.py</code> 里的 <code>Observer</code> 换成写 JSONL 文件的实现，
+   让每次工具调用落一行到 <code>outputs/audit/trace.jsonl</code>，字段自定但<strong>必须包含时间戳、
+   工具名、参数、结果摘要、耗时</strong>。</li>
+<li><strong>思考题</strong>：如果监管要求"每次运行的结论必须完全一致"，
+   你会如何改造 <code>case08</code>？（提示：温度参数、Mock 重放、缓存）</li>
+</ol></article>
+<nav class="pager"><a class="pg-prev" href="17.html"><span class="pg-label">← 上一篇</span><span class="pg-title">工程化与后续进阶</span></a><a class="pg-next" href="19.html"><span class="pg-label">下一篇 →</span><span class="pg-title">任务规划与调度</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 21 章 · 记忆与上下文管理</title>
+<meta name="description" content="记忆与上下文管理 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 21 章 · 记忆与上下文管理">
+<meta property="og:description" content="记忆与上下文管理 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/21.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第五阶段 · Agent 核心能力</div><h1>第 21 章 · 记忆与上下文管理</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/21-%E8%AE%B0%E5%BF%86%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：理解为什么"上下文窗口很大"并没有解决记忆问题，
+并掌握三种对话记忆策略、结构化工作记忆、以及临床文档检索的正确做法。
+<strong>配套模块</strong>：<a href="../code/clinic-agent_memory.html"><code>clinic/agent_memory.py</code></a></p>
+</blockquote>
+<hr />
+<h2 id="211-上下文窗口是硬约束">21.1 上下文窗口是硬约束</h2>
+<p>模型宣传的"200K 上下文"给了很多人一个错觉：不用管记忆了。</p>
+<p>实际情况是，<strong>上下文每多 1 万 token，你要付三笔账</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>账</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>钱</strong></td>
+<td>输入 token 是计费的，且每轮都要重发全部历史 —— 第 20 轮的成本是第 1 轮的 20 倍</td>
+</tr>
+<tr>
+<td><strong>时间</strong></td>
+<td>上下文越长，首 token 延迟越高，交互体验断崖式下降</td>
+</tr>
+<tr>
+<td><strong>准确率</strong></td>
+<td>关键信息落在长上下文<strong>中间</strong>时最容易被忽略（业界称 "lost in the middle"）</td>
+</tr>
+</tbody>
+</table>
+<p>第三笔账最容易被忽视，也最危险。</p>
+<blockquote>
+<p>🔥 <strong>一个反直觉的结论</strong>：把 200 页 SAP 全文塞进上下文，
+效果通常<strong>不如</strong>先检索出相关的 3 条条款再放进去。
+前者看起来"信息完整"，实际上让模型在噪音里捞针。</p>
+</blockquote>
+<p>所以这一章的核心不是"怎么装下更多"，而是<strong>"怎么只装该装的"</strong>。</p>
+<hr />
+<h2 id="212-上下文里应该放什么">21.2 上下文里应该放什么</h2>
+<p>一个可用的预算分配表（以 32K 上下文为例）：</p>
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>预算</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Prompt</td>
+<td>1–2K</td>
+<td>角色、硬规则、输出格式</td>
+</tr>
+<tr>
+<td>工具清单</td>
+<td>2–4K</td>
+<td>工具多了这块会暴涨（见 20.3 的粒度）</td>
+</tr>
+<tr>
+<td>任务目标 + 当前计划</td>
+<td>1K</td>
+<td>每轮都带上，防止"跑偏"</td>
+</tr>
+<tr>
+<td><strong>工作记忆（状态摘要）</strong></td>
+<td>2–4K</td>
+<td>★ 替代"记住之前发生的事"</td>
+</tr>
+<tr>
+<td>最近的 3–5 轮原始对话</td>
+<td>3–6K</td>
+<td>保留细节，供模型理解上下文</td>
+</tr>
+<tr>
+<td>工具调用结果</td>
+<td>4–8K</td>
+<td><strong>必须摘要化</strong>（见 21.6）</td>
+</tr>
+<tr>
+<td>检索到的外部依据</td>
+<td>2–6K</td>
+<td>带出处</td>
+</tr>
+<tr>
+<td>留给输出的空间</td>
+<td>2–4K</td>
+<td>别把窗口填满，模型要写答案</td>
+</tr>
+</tbody>
+</table>
+<p>注意"工作记忆"和"最近对话"是<strong>两件不同的事</strong> ——
+很多实现把它们混在一起，结果就是"要么全留（爆窗口）要么全丢（失忆）"。</p>
+<hr />
+<h2 id="213-三种对话记忆策略">21.3 三种对话记忆策略</h2>
+<h3 id="策略-1全量保留full">策略 1：全量保留（Full）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">build_context_full</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">messages</span>          <span class="c1"># 全部历史</span>
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>信息无损，实现最简单</td>
+<td>成本随时间线性增长，最终必然超窗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>适用</strong>：短任务（&lt; 10 轮）、调试期。</p>
+<h3 id="策略-2滑窗sliding-window">策略 2：滑窗（Sliding Window）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">build_context_window</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">keep</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">keep_head</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""保留最前面的（system + 初始目标）+ 最近的 N 轮。"""</span>
+    <span class="n">msgs</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">messages</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">keep</span> <span class="o">+</span> <span class="n">keep_head</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">msgs</span>
+    <span class="k">return</span> <span class="n">msgs</span><span class="p">[:</span><span class="n">keep_head</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"（此处省略了 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">keep</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">keep_head</span><span class="si">}</span><span class="s2"> 轮中间对话）"</span>
+    <span class="p">)]</span> <span class="o">+</span> <span class="n">msgs</span><span class="p">[</span><span class="o">-</span><span class="n">keep</span><span class="p">:]</span>
+</code></pre></div></div>
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成本恒定</td>
+<td><strong>中间的关键结论会丢</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>适用</strong>：探索型任务，中间过程不重要。</p>
+<p>⚠️ <strong>滑窗有个隐蔽的坑</strong>：<code>tool</code> 消息必须跟在对应的 <code>assistant</code> 消息后面。
+如果窗口边界正好切在"assistant 发了 tool_call"和"tool 返回结果"之间，
+API 会报 <code>400 Bad Request</code>。上面的实现没有处理这个边界 ——
+生产中需要向后对齐到安全的切点。</p>
+<h3 id="策略-3摘要压缩summary">策略 3：摘要压缩（Summary）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_memory.py（节选）</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SummarizingMemory</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把旧对话压缩成结构化摘要，而不是直接丢弃。"""</span>
+
+    <span class="n">SUMMARY_PROMPT</span> <span class="o">=</span> <span class="s2">"""把下面的对话压缩成简明的结构化摘要。</span>
+<span class="s2">必须保留：① 已经确认的事实与数字（含出处）② 已排除的可能性 ③ 未解决的问题</span>
+<span class="s2">不要保留：寒暄、重复的推理过程、失败尝试的细节</span>
+
+<span class="s2">输出格式：</span>
+<span class="s2">## 已确认</span>
+<span class="s2">- ...</span>
+<span class="s2">## 已排除</span>
+<span class="s2">- ...</span>
+<span class="s2">## 待解决</span>
+<span class="s2">- ...</span>
+<span class="s2">"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">keep_recent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">max_summary_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1500</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span> <span class="o">=</span> <span class="n">keep_recent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_summary_chars</span> <span class="o">=</span> <span class="n">max_summary_chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="n">msgs</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">messages</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msgs</span>
+        <span class="n">old</span><span class="p">,</span> <span class="n">recent</span> <span class="o">=</span> <span class="n">msgs</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span><span class="p">],</span> <span class="n">msgs</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">keep_recent</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="n">old</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="p">,</span> <span class="n">old</span><span class="p">)</span>
+        <span class="n">head</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">"## 早前对话摘要</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">msgs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">([</span><span class="n">head</span><span class="p">]</span> <span class="k">if</span> <span class="n">head</span> <span class="k">else</span> <span class="p">[])</span> <span class="o">+</span> <span class="n">recent</span>
+</code></pre></div></div>
+<p>三种策略的取舍：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>成本</th>
+<th>信息保留</th>
+<th>复杂度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全量</td>
+<td>线性增长</td>
+<td>完整</td>
+<td>低</td>
+<td>短任务、调试</td>
+</tr>
+<tr>
+<td>滑窗</td>
+<td>恒定</td>
+<td>只保最近</td>
+<td>低</td>
+<td>探索型、过程不重要</td>
+</tr>
+<tr>
+<td><strong>摘要</strong></td>
+<td>恒定</td>
+<td><strong>关键结论不丢</strong></td>
+<td>中</td>
+<td><strong>长任务、需要追溯</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>临床场景推荐"摘要 + 滑窗"混合</strong>：
+摘要负责"不丢结论"，滑窗负责"保住最近细节"。
+纯摘要有信息损失风险，纯滑窗会丢掉早期的关键发现。</p>
+</blockquote>
+<p>⚠️ 摘要本身也是 LLM 调用，<strong>它会引入新的失真</strong>。两条纪律：
+1. 摘要必须保留<strong>数字和出处</strong>（"ADSL 254 行"不能在摘要里变成"约 250 行"）
+2. 原始对话<strong>不要删</strong> —— 摘要只是给模型看的视图，原始记录仍在 <code>state.steps</code> 里供审计</p>
+<hr />
+<h2 id="214-结构化工作记忆让模型读而不是记">21.4 结构化工作记忆：让模型"读"，而不是"记"</h2>
+<p>这是本章最实用的一条经验：</p>
+<blockquote>
+<p><strong>不要指望模型"记住"之前算出的结果。把结果放进状态对象，每轮重新喂给它。</strong></p>
+</blockquote>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 靠对话记忆</span>
+<span class="c1"># 轮次 3：assistant 说"ADSL 共 254 行"</span>
+<span class="c1"># 轮次 9：模型要引用这个数字 → 可能记错、记串</span>
+
+<span class="c1"># ✅ 靠结构化状态</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentState</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""工作记忆：工具产出的事实，按 key 存放。每轮渲染进上下文。"""</span>
+
+    <span class="n">facts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Fact</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Fact</span><span class="p">:</span>
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span>            <span class="c1"># "adsl.n_rows"</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span>          <span class="c1"># 254</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>         <span class="c1"># "describe_dataset(dataset='adsl')"</span>
+    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span>           <span class="c1"># 3</span>
+</code></pre></div></div>
+<p>渲染进上下文时是一小块<strong>固定格式的表</strong>：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>## 已确认的事实（来自工具，可直接引用）
+| 事实 | 值 | 出处 |
+|---|---|---|
+| adsl.n_rows | 254 | describe_dataset(dataset='adsl') @step3 |
+| dq.high_issues | 0 | run_qc_checks(dataset='adsl') @step4 |
+| dq.medium_issues | 3 | run_qc_checks(dataset='adsl') @step4 |
+</code></pre></div></div>
+<p>这带来三个好处：</p>
+<ol>
+<li><strong>数字不会串</strong> —— 它来自状态，不是模型的记忆</li>
+<li><strong>可溯源</strong> —— 每个事实带着出处，写进报告时能直接引用</li>
+<li><strong>可测试</strong> —— 断言 <code>state.facts["adsl.n_rows"].value == 254</code> 就是一个回归测试</li>
+</ol>
+<blockquote>
+<p>🔥 这和临床数据管理的思路完全一致：
+<strong>不做"口头传达"，做"源数据核查"（SDV）。</strong>
+让结论永远可回溯到一个可核查的原始记录。</p>
+</blockquote>
+<hr />
+<h2 id="215-长期记忆什么时候真的需要检索">21.5 长期记忆：什么时候真的需要检索</h2>
+<p>不是所有项目都需要 RAG。先看判断标准：</p>
+<table>
+<thead>
+<tr>
+<th>你的信息</th>
+<th>需要 RAG 吗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>几十页的项目规范</td>
+<td>不需要 —— 直接放 System Prompt</td>
+</tr>
+<tr>
+<td>几百页的 SAP + CRF + define.xml</td>
+<td><strong>需要</strong></td>
+</tr>
+<tr>
+<td>上次核查发现的问题清单</td>
+<td>需要（且应该结构化存起来，不只是检索）</td>
+</tr>
+<tr>
+<td>受控术语（CT）词典</td>
+<td>不需要 —— 那是查表，不是检索</td>
+</tr>
+<tr>
+<td>相似项目的既往代码</td>
+<td>需要</td>
+</tr>
+</tbody>
+</table>
+<p>核心区别：<strong>信息量超过上下文预算，且只有一小部分与当前问题相关</strong> → 需要检索。</p>
+<h3 id="最小可用实现">最小可用实现</h3>
+<p>不必一上来就上向量数据库。临床文档有一个很好的特性：
+<strong>结构清晰、章节明确</strong>。所以"按章节切分 + 关键词检索"往往就够用：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_memory.py（节选）</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Chunk</span><span class="p">:</span>
+    <span class="n">doc</span><span class="p">:</span> <span class="nb">str</span>            <span class="c1"># 文件名</span>
+    <span class="n">section</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># 章节号，如 "6.3.2"</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">KeywordRetriever</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""基于关键词打分的检索器。零依赖，对结构化文档效果好。</span>
+
+<span class="sd">    打分 = 命中词数 / 查询词数 + 标题命中加权</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Chunk</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span> <span class="o">=</span> <span class="n">chunks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">text</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="c1"># 中文按 2-gram + 英文按单词。对"缺失值""受试者"这类词足够有效</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-z_][a-z0-9_]{2,}"</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+        <span class="n">cjk</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[\u4e00-\u9fff]"</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="n">words</span> <span class="o">|=</span> <span class="p">{</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cjk</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cjk</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="n">words</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Chunk</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">chunk</span><span class="p">,</span> <span class="n">toks</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">):</span>
+            <span class="n">hit</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;</span> <span class="n">toks</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">hit</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">hit</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">title</span><span class="p">):</span>
+                <span class="n">score</span> <span class="o">+=</span> <span class="mf">0.3</span>                     <span class="c1"># 标题命中更相关</span>
+            <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="n">score</span><span class="p">))</span>
+        <span class="n">scored</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">scored</span><span class="p">[:</span><span class="n">top_k</span><span class="p">]</span>
+</code></pre></div></div>
+<p><strong>超过 200 个文档再考虑向量检索</strong>。在那之前，关键词检索的<strong>可解释性</strong>
+（你能说清"为什么召回了这一段"）反而是临床场景更看重的性质。</p>
+<hr />
+<h2 id="216-检索结果的正确用法">21.6 检索结果的正确用法</h2>
+<h3 id="必须做到可溯源引用">必须做到：可溯源引用</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 不可核查</span>
+<span class="s2">"根据 SAP 的规定，主要疗效分析应使用 ITT 人群。"</span>
+<span class="c1"># 监管问：SAP 第几节说的？</span>
+
+<span class="c1"># ✅ 可核查</span>
+<span class="s2">"根据 SAP 第 6.3.2 节（引用自 SAP_v2.1.pdf，第 34 页）：</span>
+ <span class="n">主要疗效分析基于</span> <span class="n">ITT</span> <span class="n">人群</span><span class="err">。</span><span class="s2">"</span>
+</code></pre></div></div>
+<p>所以检索块的元数据里必须带<strong>足够定位的信息</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Chunk</span><span class="p">:</span>
+    <span class="n">doc</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">section</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># "6.3.2"</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">page</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>    <span class="c1"># PDF 页码</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div></div>
+<h3 id="必须做到检索不到就说没找到">必须做到：检索不到就说没找到</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">answer_with_citation</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">retriever</span><span class="p">,</span> <span class="n">llm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">hits</span> <span class="ow">or</span> <span class="n">hits</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.25</span><span class="p">:</span>               <span class="c1"># ★ 低分阈值</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s2">"在提供的文档中没有找到与该问题相关的规定。"</span>
+                <span class="s2">"请确认文档范围，或提供相关章节。"</span><span class="p">)</span>
+    <span class="o">...</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>这是 RAG 在临床场景的红线</strong>。
+一个"检索不到却编了一条看起来合理的规则"的助手，
+比一个"检索不到就说不知道"的助手危险一百倍 ——
+因为前者会被当成 SAP 依据使用。</p>
+</blockquote>
+<h3 id="检索在-agent-循环里怎么用">检索在 Agent 循环里怎么用</h3>
+<p>检索不应该只在开始时做一次。真实用法是<strong>作为工具暴露给 Agent</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="p">{</span>
+    <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"search_sap"</span><span class="p">,</span>
+    <span class="s2">"description"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"在项目 SAP 文档中检索相关条款，返回原文片段与章节号。"</span>
+        <span class="s2">"当你需要确认某个分析口径时使用本工具，不要凭记忆回答。"</span>
+        <span class="s2">"如果返回空结果，说明文档中没有相关规定，请如实说明。"</span>
+    <span class="p">),</span>
+    <span class="s2">"parameters"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+        <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"query"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"用中文描述你要确认的问题"</span><span class="p">},</span>
+            <span class="s2">"top_k"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+        <span class="p">},</span>
+        <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"query"</span><span class="p">],</span>
+        <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p><strong>描述里那句"不要凭记忆回答"是关键</strong> —— 这是把"检索优先"写进契约。</p>
+<hr />
+<h2 id="217-上下文的成本控制">21.7 上下文的成本控制</h2>
+<h3 id="粗估-token">粗估 token</h3>
+<p>中文场景下一个够用的经验值：<strong>1 个汉字 ≈ 0.6–1 个 token</strong>，英文 <strong>1 词 ≈ 1.3 token</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">rough_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""粗略估算 token 数。够用即可，不必精确。"""</span>
+    <span class="n">cjk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[\u4e00-\u9fff]"</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+    <span class="n">other</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">-</span> <span class="n">cjk</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">cjk</span> <span class="o">*</span> <span class="mf">0.8</span> <span class="o">+</span> <span class="n">other</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">)</span>
+</code></pre></div></div>
+<p>⚠️ 这只能用来做<strong>预算控制</strong>，不能用来计费 —— 计费要用 API 返回的真实
+<code>usage</code> 字段。</p>
+<h3 id="工具结果摘要化">工具结果摘要化</h3>
+<p>这是省 token 最有效的一招。第 20 章讲了工具返回要"小而结构化"，
+但还有一个更狠的做法：<strong>长结果进上下文前再压一次</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">render_tool_result</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把工具结果渲染进上下文，超长则摘要化。"""</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_chars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span>
+    <span class="c1"># 保留结构骨架 + 前若干行，中间明确省略</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"行"</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"行"</span><span class="p">]</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_chars</span> <span class="o">//</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="n">trimmed</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">行</span><span class="o">=</span><span class="n">rows</span><span class="p">[:</span><span class="n">keep</span><span class="p">],</span>
+                       <span class="n">说明</span><span class="o">=</span><span class="sa">f</span><span class="s2">"（此处省略 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">keep</span><span class="si">}</span><span class="s2"> 行，"</span>
+                            <span class="sa">f</span><span class="s2">"总数 </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'总数'</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">trimmed</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span><span class="p">[:</span><span class="n">max_chars</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"…（已截断，原长 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s2"> 字符）"</span>
+</code></pre></div></div>
+<p>配合 21.4 的事实表，一个 8 轮的核查任务可以稳定控制在 8K token 上下，
+而不是随轮次无限膨胀。</p>
+<hr />
+<h2 id="218-一个真实例子sap-条款助手">21.8 一个真实例子：SAP 条款助手</h2>
+<p>把上面零件拼起来，就是一个很实用的东西 —— 临床统计组日常真的需要它：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>输入：一个自然语言问题
+     "AE 汇总表的分母用哪个数据集？"
+
+Agent 循环：
+  1. search_sap(query="AE 汇总表 分母 分析人群")
+     → 命中 SAP 第 8.2 节 + 第 6.1 节
+  2. 判断需要确认"安全性人群"的定义
+     → search_sap(query="安全性人群 定义 SAFFL")
+     → 命中 SAP 第 6.1.2 节
+  3. 汇总回答（带出处）
+
+输出：
+  「AE 汇总表的分母为安全性人群（Safety Population），定义为至少接受过
+    一剂研究药物的受试者（SAP 第 6.1.2 节）。
+    分子为发生 TEAE 的受试者数（去重到受试者层级，SAP 第 8.2 节）。
+    注意：分母应使用 ADSL.SAFFL='Y' 的受试者数（254），
+    而非随机化人数（306）。」
+
+引用：
+  · SAP v2.1 第 6.1.2 节 · 安全性人群定义
+  · SAP v2.1 第 8.2 节 · AE 汇总表规则
+</code></pre></div></div>
+<p>注意输出的三个特征：<strong>有数字</strong>（254/306）、<strong>有出处</strong>（章节号）、
+<strong>有反例提示</strong>（"而非 306"）。这正是把"文档检索"变成"可用工具"的关键。</p>
+<hr />
+<h2 id="219-常见误区">21.9 常见误区</h2>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>后果</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"上下文大就不用管记忆"</td>
+<td>成本涨、延迟涨、准确率降</td>
+<td>主动管理上下文预算</td>
+</tr>
+<tr>
+<td>记忆 = 保存所有对话</td>
+<td>必然超窗</td>
+<td>摘要 + 滑窗 + 结构化状态</td>
+</tr>
+<tr>
+<td>靠模型"记住"工具结果</td>
+<td>数字记串、幻觉</td>
+<td>事实表放状态里，每轮重喂</td>
+</tr>
+<tr>
+<td>摘要时丢掉数字</td>
+<td>254 变成"约 250"</td>
+<td>摘要必须保留精确值和出处</td>
+</tr>
+<tr>
+<td>检索结果不带出处</td>
+<td>无法核查，等于没有</td>
+<td>章节号 + 页码</td>
+</tr>
+<tr>
+<td>检索不到就编</td>
+<td><strong>临床场景的红线</strong></td>
+<td>低分阈值 + 明确说"没找到"</td>
+</tr>
+<tr>
+<td>一上来就上向量库</td>
+<td>复杂度高、不可解释</td>
+<td>结构化文档先试关键词检索</td>
+</tr>
+<tr>
+<td>用粗估 token 计费</td>
+<td>算不准</td>
+<td>用 API 返回的真实 usage</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2110-本章小结">21.10 本章小结</h2>
+<ol>
+<li><strong>上下文是预算，不是仓库</strong> —— 装得越满，准确率越低</li>
+<li><strong>摘要 + 滑窗</strong>比全量或纯滑窗都好，临床场景推荐混合</li>
+<li><strong>数字放状态，不放对话</strong> —— 让模型"读事实表"而不是"回忆"</li>
+<li><strong>每个事实带出处</strong> —— 这是能写进报告的前提</li>
+<li><strong>检索必须可溯源</strong> —— 章节号与页码，否则不可核查</li>
+<li><strong>检索不到就说没找到</strong> —— 这条不能妥协</li>
+</ol>
+<p><strong>下一章</strong>：什么时候真的需要多个 Agent，以及它们之间怎么不打架。</p>
+<hr />
+<h2 id="2111-动手练习">21.11 动手练习</h2>
+<ol>
+<li>给 <code>clinic/agent_memory.py</code> 的 <code>SummarizingMemory</code> 加一条断言：
+   摘要中必须保留所有出现的 6 位以上数字。跑一次，看会不会失败。</li>
+<li>构造一个 15 轮的对话，分别用三种记忆策略构建上下文，
+   统计各自的字符数并画出增长曲线。</li>
+<li>把 <code>KeywordRetriever</code> 用在 <code>docs/</code> 目录上：
+   把 18 章教程切成 chunk，然后检索"缺失值和 SAS 的 . 有什么区别"，
+   看 Top-3 是否命中第 10 章。</li>
+<li>给 <code>render_tool_result</code> 加一个"保留首尾各 N 行"的模式
+   （有些结果的尾部才是关键，比如错误信息）。</li>
+<li><strong>思考题</strong>：如果审计要求"Agent 每次给出的数字都能追溯到源数据"，
+   你会怎么设计 <code>Fact</code> 结构？（提示：除了工具名，还需要什么才能回溯到原始记录？）</li>
+</ol></article>
+<nav class="pager"><a class="pg-prev" href="20.html"><span class="pg-label">← 上一篇</span><span class="pg-title">工具调用进阶：契约、校验与边界</span></a><a class="pg-next" href="22.html"><span class="pg-label">下一篇 →</span><span class="pg-title">多 Agent 协作</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

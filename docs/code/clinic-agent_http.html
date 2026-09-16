@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/agent_http.py</title>
+<meta name="description" content="agent_http.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/agent_http.py">
+<meta property="og:description" content="agent_http.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-agent_http.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/ · Agent 与工程化</div><h1>clinic/agent_http.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/agent_http.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/agent_http.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">agent_http.py</strong> · 1025 行 · 38 KB<br>带重试、退避、限流与审计的 HTTP 客户端（第 23 章的核心实现）。</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""带重试、退避、限流与审计的 HTTP 客户端（第 23 章的核心实现）。</span>
+
+<span class="sd">为什么要有这一层</span>
+<span class="sd">----------------</span>
+<span class="sd">直接写 ``requests.get(url)`` 的代码，在临床环境里会踩四个坑：</span>
+
+<span class="sd">1. **没有超时** —— ``requests`` 默认永不超时，对方半死不活时任务永久挂起；</span>
+<span class="sd">2. **失败就崩** —— EDC/统计平台夜间跑批时抖动是常态，一次失败不该终止整批；</span>
+<span class="sd">3. **重试不安全** —— POST 失败了盲目重试，可能创建两份递交；</span>
+<span class="sd">4. **密钥进了日志** —— 想记全请求细节就得记 header，而 header 里就有 token。</span>
+
+<span class="sd">所以这一层把「超时 / 重试 / 退避 / 限流 / 幂等 / 脱敏 / 审计」七件事</span>
+<span class="sd">收敛到一个类里。业务代码只需要写 ``client.get("/api/v2/xxx")``。</span>
+
+<span class="sd">零依赖</span>
+<span class="sd">------</span>
+<span class="sd">传输层是**可注入**的（``Transport`` 协议）：</span>
+
+<span class="sd">- :class:`UrllibTransport` —— 默认实现，只用标准库 ``urllib``，不需要装任何包；</span>
+<span class="sd">- :class:`MockTransport` —— 离线替身：不发网络请求，按路径返回预置数据，</span>
+<span class="sd">  还能模拟"前两次超时、第三次成功""401 鉴权失败"等分支；</span>
+<span class="sd">- 如果你项目里已经用 httpx / requests 做统一网关接入，</span>
+<span class="sd">  写一个 30 行的 ``HttpxTransport`` 换进来即可，本模块其它逻辑一行不用改。</span>
+
+<span class="sd">可注入的传输层让"外部依赖"在测试和演示里变成可控的 ——</span>
+<span class="sd">这与 ``clinic.io`` 用 CSV 代替 XPT、``agent_core.MockLLMClient``</span>
+<span class="sd">代替真实 API 是同一种思路（第 23.9 节）。</span>
+
+<span class="sd">合规红线（第 23.8 节）</span>
+<span class="sd">----------------------</span>
+<span class="sd">本模块内置三样东西，因为它们**不能靠自觉**：</span>
+
+<span class="sd">- :func:`redact` —— 任何落日志的字典先过一遍脱敏；</span>
+<span class="sd">- :func:`check_deidentification` —— 扫描 DataFrame 列名，拦住直接标识符外发；</span>
+<span class="sd">- :func:`log_llm_call` —— 每次模型调用落一行审计（只存 sha256 摘要 + 预览）。</span>
+
+<span class="sd">运行演示</span>
+<span class="sd">--------</span>
+<span class="sd">    python clinic/agent_http.py          # 离线跑完 8 个场景，不联网、不睡眠</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.error</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"HttpError"</span><span class="p">,</span> <span class="s2">"TransientError"</span><span class="p">,</span> <span class="s2">"AuthError"</span><span class="p">,</span> <span class="s2">"ContractError"</span><span class="p">,</span>
+    <span class="s2">"Response"</span><span class="p">,</span> <span class="s2">"Transport"</span><span class="p">,</span> <span class="s2">"UrllibTransport"</span><span class="p">,</span> <span class="s2">"MockTransport"</span><span class="p">,</span>
+    <span class="s2">"RateLimiter"</span><span class="p">,</span> <span class="s2">"classify"</span><span class="p">,</span> <span class="s2">"stable_key"</span><span class="p">,</span> <span class="s2">"redact"</span><span class="p">,</span> <span class="s2">"SENSITIVE_KEYS"</span><span class="p">,</span>
+    <span class="s2">"RETRYABLE_STATUS"</span><span class="p">,</span> <span class="s2">"HttpClient"</span><span class="p">,</span>
+    <span class="s2">"Watermark"</span><span class="p">,</span> <span class="s2">"CachedFallback"</span><span class="p">,</span>
+    <span class="s2">"parse_subjects"</span><span class="p">,</span> <span class="s2">"build_llm_payload"</span><span class="p">,</span> <span class="s2">"check_deidentification"</span><span class="p">,</span>
+    <span class="s2">"log_llm_call"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 0. 异常与错误分类</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HttpError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""HTTP 层错误基类。带 ``error_type`` 与 ``retryable`` 两个机器可读字段。</span>
+
+<span class="sd">    错误分类不是"好看"，而是**决定框架行为的开关**：</span>
+<span class="sd">    可重试的错误走退避重试，不可重试的立即上交（第 23.5 节）。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">error_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"internal"</span><span class="p">,</span>
+                 <span class="n">retryable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_type</span> <span class="o">=</span> <span class="n">error_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retryable</span> <span class="o">=</span> <span class="n">retryable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hint</span> <span class="o">=</span> <span class="n">hint</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"error_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_type</span><span class="p">,</span> <span class="s2">"retryable"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">retryable</span><span class="p">,</span>
+                <span class="s2">"status"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">"message"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                <span class="s2">"hint"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hint</span><span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TransientError</span><span class="p">(</span><span class="n">HttpError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""网络抖动 / 5xx / 429 —— 退避后可以再试。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">hint</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AuthError</span><span class="p">(</span><span class="n">HttpError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""401 / 403 —— **绝不能自动重试**，反复试会触发账号锁定。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">401</span><span class="p">,</span>
+                 <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">"permission"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span>
+                         <span class="n">hint</span> <span class="ow">or</span> <span class="s2">"凭证可能已过期，请检查 token 有效期或联系管理员"</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ContractError</span><span class="p">(</span><span class="n">HttpError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""对方返回的 JSON 不符合预期 —— 重试无用，要报清"哪里不对"。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hint</span><span class="p">)</span>
+
+
+<span class="c1"># 可重试的状态码。注意 400/422/404/401/403 **不在**其中。</span>
+<span class="n">RETRYABLE_STATUS</span> <span class="o">=</span> <span class="p">{</span><span class="mi">408</span><span class="p">,</span> <span class="mi">425</span><span class="p">,</span> <span class="mi">429</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">502</span><span class="p">,</span> <span class="mi">503</span><span class="p">,</span> <span class="mi">504</span><span class="p">}</span>
+<span class="c1"># 绝不重试的状态码：鉴权类单独拎出来，因为后果最严重（账号锁定）</span>
+<span class="n">AUTH_STATUS</span> <span class="o">=</span> <span class="p">{</span><span class="mi">401</span><span class="p">,</span> <span class="mi">403</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">classify</span><span class="p">(</span><span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""把「状态码 / 异常」映射成 ``(错误类型, 是否可重试)``。</span>
+
+<span class="sd">    这是第 23.5 节那张表的代码化 —— 集中在一处，别散落在业务里。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="p">(</span><span class="n">TransientError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span>
+                            <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">,</span> <span class="ne">ConnectionError</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">AuthError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">"permission"</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">ContractError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">HttpError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">exc</span><span class="o">.</span><span class="n">error_type</span><span class="p">,</span> <span class="n">exc</span><span class="o">.</span><span class="n">retryable</span>
+        <span class="k">return</span> <span class="s2">"internal"</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"internal"</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="mi">422</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="kc">False</span>        <span class="c1"># 请求本身有问题，重试无用</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">AUTH_STATUS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"permission"</span><span class="p">,</span> <span class="kc">False</span>        <span class="c1"># ★ 终止并告警</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"not_found"</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">RETRYABLE_STATUS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="mi">500</span> <span class="o">&lt;=</span> <span class="n">status</span> <span class="o">&lt;</span> <span class="mi">600</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"transient"</span><span class="p">,</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="s2">"internal"</span><span class="p">,</span> <span class="kc">False</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 1. 脱敏（第 23.3 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="n">SENSITIVE_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"token"</span><span class="p">,</span> <span class="s2">"key"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"authorization"</span><span class="p">,</span>
+                  <span class="s2">"cookie"</span><span class="p">,</span> <span class="s2">"session"</span><span class="p">,</span> <span class="s2">"credential"</span><span class="p">,</span> <span class="s2">"passwd"</span><span class="p">,</span> <span class="s2">"apikey"</span><span class="p">)</span>
+<span class="n">_HEX32</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[0-9a-fA-F]{32,}$"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">redact</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""递归脱敏。**任何要落日志/落盘的东西都必须先过这里**。</span>
+
+<span class="sd">    - 键名命中 :data:`SENSITIVE_KEYS` → 只留前 ``prefix_keep`` 个字符 + ``***``；</span>
+<span class="sd">    - 长十六进制串（≥32 位）→ 整体替换为 ``***``（常见于签名、哈希、会话 ID）。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">k_low</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span> <span class="ow">in</span> <span class="n">k_low</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">SENSITIVE_KEYS</span><span class="p">):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_mask</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">redact</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">redact</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_HEX32</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"***"</span>
+    <span class="k">return</span> <span class="n">d</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mask</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefix_keep</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""打码。保留前几位是为了**认出这是哪把钥匙**，不是为了好看。</span>
+
+<span class="sd">    ``Bearer sk-xxx`` 这种"方案 + 凭证"的写法必须特殊处理：</span>
+<span class="sd">    否则保留前 4 位得到的是 ``Bear***`` —— 等于什么也没保留，</span>
+<span class="sd">    多环境多密钥时依然分不清是哪一个。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"***"</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">scheme</span><span class="p">,</span> <span class="n">sep</span><span class="p">,</span> <span class="n">cred</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">" "</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sep</span> <span class="ow">and</span> <span class="n">cred</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">scheme</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">12</span><span class="p">:</span>      <span class="c1"># 形如 "Bearer &lt;credential&gt;"</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cred</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">prefix_keep</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2"> ***"</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cred</span><span class="p">[:</span><span class="n">prefix_keep</span><span class="p">]</span><span class="si">}</span><span class="s2">***"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="p">[:</span><span class="n">prefix_keep</span><span class="p">]</span><span class="si">}</span><span class="s2">***"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">prefix_keep</span> <span class="k">else</span> <span class="s2">"***"</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 2. 幂等键（第 23.4 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">stable_key</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""根据**内容**算出稳定的幂等键。</span>
+
+<span class="sd">    ``sort_keys=True`` 保证字典顺序变化不影响结果 ——</span>
+<span class="sd">    否则"同一份内容"会算出不同的 key，去重就失效了。</span>
+<span class="sd">    """</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                      <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">|</span><span class="si">{</span><span class="n">body</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">32</span><span class="p">]</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 3. 传输层（可注入）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Response</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""统一的响应表示 —— 与具体 HTTP 库解耦。"""</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">elapsed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ok</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">200</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">&lt;</span> <span class="mi">300</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="ow">or</span> <span class="s2">"null"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"响应不是合法 JSON（</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">msg</span><span class="si">}</span><span class="s2">，位置 </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">lineno</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">colno</span><span class="si">}</span><span class="s2">）。"</span>
+                <span class="sa">f</span><span class="s2">"前 120 字符：</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">[:</span><span class="mi">120</span><span class="p">]</span><span class="si">!r}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="n">hint</span><span class="o">=</span><span class="s2">"确认接口地址是否正确；有些服务错误时会返回 HTML 页面"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Transport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""传输层协议。想换成 httpx / requests / 公司内部网关，实现这一个方法即可。"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">json_body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">UrllibTransport</span><span class="p">(</span><span class="n">Transport</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""默认传输层：只用标准库，不引入任何依赖。</span>
+
+<span class="sd">    与 httpx 的差别要说清楚，免得踩坑：</span>
+
+<span class="sd">    ===================  =========================  =======================</span>
+<span class="sd">    能力                  urllib（本类）              httpx</span>
+<span class="sd">    ===================  =========================  =======================</span>
+<span class="sd">    连接/读取超时分开      ✗ 只有一个 socket 超时     ✓ ``Timeout(connect, read)``</span>
+<span class="sd">    HTTP/2                ✗                          ✓</span>
+<span class="sd">    连接池复用             ✗                          ✓</span>
+<span class="sd">    ===================  =========================  =======================</span>
+
+<span class="sd">    所以生产环境、高并发批处理推荐换 httpx；本类保证的是</span>
+<span class="sd">    **"不装任何包也能跑通全部逻辑"**。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">json_body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">clean</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">clean</span><span class="p">:</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">?</span><span class="si">{</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">clean</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+
+        <span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">hdrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">json_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_body</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                              <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+            <span class="n">hdrs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"Content-Type"</span><span class="p">,</span> <span class="s2">"application/json; charset=utf-8"</span><span class="p">)</span>
+
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">body</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">,</span>
+                                     <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                                <span class="n">text</span><span class="o">=</span><span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="s2">"replace"</span><span class="p">),</span>
+                                <span class="n">headers</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">),</span>
+                                <span class="n">elapsed</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>          <span class="c1"># 4xx / 5xx 也走这里</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="s2">"replace"</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>                         <span class="c1"># pragma: no cover</span>
+                <span class="k">pass</span>
+            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                            <span class="n">headers</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{}),</span>
+                            <span class="n">elapsed</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TransientError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"请求超时（</span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">s）：</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                                 <span class="n">hint</span><span class="o">=</span><span class="s2">"调大 read_timeout，或检查网络与对方服务状态"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">reason</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="p">(</span><span class="ne">TimeoutError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="n">TransientError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"连接超时：</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="k">raise</span> <span class="n">TransientError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"连接失败：</span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MockTransport</span><span class="p">(</span><span class="n">Transport</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""离线传输层：不发网络请求，按路径返回预置数据。</span>
+
+<span class="sd">    三个能力对应三种真实故障：</span>
+
+<span class="sd">    - ``routes``       —— 正常返回；</span>
+<span class="sd">    - ``fail_paths``   —— 永久失败的路径（映射到状态码或异常）；</span>
+<span class="sd">    - ``fail_times``   —— **前 N 次失败、之后成功**，用来验证重试逻辑。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">routes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">fail_paths</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">fail_times</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">default_status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">404</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">routes</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fail_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">fail_paths</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fail_times</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">fail_times</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_status</span> <span class="o">=</span> <span class="n">default_status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>          <span class="c1"># 记录每次请求，便于断言"重试了几次"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">json_body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calls</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"method"</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+                           <span class="s2">"params"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span> <span class="ow">or</span> <span class="p">{}),</span>
+                           <span class="s2">"json"</span><span class="p">:</span> <span class="n">json_body</span><span class="p">,</span> <span class="s2">"headers"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{})})</span>
+
+        <span class="c1"># 先看"前 N 次失败"：命中且还没超过 N 次 → 失败（用 fail_paths 指定的方式）</span>
+        <span class="c1"># 注意：命中 fail_times 的路径，fail_paths 只用来指定"怎么失败"，</span>
+        <span class="c1"># 不再表示"永久失败" —— 否则永远等不到成功的那一次。</span>
+        <span class="n">governed</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fail_times</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">url</span><span class="p">:</span>
+                <span class="n">governed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">calls</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">c</span><span class="p">[</span><span class="s2">"path"</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">done</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fail</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fail_paths</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">503</span><span class="p">))</span>
+        <span class="c1"># 再看"永久失败"</span>
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fail_paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">url</span> <span class="ow">and</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">governed</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fail</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">url</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">elapsed</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                                <span class="n">text</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_status</span><span class="p">,</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"no mock route for </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">}))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fail</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""把 ``fail_paths`` 里写的"失败方式"变成一次响应或异常。</span>
+
+<span class="sd">        支持四种写法，覆盖四种真实故障：</span>
+
+<span class="sd">        * ``int``         —— 状态码，如 ``503``</span>
+<span class="sd">        * ``Exception``   —— 直接抛，模拟连接被重置 / 读超时</span>
+<span class="sd">        * ``Response``    —— **原样返回**，用来构造带响应头的失败，</span>
+<span class="sd">          例如 ``429 + Retry-After``（没这一条就没法离线验证退避逻辑）</span>
+<span class="sd">        * 其他            —— 抛 :class:`TransientError`</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">spec</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"HTTP </span><span class="si">{</span><span class="n">spec</span><span class="si">}</span><span class="s2">"</span><span class="p">}))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">Response</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">spec</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="ne">BaseException</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">spec</span>
+        <span class="k">raise</span> <span class="n">TransientError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"模拟失败：</span><span class="si">{</span><span class="n">spec</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 4. 限流：客户端要主动（第 23.4 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RateLimiter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""令牌桶。避免把对方服务打挂，也避免自己上黑名单。</span>
+
+<span class="sd">    ``burst`` 决定"能瞬间发几个" —— 一点突发是正常的，</span>
+<span class="sd">    但如果突然要发 200 个，就得排队。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">burst</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">,</span>
+                 <span class="n">sleep</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">per_sec</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"per_sec 必须为正数"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="n">per_sec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">per_sec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burst</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">burst</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">per_sec</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">burst</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="n">clock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span> <span class="o">=</span> <span class="n">clock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sleep</span> <span class="o">=</span> <span class="n">sleep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">waited</span> <span class="o">=</span> <span class="mf">0.0</span>                    <span class="c1"># 统计：累计等待秒数</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""取一个令牌，必要时阻塞。返回本次等待秒数。"""</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">burst</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">+</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="n">now</span>
+            <span class="n">wait</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">wait</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sleep</span><span class="p">(</span><span class="n">wait</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">waited</span> <span class="o">+=</span> <span class="n">wait</span>
+            <span class="k">return</span> <span class="n">wait</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 5. 主客户端</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HttpClient</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""带重试、退避、限流与审计的 HTTP 客户端。</span>
+
+<span class="sd">    调用方只需要关心"要什么数据"，超时/重试/限流的细节全部封装在这里。</span>
+
+<span class="sd">    参数</span>
+<span class="sd">    ----</span>
+<span class="sd">    base_url            : 服务根地址，如 ``https://ct.example.org``</span>
+<span class="sd">    token               : 凭证。**只放内存**，绝不进日志、不进 Agent 上下文</span>
+<span class="sd">    connect_timeout     : 连接超时（urllib 后端下与读取超时共用一个 socket 超时）</span>
+<span class="sd">    read_timeout        : 读取超时</span>
+<span class="sd">    max_retries         : 可重试错误的额外尝试次数</span>
+<span class="sd">    rate_limit_per_sec  : 客户端侧限流</span>
+<span class="sd">    audit_path          : 指定后，每次请求自动落一行（已脱敏）到该 JSONL</span>
+<span class="sd">    transport           : 传输层实现；默认 :class:`UrllibTransport`</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">connect_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">read_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>
+                 <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">backoff_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                 <span class="n">rate_limit_per_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span>
+                 <span class="n">audit_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">transport</span><span class="p">:</span> <span class="n">Transport</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">api_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">user_agent</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"clinical-python-roadmap/1.0"</span><span class="p">,</span>
+                 <span class="n">max_backoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>
+                 <span class="n">sleep</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">,</span>
+                 <span class="n">rand</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="n">base_url</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect_timeout</span> <span class="o">=</span> <span class="n">connect_timeout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_timeout</span> <span class="o">=</span> <span class="n">read_timeout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_retries</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backoff_base</span> <span class="o">=</span> <span class="n">backoff_base</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_backoff</span> <span class="o">=</span> <span class="n">max_backoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_version</span> <span class="o">=</span> <span class="n">api_version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">=</span> <span class="n">user_agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transport</span> <span class="o">=</span> <span class="n">transport</span> <span class="ow">or</span> <span class="n">UrllibTransport</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">limiter</span> <span class="o">=</span> <span class="n">RateLimiter</span><span class="p">(</span><span class="n">rate_limit_per_sec</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audit_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">audit_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">audit_path</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sleep</span> <span class="o">=</span> <span class="n">sleep</span>                  <span class="c1"># 可注入 → 测试里不真的睡</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rand</span> <span class="o">=</span> <span class="n">rand</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audit</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>          <span class="c1"># 内存里的审计记录</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backoff_log</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>   <span class="c1"># 每次实际等待的秒数（便于断言）</span>
+
+    <span class="c1"># ------------------------------------------------------------- 对外接口</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">"GET"</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+             <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">idempotent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""POST。默认带幂等键 —— 除非你确定重复创建是可接受的。"""</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">idempotent</span> <span class="ow">and</span> <span class="s2">"Idempotency-Key"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">extra</span><span class="p">:</span>
+            <span class="n">extra</span><span class="p">[</span><span class="s2">"Idempotency-Key"</span><span class="p">]</span> <span class="o">=</span> <span class="n">stable_key</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">json_body</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">extra</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">json_body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">path</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"http"</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">attempt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">last</span><span class="p">:</span> <span class="n">HttpError</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">while</span> <span class="n">attempt</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">limiter</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+                    <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span>
+                    <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_headers</span><span class="p">(</span><span class="n">headers</span><span class="p">),</span>
+                    <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">json_body</span><span class="o">=</span><span class="n">json_body</span><span class="p">,</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">read_timeout</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>               <span class="c1"># noqa: BLE001 —— 统一分类</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_error</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_record</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">last</span><span class="o">.</span><span class="n">retryable</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">last</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+                <span class="n">attempt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">last</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_record</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">resp</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">resp</span>
+
+            <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_error</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_record</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">resp</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">last</span><span class="o">.</span><span class="n">retryable</span><span class="p">:</span>
+                <span class="c1"># ★ 401/403 立即终止：拿错误 token 硬试会锁账号</span>
+                <span class="k">raise</span> <span class="n">last</span>
+            <span class="n">attempt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retry_after</span><span class="p">(</span><span class="n">resp</span><span class="p">),</span>
+                                 <span class="n">url</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"HTTP </span><span class="si">{</span><span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">last</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">raise</span> <span class="n">last</span>
+
+    <span class="c1"># ------------------------------------------------------------ 内部实现</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">preview_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""返回**脱敏后**的请求头 —— 你可以安全地把它打进日志或展示出来。"""</span>
+        <span class="k">return</span> <span class="n">redact</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_headers</span><span class="p">(</span><span class="n">extra</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+             <span class="s2">"User-Agent"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_agent</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_version</span><span class="p">:</span>
+            <span class="c1"># ★ 锁 API 版本：不锁的接口，对方一升级你的脚本就崩</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">"API-Version"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_version</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">"Authorization"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Bearer </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="n">h</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_as_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HttpError</span><span class="p">:</span>
+        <span class="n">etype</span><span class="p">,</span> <span class="n">retryable</span> <span class="o">=</span> <span class="n">classify</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+        <span class="n">detail</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"HTTP </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">status</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">detail</span><span class="si">}</span><span class="s2">：</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">AUTH_STATUS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">AuthError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">status</span> <span class="ow">or</span> <span class="mi">401</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">retryable</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"，响应：</span><span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">160</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">text</span> <span class="k">else</span> <span class="s2">""</span>
+            <span class="k">return</span> <span class="n">TransientError</span><span class="p">(</span><span class="n">msg</span> <span class="o">+</span> <span class="n">body</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span>
+                                  <span class="n">hint</span><span class="o">=</span><span class="s2">"已按指数退避重试；持续失败请检查对方服务状态"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HttpError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="s2">"not_found"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">404</span><span class="p">,</span>
+                             <span class="n">hint</span><span class="o">=</span><span class="s2">"确认路径与 API 版本是否正确"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="mi">422</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">HttpError</span><span class="p">(</span><span class="n">msg</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"，响应：</span><span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">160</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">text</span> <span class="k">else</span> <span class="s2">""</span><span class="p">),</span>
+                             <span class="s2">"validation"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span>
+                             <span class="n">hint</span><span class="o">=</span><span class="s2">"请求体不符合对方契约，重试无用"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HttpError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">retryable</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_retry_after</span><span class="p">(</span><span class="n">resp</span><span class="p">:</span> <span class="n">Response</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""解析 ``Retry-After``。对方明确说要等多久时，自己算退避没意义。"""</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">headers</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"retry-after"</span><span class="p">:</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>          <span class="c1"># 秒数形式</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>                          <span class="c1"># HTTP-date 形式：不解析，走自家退避</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">backoff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attempt</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="n">retry_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""计算第 ``attempt`` 次重试前的等待秒数（指数退避 + 抖动）。"""</span>
+        <span class="k">if</span> <span class="n">retry_after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">retry_after</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">)</span>                 <span class="c1"># 服务端说了算</span>
+        <span class="c1"># ★ 注意 attempt 从 0 开始：第一次重试等 ~1 秒（不是 1.5 秒），</span>
+        <span class="c1">#   之后 1.5、2.25、3.375… 指数增长。</span>
+        <span class="c1">#   "第一次就退避很久"是常见错误 —— 抖动类故障往往重试一次就过了。</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backoff_base</span> <span class="o">**</span> <span class="n">attempt</span>               <span class="c1"># 1, 1.5, 2.25, 3.375…</span>
+        <span class="n">jitter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rand</span><span class="p">()</span> <span class="o">*</span> <span class="n">base</span> <span class="o">*</span> <span class="mf">0.3</span>                <span class="c1"># ★ 抖动：错开重试</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">base</span> <span class="o">+</span> <span class="n">jitter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_backoff</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attempt</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">retry_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">why</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">attempt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">attempt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">attempt</span>
+        <span class="n">delay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backoff</span><span class="p">(</span><span class="n">attempt</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">retry_after</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backoff_log</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">delay</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">attempt</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resp</span><span class="p">:</span> <span class="n">Response</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">err</span><span class="p">:</span> <span class="n">HttpError</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rec</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"ts"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S"</span><span class="p">),</span>
+            <span class="s2">"method"</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="k">if</span> <span class="n">resp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"ok"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">resp</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">ok</span><span class="p">),</span>
+            <span class="s2">"error_type"</span><span class="p">:</span> <span class="n">err</span><span class="o">.</span><span class="n">error_type</span> <span class="k">if</span> <span class="n">err</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"elapsed"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audit_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">audit_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">audit_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">redact</span><span class="p">(</span><span class="n">rec</span><span class="p">),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ---------------------------------------------------------------- 审计</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dump_audit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""把内存中的审计记录写成 **JSON 数组**快照文件。</span>
+
+<span class="sd">        ⚠️ 注意它与 ``audit_path`` 的区别，两者**不能写进同一个文件**：</span>
+
+<span class="sd">        ``audit_path``      流式追加，**一行一条 JSON**（JSONL）——</span>
+<span class="sd">                            适合直接喂给日志采集系统，只增不改</span>
+<span class="sd">        ``dump_audit(path)`` 批量快照，**一个 JSON 数组** ——</span>
+<span class="sd">                            适合"把这批请求的审计打包交给别人"</span>
+
+<span class="sd">        混在同一个文件里，结果就是**谁也解析不了**：</span>
+<span class="sd">        第一行是 ``[``，后面的行又各自是完整 JSON。</span>
+<span class="sd">        这类问题排查起来很费时间，因为它看起来只是"文件格式怪怪的"。</span>
+<span class="sd">        """</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">audit_path</span> <span class="ow">or</span> <span class="s2">"outputs/audit/http_snapshot.json"</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">redact</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audit</span><span class="p">),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                     <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audit</span><span class="p">)</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">audit</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ok"</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"请求数"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+            <span class="s2">"失败数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad</span><span class="p">),</span>
+            <span class="s2">"重试等待合计(秒)"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">backoff_log</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="s2">"限流等待合计(秒)"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">limiter</span><span class="o">.</span><span class="n">waited</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="s2">"按错误类型"</span><span class="p">:</span> <span class="n">_count_by</span><span class="p">(</span><span class="n">bad</span><span class="p">,</span> <span class="s2">"error_type"</span><span class="p">),</span>
+        <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_count_by</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 6. 拉取模式：水位线（第 23.7 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Watermark</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""记录上次成功拉取到哪，避免重复拉、避免漏拉。</span>
+
+<span class="sd">    ⚠️ **水位线必须在"数据落盘成功后"才更新**。</span>
+<span class="sd">    先更新再落盘，中途崩溃就会丢数据，而且永远不会被再次拉到 ——</span>
+<span class="sd">    这是数据集成里最经典的静默丢数事故。</span>
+<span class="sd">    """</span>
+
+    <span class="n">last_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_ts</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">updated_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">last_ts</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_id</span> <span class="o">=</span> <span class="n">last_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_ts</span> <span class="o">=</span> <span class="n">last_ts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                     <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Watermark"</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">earliest_available</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""返回告警文本（无问题时返回 ``None``）。</span>
+
+<span class="sd">        如果本地水位线比对方"最早可提供的数据"还早，说明</span>
+<span class="sd">        **中间有数据缺口** —— 必须报警，而不是继续增量拉。</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_ts</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">earliest_available</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_ts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">str</span><span class="p">(</span><span class="n">earliest_available</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"⚠️ 数据缺口：本地水位线 </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">last_ts</span><span class="si">}</span><span class="s2"> 早于服务端最早可用 "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">earliest_available</span><span class="si">}</span><span class="s2">，中间的数据需要人工补齐或全量重拉"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CachedFallback</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""外部数据取不到时，回退到上次的缓存，**并明确标注数据时间**。</span>
+
+<span class="sd">    ⚠️ 降级时必须把"这是缓存"写进结果。临床场景里，一份"用 3 天前的</span>
+<span class="sd">    CT 版本做的核查"如果不标注，会被当成"用最新版本核实过"。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">HttpClient</span><span class="p">,</span> <span class="n">cache_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">cache_path</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_persist</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"实时获取（</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">'%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S'</span><span class="p">)</span><span class="si">}</span><span class="s2">）"</span>
+        <span class="k">except</span> <span class="n">TransientError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"⚠️ 使用缓存数据（</span><span class="si">{</span><span class="n">_age_text</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ts</span><span class="p">)</span><span class="si">}</span><span class="s2">）"</span>
+            <span class="k">raise</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_persist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_age_text</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把"多久之前"写成人看得懂的量级。</span>
+
+<span class="sd">    ★ 别小看这一行：在降级场景里，"0.0 小时前"和"6 分钟前"对读者的</span>
+<span class="sd">      判断完全不同 —— 前者会让人以为缓存是刚更新的、可以放心用。</span>
+<span class="sd">      既然降级的全部意义就是**让陈旧被看见**，那时间就必须说到点子上。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">seconds</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seconds</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> 秒前获取"</span>
+    <span class="k">if</span> <span class="n">seconds</span> <span class="o">&lt;</span> <span class="mi">3600</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 分钟前获取"</span>
+    <span class="k">if</span> <span class="n">seconds</span> <span class="o">&lt;</span> <span class="mi">86400</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3600</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 小时前获取"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"⚠️ </span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">86400</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 天前获取（陈旧风险高）"</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 7. 对方返回的数据不可信（第 23.6 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_subjects</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""把外部返回的受试者列表校验成**受控结构**。</span>
+
+<span class="sd">    错误信息必须说清"哪里不对、实际是什么" —— 这样 Agent 自己才能修错</span>
+<span class="sd">    （第 20 章：结构化错误）。</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"顶层应为对象，实际为 </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"results"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"响应缺少 results 字段。实际顶层键：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">payload</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="n">hint</span><span class="o">=</span><span class="s2">"确认 API 版本；老版本接口可能直接返回数组"</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"results"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"results 应为数组，实际为 </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"subjectId"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ContractError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第 </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> 条记录缺少 subjectId：</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)[:</span><span class="mi">120</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"subject_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"subjectId"</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="s2">"age"</span><span class="p">:</span> <span class="n">_to_num</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"age"</span><span class="p">)),</span>                  <span class="c1"># 宽容转数值：'N/A' → None</span>
+            <span class="s2">"sex"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sex"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_to_num</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_llm_payload</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">need</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""只把**需要的列**发给模型。多一列就多一分风险，也多一分 token。"""</span>
+    <span class="n">need</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">need</span><span class="p">)</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">need</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"缺少必需列：</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">；现有列：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)[:</span><span class="mi">15</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">need</span><span class="p">]</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 8. 合规：临床场景的红线（第 23.8 节）</span>
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 直接标识符的列名模式。宁可误报，不可漏报 —— 误报的成本是"多看一眼"。</span>
+<span class="n">DIRECT_ID_PATTERNS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">"name"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"dob"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"birth"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"phone"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"mobile"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"tel"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"id_card"</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">"idcard"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"ssn"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"passport"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"addr"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"email"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"wechat"</span><span class="p">,</span>
+    <span class="sa">r</span><span class="s2">"patient_name"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"subject_name"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"contact"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"initials"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"occupation"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">_DATE_LIKE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^\d</span><span class="si">{4}</span><span class="s2">[-/]\d{1,2}[-/]\d{1,2}$"</span><span class="p">)</span>
+<span class="n">_NAME_LIKE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[\u4e00-\u9fff]{2,4}$|^[A-Z][a-z]+\s+[A-Z][a-z]+$"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_deidentification</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+                           <span class="n">extra_patterns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""扫描 DataFrame，返回**疑似直接标识符**的列与原因。</span>
+
+<span class="sd">    判据有两层，缺一不可：</span>
+<span class="sd">    1. **列名**命中 :data:`DIRECT_ID_PATTERNS`；</span>
+<span class="sd">    2. 或者**取值**看起来像人名 / 精确日期。</span>
+
+<span class="sd">    第 2 条很关键：`VAR1` 这种列名完全看不出问题，</span>
+<span class="sd">    但里面装着 `"张伟"` —— 只有看值才拦得住。</span>
+<span class="sd">    """</span>
+    <span class="n">pats</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">DIRECT_ID_PATTERNS</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">extra_patterns</span><span class="p">)</span>
+    <span class="n">problems</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">head</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">col_low</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">hit</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pats</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">col_low</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">hit</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">：列名命中直接标识符模式 </span><span class="si">{</span><span class="n">hit</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">head</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">()[:</span><span class="mi">20</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">vals</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">n_date</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span> <span class="k">if</span> <span class="n">_DATE_LIKE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="n">n_name</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span> <span class="k">if</span> <span class="n">_NAME_LIKE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">n_date</span> <span class="o">&gt;=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">：取值呈精确日期形态（</span><span class="si">{</span><span class="n">n_date</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="si">}</span><span class="s2">），"</span>
+                            <span class="sa">f</span><span class="s2">"如 </span><span class="si">{</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> —— 出生日期属直接标识符"</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">n_name</span> <span class="o">&gt;=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">：取值呈人名形态（</span><span class="si">{</span><span class="n">n_name</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="si">}</span><span class="s2">），"</span>
+                            <span class="sa">f</span><span class="s2">"如 </span><span class="si">{</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> —— 请确认是否为姓名"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">problems</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">log_llm_call</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">audit_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="s2">"outputs/audit"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""每次模型调用落一行。这是"可追溯"的最小实现。</span>
+
+<span class="sd">    存的是 **sha256 摘要**而不是全文：既能证明"发的是哪一份"，</span>
+<span class="sd">    又不会把完整数据留在日志里。</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">audit_dir</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">d</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"llm_calls_</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">'%Y%m'</span><span class="p">)</span><span class="si">}</span><span class="s2">.jsonl"</span>
+    <span class="n">rec</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"ts"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S"</span><span class="p">),</span>
+        <span class="s2">"model"</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+        <span class="s2">"prompt_chars"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">prompt</span><span class="p">),</span>
+        <span class="s2">"prompt_sha256"</span><span class="p">:</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">prompt</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">16</span><span class="p">],</span>
+        <span class="s2">"response_chars"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">),</span>
+        <span class="s2">"prompt_preview"</span><span class="p">:</span> <span class="n">prompt</span><span class="p">[:</span><span class="mi">200</span><span class="p">],</span>     <span class="c1"># 只留预览，不存全文</span>
+    <span class="p">}</span>
+    <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">path</span>
+
+
+<span class="c1"># ===========================================================================</span>
+<span class="c1"># 9. 离线演示</span>
+<span class="c1"># ===========================================================================</span>
+<span class="n">_LINE</span> <span class="o">=</span> <span class="s2">"-"</span> <span class="o">*</span> <span class="mi">68</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_demo</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">eq</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"version"</span><span class="p">:</span> <span class="s2">"2024-06-01"</span><span class="p">,</span>
+          <span class="s2">"items"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"code"</span><span class="p">:</span> <span class="s2">"HEADACHE"</span><span class="p">,</span> <span class="s2">"term"</span><span class="p">:</span> <span class="s2">"Headache"</span><span class="p">},</span>
+                    <span class="p">{</span><span class="s2">"code"</span><span class="p">:</span> <span class="s2">"NAUSEA"</span><span class="p">,</span> <span class="s2">"term"</span><span class="p">:</span> <span class="s2">"Nausea"</span><span class="p">}]}</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">68</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"clinic.agent_http 演示（全程离线，不联网、不真实睡眠）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">68</span><span class="p">)</span>
+
+    <span class="c1"># ---------------------------------------------------- 场景 1：正常拉取</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 1】正常拉取 CDISC 受控术语</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span>
+        <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ct.example.org"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">"demo-token-abcdef"</span><span class="p">,</span>
+        <span class="n">api_version</span><span class="o">=</span><span class="s2">"2024-06-01"</span><span class="p">,</span>
+        <span class="n">transport</span><span class="o">=</span><span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">:</span> <span class="n">eq</span><span class="p">}),</span>
+        <span class="n">sleep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_s</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rand</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"取到 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">'items'</span><span class="p">])</span><span class="si">}</span><span class="s2"> 条术语，版本 </span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">'version'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"请求头（脱敏后）：</span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">preview_headers</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 2：前两次超时</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 2】前 2 次超时、第 3 次成功（验证重试 + 退避）</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">flaky</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">:</span> <span class="n">eq</span><span class="p">},</span>
+                          <span class="n">fail_paths</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">:</span> <span class="n">TransientError</span><span class="p">(</span><span class="s2">"模拟超时"</span><span class="p">)},</span>
+                          <span class="n">fail_times</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ct.example.org"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+                    <span class="n">max_retries</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">transport</span><span class="o">=</span><span class="n">flaky</span><span class="p">,</span> <span class="n">sleep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_s</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">rand</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">c2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/codelists/AE"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"结果：HTTP </span><span class="si">{</span><span class="n">r2</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">，实际发出 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">flaky</span><span class="o">.</span><span class="n">calls</span><span class="p">)</span><span class="si">}</span><span class="s2"> 次请求"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"退避序列（秒）：</span><span class="si">{</span><span class="n">c2</span><span class="o">.</span><span class="n">backoff_log</span><span class="si">}</span><span class="s2">   ← 抖动设为 0 便于观察纯指数增长"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------- 场景 3：尊重 Retry-After</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 3】429 限流 + 尊重服务端 Retry-After</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">limited</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/x"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+                            <span class="n">fail_paths</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/x"</span><span class="p">:</span> <span class="mi">429</span><span class="p">},</span>
+                            <span class="n">fail_times</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/x"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+    <span class="n">c3</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ct.example.org"</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="n">transport</span><span class="o">=</span><span class="n">limited</span><span class="p">,</span> <span class="n">sleep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_s</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rand</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># 给第一次失败响应塞一个 Retry-After: 7</span>
+    <span class="n">orig</span> <span class="o">=</span> <span class="n">limited</span><span class="o">.</span><span class="n">request</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">patched</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">orig</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">429</span><span class="p">:</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"Retry-After"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"7"</span>
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="n">limited</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">patched</span>                                <span class="c1"># type: ignore[method-assign]</span>
+    <span class="n">c3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/x"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"退避序列：</span><span class="si">{</span><span class="n">c3</span><span class="o">.</span><span class="n">backoff_log</span><span class="si">}</span><span class="s2">  ← 7 秒来自服务端，而不是自家 base^attempt"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 4：401 不重试</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 4】401 鉴权失败 —— 绝不自动重试</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">denied</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">fail_paths</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/secure"</span><span class="p">:</span> <span class="mi">401</span><span class="p">})</span>
+    <span class="n">c4</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ct.example.org"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">"expired"</span><span class="p">,</span>
+                    <span class="n">max_retries</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">transport</span><span class="o">=</span><span class="n">denied</span><span class="p">,</span> <span class="n">sleep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_s</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">c4</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/secure"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">AuthError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"抛出 </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"error_type=</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">error_type</span><span class="si">}</span><span class="s2"> retryable=</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">retryable</span><span class="si">}</span><span class="s2"> "</span>
+              <span class="sa">f</span><span class="s2">"hint=</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"实际请求次数：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">denied</span><span class="o">.</span><span class="n">calls</span><span class="p">)</span><span class="si">}</span><span class="s2">  ← max_retries=5 但一次都没重试"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 5：契约校验</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 5】对方返回的 JSON 不合预期（显式校验）</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/subjects"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"total"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[]}})</span>
+    <span class="n">c5</span> <span class="o">=</span> <span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://edc.example.org"</span><span class="p">,</span> <span class="n">transport</span><span class="o">=</span><span class="n">bad</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parse_subjects</span><span class="p">(</span><span class="n">c5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/subjects"</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+    <span class="k">except</span> <span class="n">ContractError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"抛出 ContractError：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"提示：</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">good</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/subjects"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"results"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">"subjectId"</span><span class="p">:</span> <span class="s2">" 01-701-1015 "</span><span class="p">,</span> <span class="s2">"age"</span><span class="p">:</span> <span class="s2">"63"</span><span class="p">,</span> <span class="s2">"sex"</span><span class="p">:</span> <span class="s2">"f"</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"subjectId"</span><span class="p">:</span> <span class="s2">"01-701-1023"</span><span class="p">,</span> <span class="s2">"age"</span><span class="p">:</span> <span class="s2">"N/A"</span><span class="p">,</span> <span class="s2">"sex"</span><span class="p">:</span> <span class="s2">"M"</span><span class="p">}]}})</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">parse_subjects</span><span class="p">(</span><span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://edc.example.org"</span><span class="p">,</span>
+                                    <span class="n">transport</span><span class="o">=</span><span class="n">good</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/subjects"</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"校验通过：</span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 6：降级 + 水位线</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 6】降级到缓存（必须标注数据时间）+ 水位线缺口检测</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">ok_transport</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/snapshots"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"n"</span><span class="p">:</span> <span class="mi">254</span><span class="p">}})</span>
+    <span class="n">fb</span> <span class="o">=</span> <span class="n">CachedFallback</span><span class="p">(</span><span class="n">HttpClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://edc.example.org"</span><span class="p">,</span>
+                                  <span class="n">transport</span><span class="o">=</span><span class="n">ok_transport</span><span class="p">))</span>
+    <span class="n">d1</span><span class="p">,</span> <span class="n">src1</span> <span class="o">=</span> <span class="n">fb</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/snapshots"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"第一次：</span><span class="si">{</span><span class="n">d1</span><span class="si">}</span><span class="s2"> ← </span><span class="si">{</span><span class="n">src1</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">fb</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">transport</span> <span class="o">=</span> <span class="n">MockTransport</span><span class="p">(</span><span class="n">fail_paths</span><span class="o">=</span><span class="p">{</span><span class="s2">"/api/v2/snapshots"</span><span class="p">:</span> <span class="mi">503</span><span class="p">})</span>
+    <span class="n">fb</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">d2</span><span class="p">,</span> <span class="n">src2</span> <span class="o">=</span> <span class="n">fb</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/api/v2/snapshots"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"服务挂了：</span><span class="si">{</span><span class="n">d2</span><span class="si">}</span><span class="s2"> ← </span><span class="si">{</span><span class="n">src2</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">wm</span> <span class="o">=</span> <span class="n">Watermark</span><span class="p">()</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"outputs/audit/_demo_watermark.json"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"水位线（首次）：</span><span class="si">{</span><span class="n">wm</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">wm</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">last_id</span><span class="o">=</span><span class="s2">"SUBJ-0254"</span><span class="p">,</span> <span class="n">last_ts</span><span class="o">=</span><span class="s2">"2026-09-10T00:00:00"</span><span class="p">)</span>
+    <span class="n">gap</span> <span class="o">=</span> <span class="n">wm</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">earliest_available</span><span class="o">=</span><span class="s2">"2026-09-13T00:00:00"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"缺口检测：</span><span class="si">{</span><span class="n">gap</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 7：合规扫描</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 7】外发前的直接标识符扫描（红线一）</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>                                     <span class="c1"># 延迟导入：本模块本身不依赖 pandas</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"USUBJID"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">,</span> <span class="s2">"01-701-1023"</span><span class="p">],</span>
+        <span class="s2">"SUBJ_NAME"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"张伟"</span><span class="p">,</span> <span class="s2">"李娜"</span><span class="p">],</span>
+        <span class="s2">"BRTHDTC"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"1949-03-12"</span><span class="p">,</span> <span class="s2">"1952-08-01"</span><span class="p">],</span>
+        <span class="s2">"AGE"</span><span class="p">:</span> <span class="p">[</span><span class="mi">63</span><span class="p">,</span> <span class="mi">61</span><span class="p">],</span>
+        <span class="s2">"VAR1"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"王强"</span><span class="p">,</span> <span class="s2">"赵敏"</span><span class="p">],</span>                            <span class="c1"># 列名无害，取值是人名</span>
+    <span class="p">})</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="n">check_deidentification</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ✗ </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">safe</span> <span class="o">=</span> <span class="n">build_llm_payload</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  可外发字段：</span><span class="se">\n</span><span class="si">{</span><span class="n">safe</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------ 场景 8：审计落盘</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【场景 8】审计日志（自动脱敏）与统计</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">dump_audit</span><span class="p">(</span><span class="s2">"outputs/audit/_demo_http.jsonl"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"审计写入：</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">())</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">p</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">p</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"统计：</span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="n">_LINE</span><span class="si">}</span><span class="se">\n</span><span class="s2">还可以试试：把传输层换成 HttpxTransport（接口同 Transport），"</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">或把 token 换成环境变量 CDISC_API_TOKEN（见 docs/23.3）。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">68</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">_demo</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-agent_role.html"><span class="pg-label">← 上一篇</span><span class="pg-title">agent_role.py</span></a><a class="pg-next" href="clinic-config.html"><span class="pg-label">下一篇 →</span><span class="pg-title">config.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

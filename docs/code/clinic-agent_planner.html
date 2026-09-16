@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clinic/agent_planner.py</title>
+<meta name="description" content="agent_planner.py — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="clinic/agent_planner.py">
+<meta property="og:description" content="agent_planner.py — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/clinic-agent_planner.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 工具包 clinic/ · Agent 与工程化</div><h1>clinic/agent_planner.py</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/clinic/agent_planner.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/clinic/agent_planner.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">agent_planner.py</strong> · 446 行 · 14 KB<br>任务规划与调度（第 19 章）。</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""任务规划与调度（第 19 章）。</span>
+
+<span class="sd">把"一个目标"变成一张**可执行、可并行、可重试的任务图**。</span>
+
+<span class="sd">三个设计决定，每个都有明确理由：</span>
+
+<span class="sd">1. :class:`Task` **不持有函数引用** —— 只放 ``tool`` 名与 ``args``。</span>
+<span class="sd">   这样任务图可以 JSON 序列化：能存盘、能断点恢复、能把计划发给同事审阅。</span>
+<span class="sd">2. **执行前必做拓扑排序** —— 循环依赖在写代码时看不出来，</span>
+<span class="sd">   只有跑一次才会暴露。报错成本 1 秒，跑起来再发现的成本是半天。</span>
+<span class="sd">3. **部分失败必须显式汇总** —— 一个"看起来完整但漏了 3 项检查"的报告，</span>
+<span class="sd">   比一个"明确写着 3 项没跑"的报告危险得多。</span>
+
+<span class="sd">任务状态机</span>
+<span class="sd">----------</span>
+<span class="sd">::</span>
+
+<span class="sd">    pending ──▶ running ──┬──▶ done        成功</span>
+<span class="sd">                          ├──▶ failed      失败（重试用尽 / 不可重试错误）</span>
+<span class="sd">                          ├──▶ waiting     ★ 命中人工确认点，等确认后重跑</span>
+<span class="sd">                          └──▶ skipped     前置任务失败，本轮未执行</span>
+
+<span class="sd">``waiting`` 与 ``skipped`` 必须分开，这决定了**断点续跑的正确性**：</span>
+
+<span class="sd">- ``skipped``：本轮因依赖失败而没跑 —— 依赖修好后应该重跑；</span>
+<span class="sd">- ``waiting``：等人工确认 —— 人确认后应该重跑；</span>
+<span class="sd">- ``done`` / ``failed``：已到终态 —— **默认不重跑**（否则"断点续跑"就退化成</span>
+<span class="sd">  "整批重跑"了），除非显式设 ``PlanPolicy(rerun_failed=True)``。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">as_completed</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.agent_core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Policy</span><span class="p">,</span> <span class="n">ToolRegistry</span><span class="p">,</span> <span class="n">ToolResult</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"PlanError"</span><span class="p">,</span> <span class="s2">"PlanCycleError"</span><span class="p">,</span>
+    <span class="s2">"Task"</span><span class="p">,</span> <span class="s2">"Plan"</span><span class="p">,</span> <span class="s2">"PlanPolicy"</span><span class="p">,</span>
+    <span class="s2">"topological_order"</span><span class="p">,</span> <span class="s2">"levels"</span><span class="p">,</span> <span class="s2">"execute_plan"</span><span class="p">,</span> <span class="s2">"render_plan"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># --------------------------------------------------------------------- 异常</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlanError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""任务图本身有问题（依赖不存在、id 重复等）。"""</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PlanCycleError</span><span class="p">(</span><span class="n">PlanError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""存在循环依赖。**必须在执行前抛出**。"""</span>
+
+
+<span class="c1"># --------------------------------------------------------------------- 任务</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Task</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""一个可调度的任务。</span>
+
+<span class="sd">    ``depends_on`` 是显式依赖声明 —— 这正是 DAG 相对于</span>
+<span class="sd">    "按文件顺序 %include" 的核心差别（第 19.9 节）。</span>
+<span class="sd">    """</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tool</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>                          <span class="c1"># 要调用的工具名（空 = 纯编排节点）</span>
+    <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">depends_on</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">optional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>                  <span class="c1"># True = 本任务失败**不阻塞下游**</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"pending"</span>                 <span class="c1"># pending/running/done/failed/skipped/waiting</span>
+    <span class="n">result</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">elapsed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">finished</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""本轮是否已到终态（不再需要执行）。``waiting`` 不算 —— 它还等着被跑。"""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="s2">"failed"</span><span class="p">,</span> <span class="s2">"skipped"</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">settled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""是否**不需要再执行**。终态 + 人工确认中的任务都属于这一类。</span>
+
+<span class="sd">        断点续跑时用 ``settled`` 判断"这个任务要不要跳过"。</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="s2">"failed"</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ok</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"done"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"depends_on"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+
+<span class="c1"># --------------------------------------------------------------------- 计划</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Plan</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""一张任务图。"""</span>
+    <span class="n">goal</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------- 构造</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">Task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Plan"</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Task</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">tid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">t</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># ------------------------------------------------------------- 校验</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""静态校验。**在 plan 阶段就报错，不要等到执行**。"""</span>
+        <span class="n">problems</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">]</span>
+        <span class="n">dup</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span> <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">dup</span><span class="p">:</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"任务 id 重复：</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">dup</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">:</span>
+                    <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> 依赖了不存在的任务 </span><span class="si">{</span><span class="n">dep</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">problems</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">topological_order</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">PlanCycleError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">problems</span>
+
+    <span class="c1"># ------------------------------------------------------------- 状态</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">ok</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">failed</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"failed"</span><span class="p">]</span>
+        <span class="n">skipped</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"skipped"</span><span class="p">]</span>
+        <span class="n">waiting</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"waiting"</span><span class="p">]</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">elapsed</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">tail</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" ｜ 累计耗时 </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s"</span>
+
+        <span class="k">if</span> <span class="n">failed</span> <span class="ow">or</span> <span class="n">waiting</span><span class="p">:</span>
+            <span class="n">bits</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"完成 </span><span class="si">{</span><span class="n">done</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> 项"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">failed</span><span class="p">:</span>
+                <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"**</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项失败**"</span>
+                            <span class="sa">f</span><span class="s2">"（</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">title</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">waiting</span><span class="p">:</span>
+                <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"**</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">waiting</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项等待人工确认**"</span>
+                            <span class="sa">f</span><span class="s2">"（</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">title</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">waiting</span><span class="p">)</span><span class="si">}</span><span class="s2">）"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">skipped</span><span class="p">:</span>
+                <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">skipped</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项跳过"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s2">" ｜ "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span> <span class="o">+</span> <span class="n">tail</span> <span class="o">+</span>
+                    <span class="s2">"</span><span class="se">\n</span><span class="s2">⚠️ 结论仅覆盖已完成的部分，未完成项需单独处理。"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">skipped</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"完成 </span><span class="si">{</span><span class="n">done</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> 项 ｜ </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">skipped</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项跳过"</span>
+                    <span class="sa">f</span><span class="s2">"（</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">title</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">skipped</span><span class="p">)</span><span class="si">}</span><span class="s2">）</span><span class="si">{</span><span class="n">tail</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"全部 </span><span class="si">{</span><span class="n">done</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> 项完成</span><span class="si">{</span><span class="n">tail</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"goal"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">goal</span><span class="p">,</span> <span class="s2">"meta"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span>
+                <span class="s2">"tasks"</span><span class="p">:</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                          <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Plan"</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"goal"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"meta"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">td</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tasks"</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">td</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">td</span><span class="p">)</span>
+            <span class="n">td</span><span class="p">[</span><span class="s2">"depends_on"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">td</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"depends_on"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">())</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="o">**</span><span class="n">td</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_json</span><span class="p">(),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Plan"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)))</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlanPolicy</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""调度策略。"""</span>
+    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">backoff_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">stop_on_failure</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>           <span class="c1"># True = 一失败就整体中止</span>
+    <span class="n">hitl_before</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>       <span class="c1"># 命中这些工具时暂停，等人工确认</span>
+    <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">rerun_failed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>              <span class="c1"># 断点续跑时是否重跑已失败的任务</span>
+    <span class="n">rerun_done</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>                <span class="c1"># 强制重算（谨慎：写操作会重复执行）</span>
+    <span class="n">confirmed</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>         <span class="c1"># ★ 已人工确认的任务 id（单独放行它的写操作）</span>
+
+
+<span class="c1"># --------------------------------------------------------------------- 算法</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">topological_order</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Task</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Kahn 拓扑排序。有环抛 :class:`PlanCycleError`。</span>
+
+<span class="sd">    这是**执行前的最后一道防线** —— 循环依赖往往藏在数据里</span>
+<span class="sd">    （表 3 依赖表 2 的衍生结果，表 2 又需要表 3 的统计量），</span>
+<span class="sd">    写代码时根本看不出来。</span>
+<span class="sd">    """</span>
+    <span class="n">by_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">indeg</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">children</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">by_id</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">PlanError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"任务 </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> 依赖了不存在的任务 </span><span class="si">{</span><span class="n">dep</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">children</span><span class="p">[</span><span class="n">dep</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">tid</span> <span class="k">for</span> <span class="n">tid</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">indeg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+        <span class="n">tid</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">children</span><span class="p">[</span><span class="n">tid</span><span class="p">]:</span>
+            <span class="n">indeg</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">indeg</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+        <span class="n">stuck</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">indeg</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">order</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">PlanCycleError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"任务图存在循环依赖，涉及：</span><span class="si">{</span><span class="n">stuck</span><span class="si">}</span><span class="s2">。"</span>
+            <span class="sa">f</span><span class="s2">"依赖关系："</span>
+            <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">→</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">stuck</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">by_id</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">order</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">levels</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Task</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""按"最早可执行轮次"分层。**同一层内的任务互不依赖，可以并行。**</span>
+
+<span class="sd">    TLF 场景下这就是"哪些表能一起跑"的答案。</span>
+<span class="sd">    """</span>
+    <span class="n">by_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">depth</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">d</span><span class="p">(</span><span class="n">tid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">depth</span><span class="p">:</span>
+            <span class="n">deps</span> <span class="o">=</span> <span class="n">by_id</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">depends_on</span>
+            <span class="n">depth</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">deps</span> <span class="k">else</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="n">d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">deps</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">depth</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span>
+
+    <span class="n">buckets</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">topological_order</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+        <span class="n">buckets</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">d</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">buckets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">buckets</span><span class="p">)]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">render_plan</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Task</span><span class="p">],</span> <span class="n">use_ascii</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把任务图渲染成可读的文本（含分层与并行提示）。"""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">levels</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">PlanError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"（计划无效：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">）"</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">tool</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'编排'</span><span class="si">}</span><span class="s2">)"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">)</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="s2">" ← 可并行"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">names</span><span class="si">}{</span><span class="n">tag</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="c1"># --------------------------------------------------------------------- 执行</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_dep_failed</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">Task</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""依赖是否"本轮不可用"。</span>
+
+<span class="sd">    三条规则，每条都对应一个真实场景：</span>
+
+<span class="sd">    1. 依赖**缺失**（id 写错）→ 视为不可用。校验阶段其实已经拦住了，</span>
+<span class="sd">       这里是运行期的兜底。</span>
+<span class="sd">    2. 依赖标记 ``optional=True`` → **它失败也不阻塞下游**。</span>
+<span class="sd">       例：查 CDISC 受控术语版本失败，不该阻塞整批出表 ——</span>
+<span class="sd">       出表用的是本地 CT，外部接口只是核对。</span>
+<span class="sd">    3. 依赖处于 ``failed / skipped / waiting`` → 不可用。</span>
+<span class="sd">       ``waiting``（等人工确认）也算：依赖没就绪就往下跑，</span>
+<span class="sd">       等于拿着半成品继续做，这正是流水线最该避免的事。</span>
+<span class="sd">    """</span>
+    <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">optional</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"failed"</span><span class="p">,</span> <span class="s2">"skipped"</span><span class="p">,</span> <span class="s2">"waiting"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">execute_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">ToolRegistry</span><span class="p">,</span>
+                 <span class="n">policy</span><span class="p">:</span> <span class="n">Policy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ppolicy</span><span class="p">:</span> <span class="n">PlanPolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">on_task</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Task</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Plan</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""按层执行：**同层并行，层间串行**。</span>
+
+<span class="sd">    用线程池而不是进程池 —— 工具调用绝大多数时间在等 I/O</span>
+<span class="sd">    （读文件、调 API），线程足够；而进程池需要 pickle 参数，</span>
+<span class="sd">    对一个 DataFrame 来说序列化开销会吃掉全部收益（第 19.5 节）。</span>
+<span class="sd">    """</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">policy</span> <span class="ow">or</span> <span class="n">Policy</span><span class="p">()</span>
+    <span class="n">ppolicy</span> <span class="o">=</span> <span class="n">ppolicy</span> <span class="ow">or</span> <span class="n">PlanPolicy</span><span class="p">()</span>
+
+    <span class="n">problems</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PlanError</span><span class="p">(</span><span class="s2">"计划校验失败：</span><span class="se">\n</span><span class="s2">  - "</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  - "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">))</span>
+
+    <span class="n">layers</span> <span class="o">=</span> <span class="n">levels</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+        <span class="n">ready</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+            <span class="c1"># ★ 断点续跑的第一道判断：已到终态的任务**不再重跑**。</span>
+            <span class="c1">#   没有这一条，"从盘上恢复计划继续跑"就等于"整批重跑一遍"，</span>
+            <span class="c1">#   而且会重复执行写操作（重复递交！）。</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"done"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">rerun_done</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"failed"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">rerun_failed</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">_dep_failed</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">plan</span><span class="p">):</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"skipped"</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="s2">"依赖任务未成功"</span>
+                <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+                    <span class="n">on_task</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">ready</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ready</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">dry_run</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"skipped"</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="s2">"dry-run 未执行"</span>
+                <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+                    <span class="n">on_task</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">workers</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">ppolicy</span><span class="o">.</span><span class="n">max_workers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ready</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">workers</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">:</span>
+                <span class="n">_run_one</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">ppolicy</span><span class="p">,</span> <span class="n">on_task</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">stop_on_failure</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"failed"</span><span class="p">:</span>
+                    <span class="n">_skip_rest</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">on_task</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">plan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="n">futs</span> <span class="o">=</span> <span class="p">{</span><span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_run_one</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">ppolicy</span><span class="p">,</span>
+                                  <span class="n">on_task</span><span class="p">):</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">}</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futs</span><span class="p">):</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">stop_on_failure</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"failed"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">):</span>
+                <span class="n">_skip_rest</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">on_task</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">plan</span>
+
+    <span class="k">return</span> <span class="n">plan</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_skip_rest</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">,</span> <span class="n">on_task</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Task</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"waiting"</span><span class="p">:</span>
+            <span class="k">continue</span>            <span class="c1"># 人工确认点保持等待，不因别处失败而被作废</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="o">.</span><span class="n">finished</span><span class="p">:</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"skipped"</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="s2">"因前置任务失败而中止"</span>
+            <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+                <span class="n">on_task</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+
+<span class="n">RETRYABLE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"transient"</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_run_one</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">Task</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">ToolRegistry</span><span class="p">,</span> <span class="n">policy</span><span class="p">:</span> <span class="n">Policy</span><span class="p">,</span>
+             <span class="n">ppolicy</span><span class="p">:</span> <span class="n">PlanPolicy</span><span class="p">,</span>
+             <span class="n">on_task</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Task</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""执行单个任务，按错误类型决定是否重试。"""</span>
+    <span class="c1"># 人工确认闸门（计划层）</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">tool</span><span class="p">)</span> <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">tool</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">task</span><span class="o">.</span><span class="n">tool</span> <span class="ow">in</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">hitl_before</span><span class="p">:</span>
+        <span class="c1"># ★ 记 waiting 而不是 skipped：人确认后要能**只重跑这一个任务**。</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"waiting"</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"命中人工确认点（</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">tool</span><span class="si">}</span><span class="s2">），等待确认后重跑"</span>
+        <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+            <span class="n">on_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># 人工确认放行（工具层）：**逐个任务放行**，不是全局关掉闸门。</span>
+    <span class="c1"># 全局关掉意味着"确认过一次之后，所有写操作都不再需要确认" ——</span>
+    <span class="c1"># 这正是审批流最容易被绕过的地方。</span>
+    <span class="n">task_policy</span> <span class="o">=</span> <span class="n">policy</span>
+    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">confirmed</span> <span class="ow">and</span> <span class="n">policy</span><span class="o">.</span><span class="n">confirm_side_effects</span><span class="p">:</span>
+        <span class="n">task_policy</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">confirm_side_effects</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"running"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">tool</span><span class="p">:</span>                       <span class="c1"># 纯编排节点</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"done"</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"note"</span><span class="p">:</span> <span class="s2">"编排节点，无工具调用"</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+            <span class="n">on_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">attempts</span> <span class="o">=</span> <span class="n">attempt</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">res</span><span class="p">:</span> <span class="n">ToolResult</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">task_policy</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="s2">"done"</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">pending</span><span class="p">:</span>                     <span class="c1"># 需要人工确认</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"waiting"</span>         <span class="c1"># 与 hitl_before 同语义：等确认后重跑</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">error</span>
+            <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">error_type</span> <span class="ow">in</span> <span class="n">RETRYABLE</span> <span class="ow">and</span> <span class="n">attempt</span> <span class="o">&lt;=</span> <span class="n">ppolicy</span><span class="o">.</span><span class="n">max_retries</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ppolicy</span><span class="o">.</span><span class="n">backoff_base</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span>
+            <span class="k">continue</span>
+
+        <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">"failed"</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">error</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">error_type</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">error_type</span>
+        <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+        <span class="n">on_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="clinic-agent_core.html"><span class="pg-label">← 上一篇</span><span class="pg-title">agent_core.py</span></a><a class="pg-next" href="clinic-agent_memory.html"><span class="pg-label">下一篇 →</span><span class="pg-title">agent_memory.py</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

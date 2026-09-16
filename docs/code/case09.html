@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 09 · SDTM 一致性核查 Agent（记忆检索 / 阈值标定）</title>
+<meta name="description" content="SDTM 一致性核查 Agent（记忆检索 / 阈值标定） — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 09 · SDTM 一致性核查 Agent（记忆检索 / 阈值标定）">
+<meta property="og:description" content="SDTM 一致性核查 Agent（记忆检索 / 阈值标定） — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case09.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例 · Agent 开发</div><h1>案例 09 · SDTM 一致性核查 Agent（记忆检索 / 阈值标定）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case09_SDTM%E4%B8%80%E8%87%B4%E6%80%A7%E6%A0%B8%E6%9F%A5Agent.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case09_SDTM%E4%B8%80%E8%87%B4%E6%80%A7%E6%A0%B8%E6%9F%A5Agent.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case09_SDTM一致性核查Agent.py</strong> · 698 行 · 24 KB<br>案例 09 · SDTM 跨域一致性核查 Agent（规则检索 + 可追溯引用） =============================================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 09 · SDTM 跨域一致性核查 Agent（规则检索 + 可追溯引用）</span>
+<span class="sd">=============================================================</span>
+
+<span class="sd">**目标**：让 Agent 的每一句结论都能**指回两样东西** ——</span>
+<span class="sd">一条工具跑出来的数字，和一条写在核查计划里的规则。</span>
+
+<span class="sd">**覆盖章节**：第 21 章（记忆与上下文管理）、第 20 章（工具调用进阶）、</span>
+<span class="sd">第 12 章（SDTM 数据处理）</span>
+
+<span class="sd">为什么这个案例值得单独写</span>
+<span class="sd">------------------------</span>
+<span class="sd">单域的格式检查（变量存在、类型正确、主键唯一）用脚本就够了。</span>
+<span class="sd">真正耗时的是**跨域一致性核查**：</span>
+
+<span class="sd">    各域的 USUBJID 都能在 DM 里找到吗？</span>
+<span class="sd">    AE 的开始日期早于首次给药，该不该算 TEAE？</span>
+<span class="sd">    "DM 有受试者但 AE 域没有记录" 是错误还是正常？</span>
+
+<span class="sd">这些判断依赖两样东西：</span>
+<span class="sd">  1. **数据**（要靠工具真实计算，不能靠模型回忆）</span>
+<span class="sd">  2. **规则**（写在核查计划 / SOP 里，模型没读过，必须检索出来）</span>
+
+<span class="sd">于是这个案例的结构就是：**工具给数字，检索给依据，事实表把它们绑在一起**。</span>
+
+<span class="sd">五个场景</span>
+<span class="sd">--------</span>
+<span class="sd">a) **知识库与检索** —— 把核查计划切对，按标题加权召回</span>
+<span class="sd">b) **核查 Agent 跑通** —— 工具 + 规则检索 + 带引用的结论</span>
+<span class="sd">c) **记忆与上下文预算** —— 三种记忆策略在 10 轮会话下的成本对比</span>
+<span class="sd">d) **数字可追溯** —— 从结论里的 306 一路回溯到原始数据行，并**重放验证**</span>
+<span class="sd">e) **规则检索的阈值靠标定** —— 用 15 条样例扫出最优阈值，并守住</span>
+<span class="sd">   "检索不到就说没找到"的红线</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case09_SDTM一致性核查Agent.py</span>
+<span class="sd">    python cases/case09_SDTM一致性核查Agent.py --only e</span>
+
+<span class="sd">离线可跑：不需要 API Key。工具**真实执行**，数字来自真实数据。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">clinic.agent_tools</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">T</span>                                   <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">agent_core</span> <span class="k">as</span> <span class="n">core</span>                            <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">agent_memory</span> <span class="k">as</span> <span class="n">mem</span>                           <span class="c1"># noqa: E402</span>
+
+<span class="n">OUT</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+<span class="n">KB_DIR</span> <span class="o">=</span> <span class="n">OUT</span> <span class="o">/</span> <span class="s2">"kb"</span>
+<span class="n">ALLOWED</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ALLOWED_DATASETS</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 「外部文档」：一份核查计划（QC Plan）的节选</span>
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 真实项目里，这段内容来自公司的 SOP / 核查计划 / SAP。</span>
+<span class="c1"># 我们把它当作"知识库文档"，验证 Agent 能不能**检索到规则并引用它**。</span>
+<span class="n">QC_PLAN_TEXT</span> <span class="o">=</span> <span class="s2">"""# 核查计划 · CDISCPILOT01（节选）</span>
+
+<span class="s2">## 3. 受试者层面一致性</span>
+
+<span class="s2">### 3.1 受试者标识一致性</span>
+<span class="s2">各数据集的 USUBJID 必须全部存在于 DM 域。</span>
+
+<span class="s2">- "某域存在但 DM 中不存在" → **严重级：高**，必须修复（数据链条断裂）。</span>
+<span class="s2">- "DM 中存在但某域无记录" → **严重级：信息**，通常属正常</span>
+<span class="s2">  （例如未发生不良事件的受试者，AE 域自然没有记录）。</span>
+<span class="s2">- 判定不得只看记录数是否相等，必须做集合运算。</span>
+
+<span class="s2">### 3.2 受试者数量关系</span>
+<span class="s2">受试者数量的常规关系（用于交叉核对，不构成单独的错误判定）：</span>
+
+<span class="s2">    筛选人数 ≥ 随机化人数 ≥ 安全性人群（SAFFL='Y'）≥ 有效性人群（EFFFL='Y'）</span>
+
+<span class="s2">CDISCPILOT01：筛选 306 人，随机化 254 人。</span>
+<span class="s2">任何一层出现"下层大于上层"，都说明分层标志位（SAFFL / EFFFL）有误。</span>
+
+<span class="s2">### 3.3 缺失值与零</span>
+<span class="s2">SDTM 中空值表示"未收集"，**不允许用 0 代替缺失**。</span>
+<span class="s2">数值变量为 0 时必须能溯源到 CRF 上的实际取值。</span>
+
+<span class="s2">## 4. 日期与时间一致性</span>
+
+<span class="s2">### 4.1 治疗中出现的定义（TEAE）</span>
+<span class="s2">不良事件开始日期（AESTDTC）**早于**首次给药日期（EX 域最早 EXSTDTC）的，</span>
+<span class="s2">判定为"用药前事件"，不纳入 TEAE 汇总。</span>
+
+<span class="s2">日期比较要求精确到日；任一侧日期不完整（缺失日或月）时，</span>
+<span class="s2">**不得直接比较**，应标记为"无法判定"并人工核查 —— 不允许默认按相等处理。</span>
+
+<span class="s2">### 4.2 日期先后关系</span>
+<span class="s2">- AESTDTC ≤ AEENDTC</span>
+<span class="s2">- 处置日期（DSSTDTC）不应早于首次给药日期</span>
+<span class="s2">- 派生自同一来源的两个日期变量必须保持一致</span>
+
+<span class="s2">## 5. 严重性分级与处置</span>
+
+<span class="s2">| 严重级 | 含义 | 处置 |</span>
+<span class="s2">|---|---|---|</span>
+<span class="s2">| 高 | 会导致递交物错误 | 必须修复后才能出表 |</span>
+<span class="s2">| 中 | 可能影响结论，需确认 | 人工确认并留痕 |</span>
+<span class="s2">| 低 | 格式/记录问题 | 记录，择机修复 |</span>
+<span class="s2">| 信息 | 状态记录，不是错误 | 无需处理 |</span>
+
+<span class="s2">## 6. 结论与可追溯性要求</span>
+
+<span class="s2">### 6.1 每个数字必须有出处</span>
+<span class="s2">核查报告中出现的**每一个数字**，都必须能追溯到</span>
+<span class="s2">「工具 → 数据集 → 筛选条件 → 记录」这条链路上的具体位置。</span>
+
+<span class="s2">模型或人给出的数字，若无法落到工具返回值上，一律不得写入报告。</span>
+
+<span class="s2">### 6.2 规则引用要写到章节号</span>
+<span class="s2">结论中每条判定所依据的规则，必须写明核查计划或 SAP 的**章节号**，</span>
+<span class="s2">不允许写"根据相关规定"这类无法核查的表述。</span>
+
+<span class="s2">## 7. 报告模板要求</span>
+
+<span class="s2">结论按"问题 → 依据 → 处置建议"三段式组织。</span>
+<span class="s2">未能完成的核查项必须显式列出，**不允许省略**（省略会让报告被误读为全覆盖）。</span>
+<span class="s2">"""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_knowledge_base</span><span class="p">(</span><span class="n">min_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span>
+                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">mem</span><span class="o">.</span><span class="n">Chunk</span><span class="p">],</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""构建知识库：把核查计划导出为 Markdown，再切 chunk 建索引。</span>
+
+<span class="sd">    ★ 关键设计：**"检索"是一个工具，不是一段提示词。**</span>
+<span class="sd">    把文档塞进 System Prompt 的做法在文档变大后必然失效，</span>
+<span class="sd">    而且模型引用的是"它记得的"，不是"文档里写的"。</span>
+
+<span class="sd">    ``min_score`` 决定"多相关才算找到"。**这个数不能拍脑袋定** ——</span>
+<span class="sd">    怎么定，见场景 e。</span>
+<span class="sd">    """</span>
+    <span class="n">KB_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">plan</span> <span class="o">=</span> <span class="n">KB_DIR</span> <span class="o">/</span> <span class="s2">"QC_PLAN_v3.md"</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">QC_PLAN_TEXT</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+    <span class="c1"># 语料 = 核查计划 + 教程里讲方法与陷阱的两章（真实文件）</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">plan</span><span class="p">,</span>
+             <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"docs"</span> <span class="o">/</span> <span class="s2">"12-SDTM数据处理实战.md"</span><span class="p">,</span>
+             <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"docs"</span> <span class="o">/</span> <span class="s2">"10-日期缺失值格式与数据质量.md"</span><span class="p">,</span>
+             <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"docs"</span> <span class="o">/</span> <span class="s2">"09-合并重塑与分组汇总.md"</span><span class="p">]</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="n">mem</span><span class="o">.</span><span class="n">load_corpus</span><span class="p">([</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span> <span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()],</span> <span class="n">max_chars</span><span class="o">=</span><span class="mi">1200</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="n">min_score</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 工具层：在案例 08 的基础上，多加一个 search_rules</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_registry</span><span class="p">(</span><span class="n">retriever</span><span class="p">:</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolRegistry</span><span class="p">:</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolRegistry</span><span class="p">()</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"list_datasets"</span><span class="p">,</span> <span class="s2">"列出可访问的数据集及规模。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span> <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"required"</span><span class="p">:</span> <span class="p">[],</span>
+               <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_list</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">list_datasets</span><span class="p">()</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span>
+              <span class="s2">"对数据集执行标准质量检查（必需变量、主键、日期逻辑、受控术语等）。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">),</span>
+                               <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"数据集名称"</span><span class="p">},</span>
+                   <span class="s2">"dataset_type"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                                    <span class="s2">"enum"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"sdtm"</span><span class="p">,</span> <span class="s2">"adam"</span><span class="p">],</span>
+                                    <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"标准类型，auto=按名称推断"</span><span class="p">},</span>
+                   <span class="s2">"max_issues"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                  <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+                                  <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"最多返回多少条明细，默认 20"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">run_qc_checks</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"dataset_type"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"auto"</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_issues"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mem</span><span class="o">.</span><span class="n">cap_rows</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">],</span> <span class="n">n</span><span class="p">)</span>      <span class="c1"># ★ 统一截断并标明"已截断"</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"check_subject_consistency"</span><span class="p">,</span>
+              <span class="s2">"检查各域 USUBJID 是否都存在于 DM 中（跨域一致性核查）。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"domains"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"array"</span><span class="p">,</span>
+                               <span class="s2">"items"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">)},</span>
+                               <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"要检查的域，默认 ae/ex/ds/adsl"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_consistency</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">check_subject_consistency</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"domains"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span>
+              <span class="s2">"在核查计划 / SOP / SAP 知识库中检索规则依据。"</span>
+              <span class="s2">"**凡是要下'是否符合要求'的判断，必须先调用本工具取依据。**"</span>
+              <span class="s2">"返回结果带章节号，引用时必须照抄章节号。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"query"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"检索问题，如'USUBJID 一致性 判定规则'"</span><span class="p">},</span>
+                   <span class="s2">"top_k"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+                             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"返回几条依据，默认 3"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"query"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_search</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"query"</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"top_k"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">good</span> <span class="o">=</span> <span class="p">[(</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">hits</span> <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">min_score</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">good</span><span class="p">:</span>                       <span class="c1"># ★ 红线：检索不到就明说</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"查询"</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s2">"query"</span><span class="p">],</span> <span class="s2">"找到"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"未找到"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="s2">"说明"</span><span class="p">:</span> <span class="s2">"知识库中没有与该问题相关的规定。"</span>
+                            <span class="s2">"请勿凭推测作答；应列入'未能完成的核查项'。"</span><span class="p">,</span>
+                    <span class="s2">"最高分"</span><span class="p">:</span> <span class="n">hits</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">hits</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"查询"</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s2">"query"</span><span class="p">],</span> <span class="s2">"找到"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">good</span><span class="p">),</span> <span class="s2">"未找到"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">"依据"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"引用"</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">citation</span><span class="p">(),</span> <span class="s2">"标题"</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                          <span class="s2">"相关度"</span><span class="p">:</span> <span class="n">s</span><span class="p">,</span> <span class="s2">"片段"</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">text</span><span class="p">[:</span><span class="mi">600</span><span class="p">]}</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">good</span><span class="p">]}</span>
+
+    <span class="c1"># 事实提取：把关键数字和引用来源一起固化下来</span>
+    <span class="n">reg</span><span class="o">.</span><span class="n">set_fact_rule</span><span class="p">(</span><span class="s2">"check_subject_consistency"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"DM受试者总数"</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"DM 受试者总数"</span><span class="p">),</span>
+        <span class="s2">"孤儿受试者数"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"不在DM中"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"各域明细"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+    <span class="p">})</span>
+    <span class="n">reg</span><span class="o">.</span><span class="n">set_fact_rule</span><span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="p">{</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'dataset'</span><span class="p">)</span><span class="si">}</span><span class="s2">.问题总数"</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"问题总数"</span><span class="p">),</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'dataset'</span><span class="p">)</span><span class="si">}</span><span class="s2">.高优先级问题数"</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"高优先级问题数"</span><span class="p">),</span>
+    <span class="p">})</span>
+    <span class="n">reg</span><span class="o">.</span><span class="n">set_fact_rule</span><span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="p">(</span>
+        <span class="p">{</span><span class="s2">"规则依据章节"</span><span class="p">:</span> <span class="s2">"、"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">"引用"</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"依据"</span><span class="p">,</span> <span class="p">[]))}</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"依据"</span><span class="p">)</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"规则依据章节"</span><span class="p">:</span> <span class="s2">"未找到（不得凭推测作答）"</span><span class="p">}))</span>
+    <span class="k">return</span> <span class="n">reg</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 一个"像核查员一样工作"的假模型：先取依据、再取数据、最后带引用作答</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChecklistMock</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">LLMClient</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""按真实核查流程走：</span>
+
+<span class="sd">    ① 检索规则（"该按什么标准判"）</span>
+<span class="sd">    ② 跑跨域一致性核查（"数据实际是什么样"）</span>
+<span class="sd">    ③ 跑单域质量检查（"有没有格式问题"）</span>
+<span class="sd">    ④ 组织结论：**每条判断都挂上章节号**</span>
+
+<span class="sd">    它不做推理（是确定性脚本），但它演示了**正确的工具编排顺序** ——</span>
+<span class="sd">    真实 LLM 在好的提示词和好的工具描述下，走的也是这个顺序。</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">chat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="p">):</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="s2">"USUBJID 受试者标识 一致性 严重性 判定规则"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"check_subject_consistency"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"domains"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"ae"</span><span class="p">,</span> <span class="s2">"ex"</span><span class="p">,</span> <span class="s2">"ds"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">]}),</span>
+            <span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="s2">"日期先后关系 部分日期 不允许直接比较"</span><span class="p">}),</span>
+            <span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"ae"</span><span class="p">}),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="p">):</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">plan</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">assistant</span><span class="p">(</span><span class="n">tool_calls</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">core</span><span class="o">.</span><span class="n">ToolCall</span><span class="p">(</span><span class="sa">f</span><span class="s2">"call_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">assistant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_answer</span><span class="p">(</span><span class="n">messages</span><span class="p">))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_answer</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""从工具返回值里取数字与章节号，拼一份**可核查**的报告。"""</span>
+        <span class="n">facts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cites</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">"tool"</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">m</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"{"</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="s2">"DM 受试者总数"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="n">facts</span><span class="p">[</span><span class="s2">"DM 受试者总数"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">"DM 受试者总数"</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"各域明细"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">facts</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.不在DM中"</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"不在DM中"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"依据"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="n">cites</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">"引用"</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">"依据"</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="s2">"问题总数"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="n">facts</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'数据集'</span><span class="p">)</span><span class="si">}</span><span class="s2">.问题总数"</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">"问题总数"</span><span class="p">]</span>
+
+        <span class="n">orphan</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">facts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"不在DM中"</span><span class="p">))</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"## 结论：跨域受试者一致性"</span><span class="p">,</span>
+            <span class="s2">""</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"- **DM 受试者总数 </span><span class="si">{</span><span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'DM 受试者总数'</span><span class="p">)</span><span class="si">}</span><span class="s2"> 人**"</span>
+            <span class="sa">f</span><span class="s2">"（依据：check_subject_consistency 工具返回值）"</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"- 各域'存在但不在 DM 中'的受试者合计 **</span><span class="si">{</span><span class="n">orphan</span><span class="si">}</span><span class="s2">** 人"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">orphan</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"  → 判定：**通过**。数据链条完整，无孤儿受试者。"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"  → 判定：**不通过**，需立即修复（见下方依据）。"</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">"- AE 域质量问题 </span><span class="si">{</span><span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'ae.问题总数'</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条（含信息级状态记录）"</span><span class="p">,</span>
+            <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"### 判定依据（规则出处）"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">cites</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"### 说明"</span><span class="p">,</span>
+            <span class="s2">"- “DM 存在但某域无记录”按规则属正常情况，**不计入错误**；"</span>
+            <span class="s2">"本结论只统计“某域存在但 DM 不存在”。"</span><span class="p">,</span>
+            <span class="s2">"- 上述每个数字均来自工具返回，未做任何估算。"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 a · 知识库与检索</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_a</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 a · 知识库构建与检索：文档切对了，召回才准"</span><span class="p">)</span>
+    <span class="n">chunks</span><span class="p">,</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">build_knowledge_base</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"知识库：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个 chunk，来自 "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">({</span><span class="n">c</span><span class="o">.</span><span class="n">doc</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">chunks</span><span class="p">})</span><span class="si">}</span><span class="s2"> 个文档"</span><span class="p">)</span>
+    <span class="n">by_doc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
+        <span class="n">by_doc</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">doc</span><span class="p">]</span> <span class="o">=</span> <span class="n">by_doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">doc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">by_doc</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  · </span><span class="si">{</span><span class="n">doc</span><span class="si">:</span><span class="s2">36s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2"> chunk"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">切分策略：**按 Markdown 标题切** —— 结构化文档的第一原则。</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"命中标题的 chunk 会加权 0.3、命中章节号的加权 0.2，</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"这就是“关键词检索为什么可解释”：你能说清它为什么排第一。</span><span class="se">\n\n</span><span class="s2">"</span>
+          <span class="s2">"⚠️ 上表里教程文档的引用只显示文件名、没有章节号，原因是那些</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"   小标题没有编号（“### 任务 1：…”）。另外教程里有大量示例代码，</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"   代码块里的 `# 注释` 会被朴素的行解析误判成标题 ——</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"   load_corpus() 用围栏标记做了规避，这是实测踩出来的坑。"</span><span class="p">)</span>
+
+    <span class="n">queries</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"DM 中有但某域没有记录的受试者算错误吗"</span><span class="p">,</span>
+        <span class="s2">"USUBJID 一致性 严重性分级"</span><span class="p">,</span>
+        <span class="s2">"部分日期 缺失 能不能直接比较"</span><span class="p">,</span>
+        <span class="s2">"受试者数量 安全性人群 关系"</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">▶ 检索：</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="s2">"✓"</span> <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;=</span> <span class="n">ret</span><span class="o">.</span><span class="n">min_score</span> <span class="k">else</span> <span class="s2">"✗（低于阈值，不采用）"</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   [</span><span class="si">{</span><span class="n">s</span><span class="si">:</span><span class="s2">5.2f</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">citation</span><span class="p">()</span><span class="si">:</span><span class="s2">34s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">title</span><span class="p">[:</span><span class="mi">26</span><span class="p">]</span><span class="si">:</span><span class="s2">28s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   → 采用 </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">_c</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">ret</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">ret</span><span class="o">.</span><span class="n">min_score</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">⚠️ 上面用的阈值是库默认的 0.25 —— 它其实**偏低**，会捞回不相关的内容。</span>
+<span class="s2">   场景 e 会用一组标定样例把它定到 0.40，并讲清为什么"不能拍脑袋"。</span>
+
+<span class="s2">为什么不用向量检索？</span>
+<span class="s2">  · 知识库只有几十个 chunk —— 关键词检索足够；</span>
+<span class="s2">  · 临床场景要求**可解释**：被审计问"为什么引用了这一条"时，</span>
+<span class="s2">    你能回答"因为查询里的'一致性'和标题命中"；向量相似度很难解释；</span>
+<span class="s2">  · 零依赖、离线可用、结果确定（同一问题永远同一答案）。</span>
+<span class="s2">  文档超过约 200 个 chunk 再考虑向量库，且要保留本方法作为兜底。"""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 b · 核查 Agent 跑通</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_b</span><span class="p">(</span><span class="n">retriever</span><span class="p">:</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">,</span>
+               <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">AgentState</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 b · 核查 Agent：工具给数字，检索给依据"</span><span class="p">)</span>
+
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">retriever</span><span class="p">)</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">Policy</span><span class="p">(</span><span class="n">max_steps</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">allowed_datasets</span><span class="o">=</span><span class="n">ALLOWED</span><span class="p">)</span>
+    <span class="n">audit</span> <span class="o">=</span> <span class="n">OUT</span> <span class="o">/</span> <span class="s2">"audit"</span> <span class="o">/</span> <span class="s2">"case09_trace.jsonl"</span>
+    <span class="n">agent</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">Agent</span><span class="p">(</span><span class="n">ChecklistMock</span><span class="p">(),</span> <span class="n">reg</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span>
+                       <span class="n">observer</span><span class="o">=</span><span class="n">core</span><span class="o">.</span><span class="n">ConsoleObserver</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">),</span>
+                       <span class="n">metrics</span><span class="o">=</span><span class="p">(</span><span class="n">met</span> <span class="o">:=</span> <span class="n">core</span><span class="o">.</span><span class="n">Metrics</span><span class="p">()))</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">"对 CDISCPILOT01 做跨域一致性核查，并给出带依据的结论"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【Agent 最终结论】</span><span class="se">\n</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">answer</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【结构化事实表】</span><span class="se">\n</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">fact_table</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【指标】</span><span class="si">{</span><span class="n">met</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"【审计】</span><span class="si">{</span><span class="n">audit</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">BASE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">注意结论里的三个特征（第 21.8 节的标准）：</span>
+<span class="s2">  1. **有数字** —— 306 / 0，全部来自工具返回值</span>
+<span class="s2">  2. **有出处** —— 判定规则写到章节号（QC_PLAN_v3 第 3.1 节）</span>
+<span class="s2">  3. **有反例提示** —— 明确说明"DM 有但某域无记录"不算错误</span>
+
+<span class="s2">三者缺一，结论就不可核查。第 3 条尤其重要：</span>
+<span class="s2">如果只报"AE 域有 81 人缺失"，核查人员会白忙一场 ——</span>
+<span class="s2">那 81 人只是**没有发生不良事件**，按规则属正常情况。"""</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 c · 记忆与上下文预算</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_c</span><span class="p">(</span><span class="n">retriever</span><span class="p">:</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 c · 记忆与上下文预算：10 轮核查会话的真实成本"</span><span class="p">)</span>
+
+    <span class="c1"># 用**真实工具返回值**构造一段 10 轮会话（不是编造的假数据）</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">retriever</span><span class="p">)</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"consistency"</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"check_subject_consistency"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+        <span class="s2">"ae_qc"</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"ae"</span><span class="p">})</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+        <span class="s2">"adsl_qc"</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">})</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+        <span class="s2">"rules"</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span>
+                             <span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="s2">"受试者标识一致性 判定规则"</span><span class="p">})</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">msgs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">"你是临床统计编程核查助手。"</span><span class="p">)]</span>
+    <span class="n">turns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"核查各域受试者一致性"</span><span class="p">,</span> <span class="s2">"consistency"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"AE 域有哪些质量问题"</span><span class="p">,</span> <span class="s2">"ae_qc"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"ADSL 域呢"</span><span class="p">,</span> <span class="s2">"adsl_qc"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"判定规则是怎么规定的"</span><span class="p">,</span> <span class="s2">"rules"</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>                                   <span class="c1"># 重复追问，模拟真实的多轮</span>
+        <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">turns</span><span class="p">:</span>
+            <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">user</span><span class="p">(</span><span class="sa">f</span><span class="s2">"（第 </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> 轮）</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+            <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">assistant</span><span class="p">(</span>
+                <span class="n">tool_calls</span><span class="o">=</span><span class="p">[</span><span class="n">core</span><span class="o">.</span><span class="n">ToolCall</span><span class="p">(</span><span class="sa">f</span><span class="s2">"c</span><span class="si">{</span><span class="n">i</span><span class="si">}{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="p">{})]))</span>
+            <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"c</span><span class="si">{</span><span class="n">i</span><span class="si">}{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">render_tool_result</span><span class="p">(</span><span class="n">real</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">max_chars</span><span class="o">=</span><span class="mi">2500</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">key</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"会话规模：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span><span class="si">}</span><span class="s2"> 条消息"</span><span class="p">)</span>
+
+    <span class="n">strategies</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"全量保留 FullMemory"</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">FullMemory</span><span class="p">()),</span>
+                  <span class="p">(</span><span class="s2">"滑窗 WindowMemory(6)"</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">WindowMemory</span><span class="p">(</span><span class="n">keep_recent</span><span class="o">=</span><span class="mi">6</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s2">"摘要 SummaryMemory(4)"</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">SummaryMemory</span><span class="p">(</span><span class="n">keep_recent</span><span class="o">=</span><span class="mi">4</span><span class="p">))]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'策略'</span><span class="si">:</span><span class="s2">24s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'轮数'</span><span class="si">:</span><span class="s2">&gt;5s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'字符数'</span><span class="si">:</span><span class="s2">&gt;9s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'估算token'</span><span class="si">:</span><span class="s2">&gt;10s</span><span class="si">}</span><span class="s2"> "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'相对全量'</span><span class="si">:</span><span class="s2">&gt;9s</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">strategies</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">base</span> <span class="ow">or</span> <span class="n">s</span><span class="p">[</span><span class="s2">"字符数"</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">24s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'轮数'</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;5d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'字符数'</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;9,d</span><span class="si">}</span><span class="s2"> "</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'估算token'</span><span class="p">]</span><span class="si">:</span><span class="s2">&gt;10,d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'字符数'</span><span class="p">]</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">base</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">&gt;8.1f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">mem</span><span class="o">.</span><span class="n">SummaryMemory</span><span class="p">(</span><span class="n">keep_recent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">content</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ctx</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【摘要记忆保留了哪些数字】"</span><span class="p">)</span>
+    <span class="n">nums</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\d+(?:\.\d+)?"</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">},</span>
+                  <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))[:</span><span class="mi">12</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  摘要+近期消息中出现的数字：</span><span class="si">{</span><span class="n">nums</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  关键数字是否还在：306 → </span><span class="si">{</span><span class="s1">'306'</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">text</span><span class="si">}</span><span class="s2">，254 → </span><span class="si">{</span><span class="s1">'254'</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">text</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【摘要文本前 500 字】</span><span class="se">\n</span><span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">500</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【上下文预算分配】"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mem</span><span class="o">.</span><span class="n">ContextBudget</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="mi">32_000</span><span class="p">)</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">故意把总额压到 8K 试试（会报警）："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mem</span><span class="o">.</span><span class="n">ContextBudget</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="mi">8_000</span><span class="p">)</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">三个结论：</span>
+<span class="s2">  1. **全量保留必然超窗** —— 只是早晚问题；10 轮就已经很贵了。</span>
+<span class="s2">  2. **摘要必须保留数字** —— rule_based_summary 的第一条规则就是"所有数字都保留"。</span>
+<span class="s2">     在临床场景里，254 变成"约 250"是不可接受的（那是结论本身）。</span>
+<span class="s2">  3. **预算是分配问题，不是容量问题** —— 把 32K 分给 8 个用途，</span>
+<span class="s2">     每处都有上限，超了就在那一处截断，而不是让某一处无限膨胀。</span>
+
+<span class="s2">⚠️ 滑窗有个真实的坑：窗口边界如果正好切在 assistant 的 tool_call 和</span>
+<span class="s2">   tool 结果之间，API 会报 400。WindowMemory 的 align 参数就是干这个的。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 d · 数字可追溯</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_d</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">core</span><span class="o">.</span><span class="n">AgentState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 d · 数字可追溯：从结论里的 306 一路回到原始数据行"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"结论里的第一个数字：DM 受试者总数 = 306"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"要回答的问题是：**这个 306 是谁算出来的？怎么复现？**</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ---- ① 从事实表找出来源 ----</span>
+    <span class="n">fact</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">facts</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">"DM受试者总数"</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"① 事实表记录：</span><span class="si">{</span><span class="n">fact</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">fact</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   出处（source）：</span><span class="si">{</span><span class="n">fact</span><span class="o">.</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   发生在第 </span><span class="si">{</span><span class="n">fact</span><span class="o">.</span><span class="n">step</span><span class="si">}</span><span class="s2"> 步"</span><span class="p">)</span>
+
+    <span class="c1"># ---- ② 从轨迹里找到那一步，取出当时的参数 ----</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">steps</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s2">"check_subject_consistency"</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">② 轨迹里的那一步：tool=</span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">tool</span><span class="si">}</span><span class="s2"> args=</span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">args</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   耗时 </span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">s，结果摘要 </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">result</span><span class="p">)[:</span><span class="mi">90</span><span class="p">]</span><span class="si">}</span><span class="s2">…"</span><span class="p">)</span>
+
+    <span class="c1"># ---- ③ 重放：用同样的参数再跑一次，看数字是否一致 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">③ 重放验证（用轨迹里记下的参数再跑一次）："</span><span class="p">)</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">build_knowledge_base</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">replay</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="n">step</span><span class="o">.</span><span class="n">args</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="n">got</span> <span class="o">=</span> <span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"DM 受试者总数"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   重放结果 = </span><span class="si">{</span><span class="n">got</span><span class="si">}</span><span class="s2">   与结论一致：**</span><span class="si">{</span><span class="n">got</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">fact</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">**"</span><span class="p">)</span>
+
+    <span class="c1"># ---- ④ 落到原始数据行 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">④ 从工具回到原始数据（工具内部读的是 data/samples/dm.csv）："</span><span class="p">)</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+    <span class="n">dm</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASE</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"samples"</span> <span class="o">/</span> <span class="s2">"dm.csv"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                     <span class="n">low_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dm</span><span class="p">)</span>
+    <span class="n">n_subj</span> <span class="o">=</span> <span class="n">dm</span><span class="p">[</span><span class="s2">"USUBJID"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   dm.csv 行数 = </span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">，USUBJID 去重数 = </span><span class="si">{</span><span class="n">n_subj</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   与结论数字一致：**</span><span class="si">{</span><span class="n">n_subj</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">fact</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">**"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">这就是"可追溯"的完整链路：</span>
+
+<span class="s2">    结论数字 306</span>
+<span class="s2">      → 事实表 Fact(key, value, source='check_subject_consistency({...})', step=)</span>
+<span class="s2">        → 轨迹 Step(tool, args, result, elapsed)      ← 当时用的参数</span>
+<span class="s2">          → 工具实现（clinic/agent_tools.check_subject_consistency）</span>
+<span class="s2">            → 数据文件 data/samples/dm.csv 的 306 个不重复 USUBJID</span>
+
+<span class="s2">四段里任何一段缺失，复核人员就得重做一遍核查。</span>
+<span class="s2">而只要四段都在，复核只需要 **30 秒**（重放一遍，比对数字）。</span>
+
+<span class="s2">⚠️ 注意 source 里存的是**工具的调用参数**，不是"工具名"。</span>
+<span class="s2">   只记工具名，你无法知道它当时查了哪些域 —— 也就无法重放。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 e · 红线：检索不到就说没找到（阈值靠标定，不靠感觉）</span>
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 标定集：**该命中的问题**（覆盖各个章节）</span>
+<span class="n">SHOULD_HIT</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"DM 中有但某域没有记录的受试者算错误吗"</span><span class="p">,</span>
+    <span class="s2">"USUBJID 一致性 严重性分级 处置"</span><span class="p">,</span>
+    <span class="s2">"部分日期 缺失 能不能直接比较"</span><span class="p">,</span>
+    <span class="s2">"安全性人群 与 随机化人数 是什么关系"</span><span class="p">,</span>
+    <span class="s2">"TEAE 如何定义 用药前事件怎么处理"</span><span class="p">,</span>
+    <span class="s2">"每个数字 必须有出处 可以追溯"</span><span class="p">,</span>
+    <span class="s2">"结论引用要写到章节号"</span><span class="p">,</span>
+    <span class="s2">"空值 能不能用 0 代替"</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="c1"># 标定集：**不该命中的问题**（知识库里根本没有这些内容）</span>
+<span class="n">SHOULD_MISS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"PD 与 ADA 免疫原性的剪接分析方法学要求"</span><span class="p">,</span>
+    <span class="s2">"生物标志物 检测方法 验证 要求"</span><span class="p">,</span>
+    <span class="s2">"PK 参数 药代动力学 采血点 设计"</span><span class="p">,</span>
+    <span class="s2">"随机化分层因素与区组大小如何确定"</span><span class="p">,</span>
+    <span class="s2">"统计分析计划中的多重性调整策略"</span><span class="p">,</span>
+    <span class="s2">"深度学习 模型 微调 学习率"</span><span class="p">,</span>
+    <span class="s2">"基因测序 变异注释 流程"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_e</span><span class="p">(</span><span class="n">retriever</span><span class="p">:</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 e · 红线：检索不到就说“没找到”（阈值靠标定，不靠感觉）"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"先看看默认阈值（clinic 里给的 0.25）会遇到什么麻烦 ——</span><span class="se">\n</span><span class="s2">"</span>
+          <span class="s2">"问一个知识库里**根本没有**的问题：</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">SHOULD_MISS</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"▶ </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   [</span><span class="si">{</span><span class="n">s</span><span class="si">:</span><span class="s2">5.2f</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">citation</span><span class="p">()[:</span><span class="mi">44</span><span class="p">]</span><span class="si">:</span><span class="s2">46s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">title</span><span class="p">[:</span><span class="mi">24</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">  ↑ 三条命中的相关度 0.37~0.39，看起来"还行"，</span>
+<span class="s2">    但内容是**完全不相关**的（报告模板、数据体检清单、pandas 多级索引）。</span>
+<span class="s2">    如果这些被当成"依据"喂给模型，它很可能据此写出一段</span>
+<span class="s2">    很有说服力的错误结论 —— 这比明说"没找到"危险得多。</span>
+
+<span class="s2">  原因：中文关键词检索按 2-gram 切分，"要求""方法""参数""数据"这类</span>
+<span class="s2">  高频二字组合几乎在任何文档里都能命中。所以——</span>
+<span class="s2">  **阈值必须靠标定，不能拍脑袋。**"""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 标定：在候选阈值上统计"召回"与"误报" ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【标定过程】用上面 8 + 7 条样例，扫一遍候选阈值：</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'阈值'</span><span class="si">:</span><span class="s2">&gt;6s</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">'该命中(召回)'</span><span class="si">:</span><span class="s2">&gt;14s</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">'不该命中(误报)'</span><span class="si">:</span><span class="s2">&gt;16s</span><span class="si">}</span><span class="s2">  说明"</span><span class="p">)</span>
+    <span class="n">best</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">th</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.65</span><span class="p">):</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">(</span><span class="n">retriever</span><span class="o">.</span><span class="n">chunks</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="n">th</span><span class="p">)</span>
+        <span class="n">rec</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">SHOULD_HIT</span>
+                  <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span> <span class="o">&gt;=</span> <span class="n">th</span> <span class="k">for</span> <span class="n">_c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">probe</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">SHOULD_MISS</span>
+                 <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span> <span class="o">&gt;=</span> <span class="n">th</span> <span class="k">for</span> <span class="n">_c</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">probe</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+        <span class="n">note</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="k">if</span> <span class="n">fp</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">rec</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">SHOULD_HIT</span><span class="p">):</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="s2">"← 召回满、零误报（选它）"</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">th</span> <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">best</span>
+        <span class="k">elif</span> <span class="n">fp</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="s2">"零误报，但已经漏掉该命中的"</span>
+        <span class="k">elif</span> <span class="n">rec</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">SHOULD_HIT</span><span class="p">):</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="s2">"召回满，但会误报"</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">th</span><span class="si">:</span><span class="s2">&gt;6.2f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">rec</span><span class="si">:</span><span class="s2">&gt;10d</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">SHOULD_HIT</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;3d</span><span class="si">}</span><span class="s2">  "</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fp</span><span class="si">:</span><span class="s2">&gt;12d</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">SHOULD_MISS</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;3d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">note</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">  → 选 **</span><span class="si">{</span><span class="n">best</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">**：在这个阈值上召回和误报同时最优。</span>
+<span class="s2">     0.40 以下开始出现误报（0.25 时 7 条里误报 4 条）；</span>
+<span class="s2">     0.45 开始漏掉"空值能不能用 0 代替"（它的最高分是 0.43）。</span>
+
+<span class="s2">  ⚠️ 两点必须说清楚（否则这个标定会误导你）：</span>
+<span class="s2">     1. **样例太少**（15 条）。真实项目应该上百条，并且覆盖每个章节。</span>
+<span class="s2">     2. **裕度很薄**：0.43 对 0.40，只差 0.03。所以上线前必须扩大标定集，</span>
+<span class="s2">        并且把标定集做成**回归测试**（第 24 章）：改切分方式、换模型、</span>
+<span class="s2">        文档更新后，重跑一遍看召回/误报有没有变化。</span>
+<span class="s2">        这类阈值是"配"出来的，不是"写"出来的 —— 所以要能一键重跑。"""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 用标定出的阈值重跑那个问题 ----</span>
+    <span class="n">tuned</span> <span class="o">=</span> <span class="n">mem</span><span class="o">.</span><span class="n">KeywordRetriever</span><span class="p">(</span><span class="n">retriever</span><span class="o">.</span><span class="n">chunks</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="n">best</span><span class="p">)</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">tuned</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【用 min_score=</span><span class="si">{</span><span class="n">best</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> 重跑同一个问题】"</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"search_rules"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="n">q</span><span class="p">})</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  结构化返回：</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  事实表会记下："</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">reg</span><span class="o">.</span><span class="n">extract_facts</span><span class="p">(</span><span class="s1">'search_rules'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s1">'query'</span><span class="p">:</span><span class="w"> </span><span class="n">q</span><span class="p">},</span><span class="w"> </span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">【对照：同一个问题在 0.25 下的返回】</span>
+<span class="s2">  找到 3 条"依据"，内容是报告模板、数据体检清单、pandas 多级索引 ——</span>
+<span class="s2">  全都与"免疫原性剪接分析"无关（见本节开头的分数表）。</span>
+
+<span class="s2">这就是"红线"的落点 —— 它不是一个提示词，而是**工具里的一个 if**：</span>
+
+<span class="s2">    if not good:                       # 低于阈值</span>
+<span class="s2">        return {"未找到": True,</span>
+<span class="s2">                "说明": "知识库中没有相关规定。请勿凭推测作答；"</span>
+<span class="s2">                        "应列入'未能完成的核查项'。"}</span>
+
+<span class="s2">为什么必须是默认拒绝而不是"尽量给点东西"：</span>
+<span class="s2">  通用场景里，模型编一条"看起来对"的规则，用户可能察觉不到；</span>
+<span class="s2">  临床场景里，一条编造的规则会直接进入递交物 —— 那是监管问题。</span>
+<span class="s2">  所以：</span>
+<span class="s2">    · 低于阈值 → 工具直接返回"未找到 + 请勿凭推测作答"</span>
+<span class="s2">    · 事实表记下"规则依据章节 = 未找到（不得凭推测作答）"</span>
+<span class="s2">    · 结论里必须列入"未能完成的核查项"（核查计划第 7 节就是这么要求的）</span>
+<span class="s2">    这三步走完，"不知道"才变成一个**可见的、有人负责的状态**。"""</span><span class="p">)</span>
+
+    <span class="c1"># ---- 阈值放宽不会影响正常问题 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【会不会误伤正常问题？检查场景 a/b 用的那几条询问】"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"DM 中有但某域没有记录的受试者算错误吗"</span><span class="p">,</span>
+              <span class="s2">"USUBJID 一致性 严重性分级"</span><span class="p">,</span>
+              <span class="s2">"部分日期 缺失 能不能直接比较"</span><span class="p">,</span>
+              <span class="s2">"受试者数量 安全性人群 关系"</span><span class="p">,</span>
+              <span class="s2">"日期先后关系 部分日期 不允许直接比较"</span><span class="p">):</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">tuned</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">top</span><span class="p">)</span> <span class="ow">and</span> <span class="n">top</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">tuned</span><span class="o">.</span><span class="n">min_score</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  [</span><span class="si">{</span><span class="n">top</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">top</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="si">:</span><span class="s2">5.2f</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="s1">'仍命中 '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'被拦下 '</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  → 调高阈值后，这些真实问题全部不受影响。"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">一个反直觉的取舍要记住：</span>
+<span class="s2">    · 阈值低 → 引了不相关的依据（误报）→ **结论有依据，但依据是错的** ★ 最危险</span>
+<span class="s2">    · 阈值高 → 该引的没引到（漏报）→ 结论缺依据，但不会错</span>
+<span class="s2">  在临床场景里，**宁可漏报**。漏掉的会被"未完成项"清单暴露出来，</span>
+<span class="s2">  误报则会静悄悄地混进递交物。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"案例 09 · SDTM 跨域一致性核查 Agent"</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--only"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"all"</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">])</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--quiet"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">quiet</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">scenario_a</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">build_knowledge_base</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>        <span class="c1"># 静默构建，不重复打印场景 a</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">scenario_b</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">):</span>
+        <span class="n">scenario_c</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">):</span>
+        <span class="n">scenario_d</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">):</span>
+        <span class="n">scenario_e</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"案例 09 结束。下一步："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  · 案例 10 —— 把核查步骤组织成可并行、可重试、可断点续跑的任务图"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  · 案例 11 —— 双编程：让两个 Agent 独立实现后互相挑错"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">72</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case08.html"><span class="pg-label">← 上一篇</span><span class="pg-title">分层架构 QC Agent（架构 / 工具 / 记忆 / 预算）</span></a><a class="pg-next" href="case10.html"><span class="pg-label">下一篇 →</span><span class="pg-title">TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

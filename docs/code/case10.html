@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例 10 · TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）</title>
+<meta name="description" content="TLF 生成流水线（DAG 规划 / 并行 / 断点续跑） — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="案例 10 · TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）">
+<meta property="og:description" content="TLF 生成流水线（DAG 规划 / 并行 / 断点续跑） — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="code/case10.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 实战案例 · Agent 开发</div><h1>案例 10 · TLF 生成流水线（DAG 规划 / 并行 / 断点续跑）</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/cases/case10_TLF%E7%94%9F%E6%88%90%E6%B5%81%E6%B0%B4%E7%BA%BF.py" target="_blank" rel="noopener">在 GitHub 上查看</a><a href="https://github.com/jinbeiwang/clinical-python-roadmap/raw/master/cases/case10_TLF%E7%94%9F%E6%88%90%E6%B5%81%E6%B0%B4%E7%BA%BF.py">下载</a></div></div>
+  <article class="markdown" id="content"><div class="code-meta" style="margin:0 0 14px;padding:12px 16px;border:1px solid var(--bd);border-radius:10px;background:var(--bg-soft);font-size:13.5px;color:var(--tx-2)"><strong style="color:var(--tx)">case10_TLF生成流水线.py</strong> · 815 行 · 30 KB<br>案例 10 · TLF 生成流水线（任务规划与并行调度） ==============================================</div><div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">"""</span>
+<span class="sd">案例 10 · TLF 生成流水线（任务规划与并行调度）</span>
+<span class="sd">==============================================</span>
+
+<span class="sd">**目标**：把"生成一套 TLF"从**一串 if 和 shell 脚本**，</span>
+<span class="sd">变成一张**可校验、可并行、可重试、可断点续跑**的任务图。</span>
+
+<span class="sd">**覆盖章节**：第 19 章（任务规划与调度）</span>
+
+<span class="sd">为什么"流水线"值得单独做一张图</span>
+<span class="sd">------------------------------</span>
+<span class="sd">传统做法是一个 `run_all.sas` / `run_all.sh` 顺序调 11 个程序。</span>
+<span class="sd">它有三个说不出口的问题：</span>
+
+<span class="sd">====================  ==============================  ============================</span>
+<span class="sd">问题                   顺序脚本的表现                   任务图的表现</span>
+<span class="sd">====================  ==============================  ============================</span>
+<span class="sd">跑得慢                 11 个程序一个个跑                **没依赖的一起跑**</span>
+<span class="sd">失败后怎么办           停在那里，人肉判断从哪接着跑      失败传播明确：下游 skipped</span>
+<span class="sd">重跑一遍               全部重跑，浪费时间                只跑未完成的（断点续跑）</span>
+<span class="sd">"为什么表 3 要等表 2"   没人知道，靠口头传承               `depends_on` 写在代码里</span>
+<span class="sd">出错原因               日志里翻半天                      每个任务带 error / error_type</span>
+<span class="sd">====================  ==============================  ============================</span>
+
+<span class="sd">任务图的核心不是"并行"（那是收益），而是**显式依赖**（那是正确性）。</span>
+
+<span class="sd">五个场景</span>
+<span class="sd">--------</span>
+<span class="sd">a) **需求 → DAG**      拆解、静态校验、拓扑排序、dry-run</span>
+<span class="sd">b) **并行调度**        分层执行 + 真实耗时对比（含 I/O 型任务的加速比）</span>
+<span class="sd">c) **失败与重试**      transient 重试、可选任务不阻塞、失败传播</span>
+<span class="sd">d) **部分失败汇总**    "结论仅覆盖已完成部分" —— 这句话必须由框架生成</span>
+<span class="sd">e) **HITL 与断点续跑** 写操作暂停 → 计划存盘 → 确认后只跑未完成的</span>
+
+<span class="sd">运行</span>
+<span class="sd">----</span>
+<span class="sd">    python cases/case10_TLF生成流水线.py</span>
+<span class="sd">    python cases/case10_TLF生成流水线.py --only b</span>
+<span class="sd">    python cases/case10_TLF生成流水线.py --serial      # 强制单线程对比</span>
+
+<span class="sd">离线可跑：工具真实执行，产物写到 outputs/tlf/。</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">BASE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">BASE</span><span class="p">))</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">clinic.agent_tools</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">T</span>                                   <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">agent_core</span> <span class="k">as</span> <span class="n">core</span>                            <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">agent_planner</span> <span class="k">as</span> <span class="n">planmod</span>                      <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic</span><span class="w"> </span><span class="kn">import</span> <span class="n">report</span> <span class="k">as</span> <span class="n">rpt</span>                                 <span class="c1"># noqa: E402</span>
+
+<span class="n">OUT</span> <span class="o">=</span> <span class="n">BASE</span> <span class="o">/</span> <span class="s2">"outputs"</span>
+<span class="n">TLF_DIR</span> <span class="o">=</span> <span class="n">OUT</span> <span class="o">/</span> <span class="s2">"tlf"</span>
+<span class="n">ALLOWED</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ALLOWED_DATASETS</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 工具层：TLF 生成流水线实际要调的动作</span>
+<span class="c1"># ==========================================================================</span>
+<span class="n">_IO_WAIT</span> <span class="o">=</span> <span class="mf">0.25</span>          <span class="c1"># 模拟"从外部数据源取快照"的等待时间（见下方说明）</span>
+<span class="n">_fail_counter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_registry</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolRegistry</span><span class="p">:</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolRegistry</span><span class="p">()</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"fetch_snapshot"</span><span class="p">,</span>
+              <span class="s2">"从数据源取某个域的快照元信息。这是**模拟外部接口调用**的工具，"</span>
+              <span class="s2">"用于演示 I/O 等待型任务的并行收益。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">),</span>
+                               <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"要取快照的数据集"</span><span class="p">},</span>
+                   <span class="s2">"source"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                              <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"数据源标识，如 edc / cdisc-ct"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_snapshot</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="c1"># ★ 生产里这里是 HTTP 请求 / 数据库查询 —— 时间花在"等"上，不花在 CPU 上。</span>
+        <span class="c1">#   这正是线程池能带来加速的原因（第 19.5 节）。</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_IO_WAIT</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">describe_dataset</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"数据集"</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span>
+                <span class="s2">"数据源"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"edc"</span><span class="p">,</span>
+                <span class="s2">"行数"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"行数"</span><span class="p">],</span> <span class="s2">"列数"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"列数"</span><span class="p">],</span>
+                <span class="s2">"快照时间"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S"</span><span class="p">)}</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span>
+              <span class="s2">"查看数据集结构（变量、缺失率、示例值）。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">)}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_describe</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">describe_dataset</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">])</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"demo_table"</span><span class="p">,</span>
+              <span class="s2">"生成人口学与基线特征表（Table 1）的数据：按治疗组的年龄描述统计"</span>
+              <span class="s2">"与性别、种族频数。返回可直接渲染成报表的行数据。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">),</span>
+                               <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"分析人群数据集，通常是 adsl"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_demo</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">]</span>
+        <span class="n">age</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">summarize_by_group</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"TRT01P"</span><span class="p">,</span> <span class="s2">"AGE"</span><span class="p">)</span>
+        <span class="n">sex</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">frequency</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"SEX"</span><span class="p">)</span>
+        <span class="n">race</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">frequency</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"RACE"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"表"</span><span class="p">:</span> <span class="s2">"Table 1 · 人口学与基线特征"</span><span class="p">,</span>
+                <span class="s2">"人群"</span><span class="p">:</span> <span class="n">ds</span><span class="p">,</span>
+                <span class="s2">"年龄描述统计"</span><span class="p">:</span> <span class="n">age</span><span class="p">[</span><span class="s2">"结果"</span><span class="p">],</span>
+                <span class="s2">"性别分布"</span><span class="p">:</span> <span class="n">sex</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"分布"</span><span class="p">),</span>
+                <span class="s2">"种族分布"</span><span class="p">:</span> <span class="n">race</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"分布"</span><span class="p">),</span>
+                <span class="s2">"注"</span><span class="p">:</span> <span class="s2">"分母为各治疗组分析人群人数；SD 为样本标准差（ddof=1）"</span><span class="p">}</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"ae_table"</span><span class="p">,</span>
+              <span class="s2">"生成不良事件汇总表（Table 2）的数据：按 SOC 或 PT 的治疗中出现"</span>
+              <span class="s2">"不良事件受试者数与百分比。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"level"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"soc"</span><span class="p">,</span> <span class="s2">"pt"</span><span class="p">],</span>
+                             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"汇总层级"</span><span class="p">},</span>
+                   <span class="s2">"treatment_only"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"boolean"</span><span class="p">,</span>
+                                      <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"是否只统计 TEAE，默认 true"</span><span class="p">},</span>
+                   <span class="s2">"top_n"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
+                             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"返回前多少个 SOC/PT，默认 10"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"level"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ae</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">count_events</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="s2">"level"</span><span class="p">],</span>
+                              <span class="n">treatment_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"treatment_only"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                              <span class="n">top_n</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"top_n"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">10</span><span class="p">))</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"shift_table"</span><span class="p">,</span>
+              <span class="s2">"生成实验室指标移位表（Table 3）的数据：基线正常性分类 × "</span>
+              <span class="s2">"基线后正常性分类的交叉表，单元格为 n (%)。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"param"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"实验室参数代码，如 ALT / CREAT / HGB"</span><span class="p">},</span>
+                   <span class="s2">"pct"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"row"</span><span class="p">,</span> <span class="s2">"col"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">],</span>
+                           <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"百分比分母：行/列/总计，默认 row"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"param"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_shift</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">_load</span><span class="p">(</span><span class="s2">"adlbc_shift"</span><span class="p">)</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"param"</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"PARAMCD"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">sub</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"参数 </span><span class="si">{</span><span class="n">param</span><span class="si">!r}</span><span class="s2"> 不存在。可选值："</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">'PARAMCD'</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">())[:</span><span class="mi">20</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="c1"># 基线：ABLFL='Y' 优先，否则用 AVISIT='Baseline'</span>
+        <span class="n">sub</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"ABLFL"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"Y"</span><span class="p">)</span>
+                 <span class="o">|</span> <span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Baseline"</span><span class="p">)]</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)</span>
+        <span class="n">bl_ind</span> <span class="o">=</span> <span class="s2">"BNRIND"</span> <span class="k">if</span> <span class="n">bl</span><span class="p">[</span><span class="s2">"BNRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"ANRIND"</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="n">bl_ind</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># 基线后：优先末次访视（End of Treatment），否则按 AVISITN 最大</span>
+        <span class="n">sub</span><span class="p">[</span><span class="s2">"AVISITN"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_num</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="s2">"AVISITN"</span><span class="p">])</span>
+        <span class="n">post</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">sub</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"Baseline"</span><span class="p">]</span>
+        <span class="n">eot</span> <span class="o">=</span> <span class="n">post</span><span class="p">[</span><span class="n">post</span><span class="p">[</span><span class="s2">"AVISIT"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"End of Treatment"</span><span class="p">]</span>
+        <span class="n">post</span> <span class="o">=</span> <span class="n">eot</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">eot</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> \
+            <span class="n">post</span><span class="p">[</span><span class="n">post</span><span class="p">[</span><span class="s2">"AVISITN"</span><span class="p">]</span> <span class="o">==</span> <span class="n">post</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"AVISITN"</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">"max"</span><span class="p">)]</span>
+        <span class="n">post</span> <span class="o">=</span> <span class="n">post</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"AVISITN"</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"last"</span><span class="p">)</span>
+        <span class="n">post_s</span> <span class="o">=</span> <span class="n">post</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"USUBJID"</span><span class="p">)[</span><span class="s2">"ANRIND"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="n">common</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">post_s</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">common</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">: 基线与基线后记录无法按受试者对齐"</span><span class="p">)</span>
+        <span class="n">tbl</span> <span class="o">=</span> <span class="n">rpt</span><span class="o">.</span><span class="n">crosstab_shift</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common</span><span class="p">],</span> <span class="n">post_s</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">common</span><span class="p">],</span>
+                                 <span class="p">[</span><span class="s2">"L"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">],</span> <span class="n">pct</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pct"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"row"</span><span class="p">)</span>
+        <span class="n">tbl</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">tbl</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">tbl</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"表"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Table 3 · 移位表（</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">）"</span><span class="p">,</span>
+                <span class="s2">"参数"</span><span class="p">:</span> <span class="n">param</span><span class="p">,</span>
+                <span class="s2">"受试者数"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">common</span><span class="p">)),</span>
+                <span class="s2">"基线分类来源"</span><span class="p">:</span> <span class="n">bl_ind</span><span class="p">,</span>
+                <span class="s2">"百分比分母"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pct"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"row"</span><span class="p">,</span>
+                <span class="s2">"行"</span><span class="p">:</span> <span class="n">tbl</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">"records"</span><span class="p">),</span>
+                <span class="s2">"注"</span><span class="p">:</span> <span class="s2">"分级 L/N/H = 低/正常/高；基线取 ABLFL='Y'"</span><span class="p">}</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+              <span class="s2">"对数据集跑标准质量检查。TLF 生成前必须先过这一关 —— "</span>
+              <span class="s2">"**发现高优先级问题时应中止出表**。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">)},</span>
+                   <span class="s2">"max_issues"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
+                                  <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"最多返回多少条明细，默认 10"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">run_qc_checks</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">]))</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_issues"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"问题"</span><span class="p">][:</span><span class="n">n</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="c1"># ---------------------------------------------------- 故障注入用（场景 c）</span>
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"flaky_tool"</span><span class="p">,</span>
+              <span class="s2">"诊断用工具：前 N 次抛 transient 错误（模拟对方服务不稳定），"</span>
+              <span class="s2">"之后成功。用于验证调度器的重试逻辑。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"key"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"故障计数器的标识"</span><span class="p">},</span>
+                   <span class="s2">"fail_times"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="s2">"minimum"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"maximum"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                                  <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"前几次失败，默认 2"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"key"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flaky</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"key"</span><span class="p">])</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"fail_times"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="n">_fail_counter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">seen</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+            <span class="n">_fail_counter</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">seen</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">_raise_transient</span><span class="p">(</span><span class="n">seen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"成功"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"第几次尝试"</span><span class="p">:</span> <span class="n">seen</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">}</span>
+
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"always_timeout"</span><span class="p">,</span>
+              <span class="s2">"诊断用工具：永远返回 transient 错误。用于验证“重试用尽后失败”"</span>
+              <span class="s2">"如何传播到下游。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                                         <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"错误信息"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_timeout</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolResult</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">core</span><span class="o">.</span><span class="n">ToolResult</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reason"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"对方服务 503，重试已用尽"</span><span class="p">,</span> <span class="s2">"transient"</span><span class="p">,</span>
+            <span class="n">hint</span><span class="o">=</span><span class="s2">"稍后重跑该任务；上游数据源可能正在维护"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------- 写操作</span>
+    <span class="nd">@reg</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="s2">"write_tlf"</span><span class="p">,</span>
+              <span class="s2">"把本批 TLF 的交付清单与关键指标写入文件。这是**写操作**，"</span>
+              <span class="s2">"执行前需要人工确认。"</span><span class="p">,</span>
+              <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+               <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span>
+                   <span class="s2">"name"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+                            <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"输出文件名（不含路径），如 tlf_manifest"</span><span class="p">},</span>
+                   <span class="s2">"content"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"文件内容"</span><span class="p">}},</span>
+               <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"name"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">],</span> <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+              <span class="n">side_effect</span><span class="o">=</span><span class="s2">"write"</span><span class="p">,</span> <span class="n">idempotent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]))</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".md"</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">+=</span> <span class="s2">".md"</span>
+        <span class="n">TLF_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">TLF_DIR</span> <span class="o">/</span> <span class="n">name</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"content"</span><span class="p">],</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"已写入"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">BASE</span><span class="p">)),</span> <span class="s2">"字节数"</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">reg</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_num</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_raise_transient</span><span class="p">(</span><span class="n">seen</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"读取失败（第 </span><span class="si">{</span><span class="n">seen</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> 次尝试）：对方服务无响应"</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 计划：一张 11 个任务的 DAG</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_plan</span><span class="p">(</span><span class="n">flaky_ae</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把"出一套 TLF"拆成任务图。</span>
+
+<span class="sd">    拆解依据（MECE：互斥且穷尽）：</span>
+<span class="sd">      取数（每域一个）→ 出表（每张表一个）→ 质检（每个源域一个）→ 汇总 → 写交付物</span>
+
+<span class="sd">    ★ 注意：**每个任务只依赖它真正需要的东西**。</span>
+<span class="sd">      表 2（AE）不需要等表 1（人口学）—— 这一点如果写错，</span>
+<span class="sd">      并行度就从 5 掉到 1，而没人会立刻发现。</span>
+<span class="sd">    """</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="s2">"为 CDISCPILOT01 生成一批 TLF 并输出交付清单"</span><span class="p">,</span>
+                     <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">"study"</span><span class="p">:</span> <span class="s2">"CDISCPILOT01"</span><span class="p">,</span> <span class="s2">"batch"</span><span class="p">:</span> <span class="s2">"2026-09-Q3"</span><span class="p">})</span>
+
+    <span class="c1"># ---- L0：取数（4 个互不依赖）----</span>
+    <span class="k">for</span> <span class="n">ds</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"edc"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"edc"</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">"adlbc_shift"</span><span class="p">,</span> <span class="s2">"central-lab"</span><span class="p">)):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="sa">f</span><span class="s2">"fetch_</span><span class="si">{</span><span class="n">ds</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"取 </span><span class="si">{</span><span class="n">ds</span><span class="si">}</span><span class="s2"> 快照"</span><span class="p">,</span>
+            <span class="n">tool</span><span class="o">=</span><span class="s2">"fetch_snapshot"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="n">ds</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">:</span> <span class="n">src</span><span class="p">},</span>
+            <span class="n">depends_on</span><span class="o">=</span><span class="p">()))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"fetch_ct"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"取 CDISC 受控术语版本"</span><span class="p">,</span>
+        <span class="n">tool</span><span class="o">=</span><span class="s2">"fetch_snapshot"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">:</span> <span class="s2">"cdisc-ct"</span><span class="p">},</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(),</span> <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>          <span class="c1"># ★ 可选：取不到也不该卡住出表</span>
+
+    <span class="c1"># ---- L1：出表与质检（5 个并行）----</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t1_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Table 1 人口学"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"demo_table"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"fetch_adsl"</span><span class="p">,)))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t2_ae"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Table 2 TEAE 汇总"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"ae_table"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"level"</span><span class="p">:</span> <span class="s2">"soc"</span><span class="p">,</span> <span class="s2">"top_n"</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"fetch_adae"</span><span class="p">,)))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t3_shift"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Table 3 移位表"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"shift_table"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"param"</span><span class="p">:</span> <span class="s2">"ALT"</span><span class="p">,</span> <span class="s2">"pct"</span><span class="p">:</span> <span class="s2">"row"</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"fetch_adlbc_shift"</span><span class="p">,)))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"qc_adsl"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"ADSL 质量检查"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"max_issues"</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"fetch_adsl"</span><span class="p">,)))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"qc_adae"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"ADAE 质量检查"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"max_issues"</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"fetch_adae"</span><span class="p">,)))</span>
+
+    <span class="c1"># ---- L2：汇总（纯编排节点，无工具调用）----</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">"assemble"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"汇总交付清单"</span><span class="p">,</span>
+        <span class="n">tool</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"t1_demo"</span><span class="p">,</span> <span class="s2">"t2_ae"</span><span class="p">,</span> <span class="s2">"t3_shift"</span><span class="p">,</span> <span class="s2">"qc_adsl"</span><span class="p">,</span> <span class="s2">"qc_adae"</span><span class="p">)))</span>
+
+    <span class="c1"># ---- L3：写交付物（写操作，需人工确认）----</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"deliver"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"写入交付清单"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"write_tlf"</span><span class="p">,</span>
+                       <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"tlf_manifest"</span><span class="p">,</span>
+                             <span class="s2">"content"</span><span class="p">:</span> <span class="n">_manifest_text</span><span class="p">(</span><span class="n">p</span><span class="p">)},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"assemble"</span><span class="p">,)))</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_manifest_text</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""按"计划定义"渲染交付清单。</span>
+
+<span class="sd">    ⚠️ 注意这里**取的是计划定义，不是任务的执行结果** ——</span>
+<span class="sd">    因为 ``Task.args`` 是静态的（计划要能序列化）。真实项目里</span>
+<span class="sd">    应该由上游任务把结果落盘，下游按路径读后再渲染（见场景 e 末尾说明）。</span>
+<span class="sd">    """</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"# TLF 交付清单"</span><span class="p">,</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"- 研究：</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'study'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"- 批次：</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'batch'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"- 任务总数：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>        <span class="c1"># +1 = 本清单任务本身</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="s2">"| 任务 | 工具 | 依赖 | 产物 |"</span><span class="p">,</span>
+        <span class="s2">"|---|---|---|---|"</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">art</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"t1_demo"</span><span class="p">:</span> <span class="s2">"Table 1 人口学与基线特征表"</span><span class="p">,</span>
+           <span class="s2">"t2_ae"</span><span class="p">:</span> <span class="s2">"Table 2 TEAE 按 SOC 汇总表"</span><span class="p">,</span>
+           <span class="s2">"t3_shift"</span><span class="p">:</span> <span class="s2">"Table 3 实验室移位表（ALT）"</span><span class="p">,</span>
+           <span class="s2">"qc_adsl"</span><span class="p">:</span> <span class="s2">"ADSL 质量检查记录"</span><span class="p">,</span>
+           <span class="s2">"qc_adae"</span><span class="p">:</span> <span class="s2">"ADAE 质量检查记录"</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">tool</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'（编排节点）'</span><span class="si">}</span><span class="s2"> | "</span>
+                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'—'</span><span class="si">}</span><span class="s2"> | "</span>
+                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">art</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="s1">'—'</span><span class="p">)</span><span class="si">}</span><span class="s2"> |"</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"&gt; 本清单由任务图自动生成；未完成项必须显式列出。"</span><span class="p">,</span> <span class="s2">""</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_table</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'任务'</span><span class="si">:</span><span class="s2">16s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'工具'</span><span class="si">:</span><span class="s2">16s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'状态'</span><span class="si">:</span><span class="s2">9s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'尝试'</span><span class="si">:</span><span class="s2">&gt;4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'耗时'</span><span class="si">:</span><span class="s2">&gt;7s</span><span class="si">}</span><span class="s2">  说明"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="n">note</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">title</span>
+        <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"✗ </span><span class="si">{</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">error_type</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">error</span><span class="p">)[:</span><span class="mi">44</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">:</span><span class="s2">16s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">tool</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'（编排）'</span><span class="si">:</span><span class="s2">16s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">status</span><span class="si">:</span><span class="s2">9s</span><span class="si">}</span><span class="s2"> "</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">attempts</span><span class="si">:</span><span class="s2">&gt;4d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">&gt;6.2f</span><span class="si">}</span><span class="s2">s  </span><span class="si">{</span><span class="n">note</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">make_progress_printer</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"callable"</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""任务完成回调 —— 生产里这里就是"实时进度"的来源。</span>
+
+<span class="sd">    注意它是**在任务完成的当下**被调用的（可能来自不同线程），</span>
+<span class="sd">    所以回调里只做打印/落日志这类轻量且线程安全的事，</span>
+<span class="sd">    不要在回调里再去调工具。</span>
+<span class="sd">    """</span>
+    <span class="n">marks</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"done"</span><span class="p">:</span> <span class="s2">"✓"</span><span class="p">,</span> <span class="s2">"failed"</span><span class="p">:</span> <span class="s2">"✗"</span><span class="p">,</span> <span class="s2">"skipped"</span><span class="p">:</span> <span class="s2">"－"</span><span class="p">,</span> <span class="s2">"waiting"</span><span class="p">:</span> <span class="s2">"⏸"</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_task</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mark</span> <span class="o">=</span> <span class="n">marks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">error</span><span class="p">[:</span><span class="mi">50</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">error</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">"done"</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    [</span><span class="si">{</span><span class="n">mark</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">:</span><span class="s2">16s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">&gt;5.2f</span><span class="si">}</span><span class="s2">s "</span>
+              <span class="sa">f</span><span class="s2">"(第 </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">attempts</span><span class="si">}</span><span class="s2"> 次)</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_on_task</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 a · 需求 → DAG</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_a</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 a · 需求 → DAG：先校验，再执行"</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">build_plan</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"目标：</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">goal</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"任务数：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"【分层结果】（同层可并行，层间有依赖）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">render_plan</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【拓扑序】（Kahn 算法；这是“该按什么顺序跑”的权威答案）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">" → "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">planmod</span><span class="o">.</span><span class="n">topological_order</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">)))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【静态校验】</span><span class="si">{</span><span class="s1">'✓ 通过'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">p</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">p</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 故意造三种坏图，看校验能不能在**执行前**抓住 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">--- 故意造坏图，验证“执行前就报错” ---"</span><span class="p">)</span>
+
+    <span class="n">bad1</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="s2">"依赖不存在的任务"</span><span class="p">)</span>
+    <span class="n">bad1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"A"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+                          <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">},</span> <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"ghost"</span><span class="p">,)))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"① 依赖不存在的任务 → </span><span class="si">{</span><span class="n">bad1</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">bad2</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="s2">"循环依赖"</span><span class="p">)</span>
+    <span class="n">bad2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t3"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"表3"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"ae_table"</span><span class="p">,</span>
+                          <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"level"</span><span class="p">:</span> <span class="s2">"soc"</span><span class="p">},</span> <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"t2"</span><span class="p">,)))</span>
+    <span class="n">bad2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t2"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"表2"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"ae_table"</span><span class="p">,</span>
+                          <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"level"</span><span class="p">:</span> <span class="s2">"pt"</span><span class="p">},</span> <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"t1"</span><span class="p">,)))</span>
+    <span class="n">bad2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"t1"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"表1"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"demo_table"</span><span class="p">,</span>
+                          <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">},</span> <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"t3"</span><span class="p">,)))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"② 循环依赖 → </span><span class="si">{</span><span class="n">bad2</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">bad3</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="s2">"id 重复"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">bad3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"dup"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"重复"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+                              <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">}))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"③ 重复 id → </span><span class="si">{</span><span class="n">bad3</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">为什么必须在执行前校验？</span>
+<span class="s2">  循环依赖在 TLF 场景里**藏在业务逻辑里**，写代码时看不出来：</span>
+<span class="s2">    · 表 3 需要表 2 算出的一个分母；</span>
+<span class="s2">    · 表 2 的分母又需要表 3 里的某个汇总数。</span>
+<span class="s2">  顺序脚本跑到一半才发现"要往回改上一张表"，只能整批重跑。</span>
+<span class="s2">  拓扑排序会在**第一秒**就把它抛出来，并告诉你涉及哪几个任务。</span>
+
+<span class="s2">  ⚠️ 循环依赖的错误信息要写清"涉及哪些节点 + 依赖关系"，</span>
+<span class="s2">     否则你会盯着 11 个任务发懵。看上面 ② 的输出 —— 它把三个任务</span>
+<span class="s2">     和它们的依赖全列出来了，这就是"可修复的错误信息"。"""</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【dry-run：只校验不执行】（上线前先跑一遍，确认图没问题）"</span><span class="p">)</span>
+    <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">build_registry</span><span class="p">(),</span>
+                         <span class="n">ppolicy</span><span class="o">=</span><span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  → dry-run 让每个任务返回 skipped 而不真的执行，"</span>
+          <span class="s2">"用来在**不产生任何副作用**的前提下验证任务图与参数。"</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 b · 并行调度</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_b</span><span class="p">(</span><span class="n">force_serial</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 b · 并行调度：同层并行、层间串行"</span><span class="p">)</span>
+
+    <span class="n">registry</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">()</span>
+    <span class="c1"># 只为观察调度耗时：临时关掉写确认闸门（写操作的闸门见场景 e）</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">Policy</span><span class="p">(</span><span class="n">confirm_side_effects</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">allowed_datasets</span><span class="o">=</span><span class="n">ALLOWED</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">workers</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"单线程 max_workers=1"</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s2">"4 线程 max_workers=4"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">build_plan</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">】实时进度（任务完成回调）："</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span>
+                             <span class="n">ppolicy</span><span class="o">=</span><span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+                                                        <span class="n">max_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                             <span class="n">on_task</span><span class="o">=</span><span class="n">make_progress_printer</span><span class="p">())</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  总耗时 </span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">levels</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tasks</span><span class="p">)):</span>
+            <span class="n">spent</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">elapsed</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个任务，串行累计 </span><span class="si">{</span><span class="n">spent</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s "</span>
+                  <span class="sa">f</span><span class="s2">"→ </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">layer</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">s</span><span class="p">,</span> <span class="n">pr</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">"单线程 max_workers=1"</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s2">"4 线程 max_workers=4"</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">加速比：</span><span class="si">{</span><span class="n">s</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">pr</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">×（</span><span class="si">{</span><span class="n">s</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s → </span><span class="si">{</span><span class="n">pr</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s）"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">为什么不是"越多线程越快"？看各层的性质：</span>
+
+<span class="s2">  · **L0 是 I/O 型**（fetch_snapshot 里有 </span><span class="si">{</span><span class="n">_IO_WAIT</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s 的等待，</span>
+<span class="s2">    模拟读 EDC / 中心实验室接口）→ 4 个任务并行时，</span>
+<span class="s2">    墙上时间 ≈ max(单个) 而不是 sum(全部) → **加速比接近 4×**。</span>
+<span class="s2">  · **L1 是 CPU 型**（出表、跑 QC 都在本地算）→ 每个只有几十毫秒，</span>
+<span class="s2">    线程池的调度开销几乎抵消收益，甚至更慢。</span>
+
+<span class="s2">所以第 19.5 节的结论是：</span>
+
+<span class="s2">  · 线程池适合 **I/O 等待**（读文件、调接口、等数据库）——</span>
+<span class="s2">    临床流水线里 90% 的时间花在这里；</span>
+<span class="s2">  · 真正吃 CPU 的任务（大数据的重算），要么用进程池，</span>
+<span class="s2">    要么**先解决算法问题**（用向量化把 10 分钟压到 10 秒，比加 8 个核更值）；</span>
+<span class="s2">  · **别把 DataFrame 在线程间传来传去** —— 传路径/文件名，让每个任务自己读。</span>
+
+<span class="s2">  上面这个 `fetch_snapshot` 用 `time.sleep` 模拟等待，是**故意的**：</span>
+<span class="s2">  它让"并行收益来自 I/O 而不是 CPU"这件事变得可测量。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 c · 失败与重试</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_c</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 c · 失败、重试与传播：错误要按类型处理"</span><span class="p">)</span>
+
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">()</span>
+    <span class="n">_fail_counter</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="s2">"演示重试、可选任务与失败传播"</span><span class="p">)</span>
+
+    <span class="c1"># 1) transient 错误 → 重试后成功</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"flaky"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"不稳定的接口（前 2 次超时）"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"flaky_tool"</span><span class="p">,</span>
+                       <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"key"</span><span class="p">:</span> <span class="s2">"case10"</span><span class="p">,</span> <span class="s2">"fail_times"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}))</span>
+    <span class="c1"># 2) 永远超时的**必选**任务 → 重试用尽后失败，阻塞下游</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"broken_required"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"必选的失败任务"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"always_timeout"</span><span class="p">,</span>
+                       <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"读不到中央实验室数据"</span><span class="p">}))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"child_of_required"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"它的下游（应被跳过）"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"broken_required"</span><span class="p">,)))</span>
+    <span class="c1"># 3) 永远超时的**可选**任务 → 失败但**不阻塞下游**</span>
+    <span class="c1">#    真实例子：查 CDISC 受控术语版本失败，不该卡住出表</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"broken_optional"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"可选的失败任务（外部 CT 服务）"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"always_timeout"</span><span class="p">,</span>
+                       <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"CT 服务维护中，用本地版本兜底"</span><span class="p">},</span>
+                       <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>                     <span class="c1"># ★ optional</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"child_of_optional"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"它的下游（照常执行）"</span><span class="p">,</span>
+                       <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"dm"</span><span class="p">},</span>
+                       <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"broken_optional"</span><span class="p">,)))</span>
+
+    <span class="n">pp</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">backoff_base</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">ppolicy</span><span class="o">=</span><span class="n">pp</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"（含退避等待，总耗时 </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s）</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">_table</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【逐条解读】"</span><span class="p">)</span>
+    <span class="n">flaky</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"flaky"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"① flaky：status=</span><span class="si">{</span><span class="n">flaky</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">，attempts=</span><span class="si">{</span><span class="n">flaky</span><span class="o">.</span><span class="n">attempts</span><span class="si">}</span><span class="s2"> "</span>
+          <span class="sa">f</span><span class="s2">"→ transient 错误被**自动重试**，第 3 次成功"</span><span class="p">)</span>
+    <span class="n">br</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"broken_required"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"② broken_required：status=</span><span class="si">{</span><span class="n">br</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">，attempts=</span><span class="si">{</span><span class="n">br</span><span class="o">.</span><span class="n">attempts</span><span class="si">}</span><span class="s2">，"</span>
+          <span class="sa">f</span><span class="s2">"error_type=</span><span class="si">{</span><span class="n">br</span><span class="o">.</span><span class="n">error_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"   → 重试 2 次后仍失败：记 error + error_type，**不抛异常**"</span>
+          <span class="s2">"（异常会把整批任务的中间结果全丢掉）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"③ child_of_required：status=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s1">'child_of_required'</span><span class="p">)</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">，"</span>
+          <span class="sa">f</span><span class="s2">"error=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s1">'child_of_required'</span><span class="p">)</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"   → 依赖失败 → skipped。**注意是 skipped 不是 failed**："</span>
+          <span class="s2">"它没被执行过，不该被算成“执行失败”，也不该占用重试次数"</span><span class="p">)</span>
+    <span class="n">bo</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"broken_optional"</span><span class="p">)</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"child_of_optional"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"④ broken_optional：status=</span><span class="si">{</span><span class="n">bo</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">（optional=True）"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   child_of_optional：status=</span><span class="si">{</span><span class="n">co</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2"> "</span>
+          <span class="sa">f</span><span class="s2">"→ **前置失败但下游照跑**，这就是 optional 的用途"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">`optional=True` 什么时候用？（在 TLF 流水线里特别常见）</span>
+
+<span class="s2">  · 查外部 CT 版本 / 实验室参考范围 —— 取不到就用本地版本兜底，</span>
+<span class="s2">    **不该卡住整批出表**；</span>
+<span class="s2">  · 某个"锦上添花"的 QC（如额外的离群值扫描）—— 失败只记一笔，</span>
+<span class="s2">    不该让交付清单出不来；</span>
+<span class="s2">  · ⚠️ 反过来：**安全性与有效性人群的核对、主键唯一性检查、</span>
+<span class="s2">    关键派生变量的核对，绝不能标 optional**。</span>
+<span class="s2">    判断标准只有一条：**这个任务失败，结论还成立吗？**</span>
+<span class="s2">    成立 → optional；不成立 → 必选，让它把下游一起挡住。"""</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">错误分类决定了调度行为（与第 20 章的 error_type 同一套词表）：</span>
+
+<span class="s2">  transient    → 可重试，指数退避          （网络、5xx、429）</span>
+<span class="s2">  validation   → 不可重试，**参数错了重试 100 次也没用**</span>
+<span class="s2">  permission   → 不可重试，且要告警        （401 重试会锁账号）</span>
+<span class="s2">  internal     → 不可重试，是程序缺陷</span>
+<span class="s2">  not_found    → 不可重试，检查路径/版本</span>
+
+<span class="s2">  ⚠️ 最容易被忽略的是 validation 与 permission：</span>
+<span class="s2">     如果调度器"一视同仁地重试"，一个拼错的参数会白等 3 轮退避，</span>
+<span class="s2">     一个过期的 token 会被反复拿去撞墙（很多系统会因此锁账号）。</span>
+<span class="s2">     重试策略必须**按 error_type 分支**，不能写成"失败就再来一次"。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 d · 部分失败汇总</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_d</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 d · 部分失败汇总：让“未完成”变得显式"</span><span class="p">)</span>
+
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">()</span>
+    <span class="n">summaries</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"stop_on_failure=False（默认：能跑的都跑完）"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">"stop_on_failure=True（一失败就整体中止）"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)):</span>
+        <span class="n">_fail_counter</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="sa">f</span><span class="s2">"演示 </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"pre"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"前置准备"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+                           <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"dm"</span><span class="p">,</span> <span class="s2">"max_issues"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}))</span>
+        <span class="c1"># 与失败任务**同层但互不依赖**</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"boom"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"失败任务"</span><span class="p">,</span>
+                           <span class="n">tool</span><span class="o">=</span><span class="s2">"always_timeout"</span><span class="p">,</span>
+                           <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"读不到中央实验室数据"</span><span class="p">},</span>
+                           <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"pre"</span><span class="p">,)))</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"a1"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"正常任务 A1"</span><span class="p">,</span> <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+                           <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"max_issues"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                           <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"pre"</span><span class="p">,)))</span>
+        <span class="c1"># 在**更靠后的层**，且与 boom 无依赖关系 —— 这才是 stop_on_failure 的判别点</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">planmod</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"a2"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"正常任务 A2（与失败无依赖）"</span><span class="p">,</span>
+                           <span class="n">tool</span><span class="o">=</span><span class="s2">"qc_domain"</span><span class="p">,</span>
+                           <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adae"</span><span class="p">,</span> <span class="s2">"max_issues"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                           <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s2">"a1"</span><span class="p">,)))</span>
+        <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">ppolicy</span><span class="o">=</span><span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span>
+            <span class="n">max_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop_on_failure</span><span class="o">=</span><span class="n">stop</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">【</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">】"</span><span class="p">)</span>
+        <span class="n">_table</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">summaries</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  summary → </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">两种策略的差别只有一个：**要不要继续跑"其他还能跑的"任务**。</span>
+
+<span class="s2">  · stop_on_failure=False：a2 与失败任务没有依赖关系，所以照跑 → 完成 3/4；</span>
+<span class="s2">  · stop_on_failure=True ：一旦出现失败就中止整批 → a2 被跳过 → 完成 2/4。</span>
+
+<span class="s2">  什么时候选哪个？</span>
+<span class="s2">    · 生成一份**交付物**（TLF、核查报告）：用默认（False）。</span>
+<span class="s2">      能出的表先出，人可以先看已完成的部分。</span>
+<span class="s2">    · **中间数据被污染**时（比如上游衍生逻辑被证明是错的）：</span>
+<span class="s2">      用 True。这时候继续跑只会产生一堆基于错误数据的表，</span>
+<span class="s2">      而且这些表看起来"正常"，反而危险。</span>
+<span class="s2">    · 判断依据同样是那一句：**继续跑，结论还成立吗？**"""</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">关键在 summary() 结尾那一句：</span>
+
+<span class="s2">  "⚠️ 结论仅覆盖已完成的部分，未完成项需单独处理。"</span>
+
+<span class="s2">为什么一句话这么重要？</span>
+<span class="s2">  在临床场景里，一份"看起来完整"的报告如果漏了一张表，</span>
+<span class="s2">  后果比"报告没出来"严重得多 —— 后者会被立刻发现，</span>
+<span class="s2">  前者可能一路走到递交。</span>
+
+<span class="s2">  所以进度汇总必须满足三点：</span>
+<span class="s2">    · **数字**：完成 x/y，而不是"基本完成"</span>
+<span class="s2">    · **点名**：哪几个任务失败/跳过，不是只说"有失败"</span>
+<span class="s2">    · **免责**：显式写出"结论仅覆盖已完成部分"</span>
+
+<span class="s2">  这三条不能靠人记得写，必须由框架在每次执行后自动生成 ——</span>
+<span class="s2">  因为人一定会忘。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="c1"># 场景 e · HITL 与断点续跑</span>
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scenario_e</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_h</span><span class="p">(</span><span class="s2">"场景 e · 人工确认点与断点续跑"</span><span class="p">)</span>
+
+    <span class="n">plan_file</span> <span class="o">=</span> <span class="n">OUT</span> <span class="o">/</span> <span class="s2">"tlf_plan.json"</span>
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">()</span>
+    <span class="n">manifest</span> <span class="o">=</span> <span class="n">TLF_DIR</span> <span class="o">/</span> <span class="s2">"tlf_manifest.md"</span>
+    <span class="k">if</span> <span class="n">manifest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">manifest</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>                      <span class="c1"># 从"文件不存在"开始，结果才可断言</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">第一步：跑完整张图，但**在写交付物前暂停**（hitl_before）</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">build_plan</span><span class="p">()</span>
+    <span class="n">pp</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                            <span class="n">hitl_before</span><span class="o">=</span><span class="p">(</span><span class="s2">"write_tlf"</span><span class="p">,))</span>     <span class="c1"># ★ 人工确认点</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"实时进度："</span><span class="p">)</span>
+    <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">ppolicy</span><span class="o">=</span><span class="n">pp</span><span class="p">,</span> <span class="n">on_task</span><span class="o">=</span><span class="n">make_progress_printer</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">()</span>
+    <span class="n">_table</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  summary → </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">deliver</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"deliver"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  写操作任务状态：</span><span class="si">{</span><span class="n">deliver</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">   ← 是 waiting，不是 failed"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  原因：</span><span class="si">{</span><span class="n">deliver</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  文件是否被写出：</span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">plan_file</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">第二步：把计划（含每个任务的状态与结果）存盘 → </span><span class="si">{</span><span class="n">plan_file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  文件大小 </span><span class="si">{</span><span class="n">plan_file</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> 字节"</span><span class="p">)</span>
+
+    <span class="c1"># ---- 人工确认后：加载计划，只跑未完成的 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">第三步：人工确认通过后，重新加载计划并**只跑未完成的**</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="c1"># ---- 人工确认后：加载计划，只跑未完成的 ----</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">第三步：人工确认通过后，重新加载计划并**只跑未完成的**</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">Plan</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">plan_file</span><span class="p">)</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p2</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="o">.</span><span class="n">settled</span><span class="p">]</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p2</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">settled</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  计划里的任务：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">p2</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  已到终态（从 JSON 读回状态，**不重跑**）：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个 "</span>
+          <span class="sa">f</span><span class="s2">"→ </span><span class="si">{</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">done</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  仍待执行：</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="si">}</span><span class="s2"> 个 → </span><span class="si">{</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">todo</span><span class="p">]</span><span class="si">}</span><span class="s2">   "</span>
+          <span class="sa">f</span><span class="s2">"← 注意只有这一个，其余 10 个的结果都是从盘上读回来的"</span><span class="p">)</span>
+
+    <span class="c1"># ★ 放行方式是"逐任务确认"，不是"全局关掉闸门"</span>
+    <span class="n">approver</span><span class="p">,</span> <span class="n">when</span> <span class="o">=</span> <span class="s2">"reviewer@example.com"</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
+    <span class="n">p2</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">"approvals"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">{</span><span class="s2">"by"</span><span class="p">:</span> <span class="n">approver</span><span class="p">,</span> <span class="s2">"at"</span><span class="p">:</span> <span class="n">when</span><span class="p">}</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">}</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  人工确认记录（会随计划一起存盘，作为审计证据）："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">approver</span><span class="si">}</span><span class="s2"> 于 </span><span class="si">{</span><span class="n">when</span><span class="si">}</span><span class="s2"> 确认放行 </span><span class="si">{</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">todo</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">pp2</span> <span class="o">=</span> <span class="n">planmod</span><span class="o">.</span><span class="n">PlanPolicy</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                             <span class="n">hitl_before</span><span class="o">=</span><span class="p">(),</span>                  <span class="c1"># 撤掉计划层闸门</span>
+                             <span class="n">confirmed</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">))</span>  <span class="c1"># 逐任务放行</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">planmod</span><span class="o">.</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">ppolicy</span><span class="o">=</span><span class="n">pp2</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  续跑耗时 </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s（重跑整张图要 "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_IO_WAIT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.2</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s 以上）"</span><span class="p">)</span>
+    <span class="n">_table</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  summary → </span><span class="si">{</span><span class="n">p2</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">manifest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  交付物：</span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">BASE</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+              <span class="sa">f</span><span class="s2">"（</span><span class="si">{</span><span class="n">manifest</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> 字节）"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"─"</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">manifest</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[:</span><span class="mi">16</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="s2">"─"</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  交付物未生成"</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">这里有两个**独立的**闸门，容易搞混，说清一下：</span>
+
+<span class="s2">  ① 计划层：``PlanPolicy.hitl_before=("write_tlf",)``</span>
+<span class="s2">     "跑到这一步就停下来等人。" —— 它管的是**流程**。</span>
+<span class="s2">  ② 工具层：``ToolSpec.side_effect="write"`` + ``Policy.confirm_side_effects``</span>
+<span class="s2">     "这个工具会改外部世界，默认不许执行。" —— 它管的是**副作用**。</span>
+
+<span class="s2">  两道都要过。放行时必须用 ``PlanPolicy.confirmed=("deliver",)``</span>
+<span class="s2">  **逐任务放行**，而不是把 ``confirm_side_effects`` 全局关掉 ——</span>
+<span class="s2">  全局关掉等于"确认过一次之后，之后所有写操作都不再需要确认"，</span>
+<span class="s2">  这正是审批流最容易被绕过的地方。</span>
+
+<span class="s2">  ⚠️ 还有一条铁律：**确认必须留痕**。上面把"谁、什么时候、确认了哪个任务"</span>
+<span class="s2">  写进了 ``plan.meta`` 并随计划落盘。没有这条记录，</span>
+<span class="s2">  事后没人能证明"这份交付物是经过人工确认的"。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"""</span>
+<span class="s2">断点续跑为什么能成立？因为**计划本身就是可序列化的数据**：</span>
+
+<span class="s2">    Plan(tasks=[Task(id, tool, args, depends_on, status, result, attempts), ...])</span>
+
+<span class="s2">  · status / result / attempts 都在任务对象上，跟着 JSON 一起落盘；</span>
+<span class="s2">  · 恢复时"只跑未完成的"，已完成的**不重跑**（省时间，也避免重复副作用）；</span>
+<span class="s2">  · 但要注意一个坑：**恢复后重跑的任务必须幂等**。</span>
+<span class="s2">    如果 write_tlf 已经写成功、只是状态没存下来，重跑会覆盖一遍 ——</span>
+<span class="s2">    对"整份覆盖写"的文件没问题，对"追加"或"POST 创建"就危险了。</span>
+<span class="s2">    这就是第 23 章里幂等键要解决的问题。</span>
+
+<span class="s2">  生产里更常见的形态是：计划存进数据库 + 定时任务扫"未完成"的计划。</span>
+<span class="s2">  这里用 JSON 文件，是为了让你看清**最核心的那部分是什么**。</span>
+
+<span class="s2">【顺带说清一个限制：任务之间怎么传数据？】</span>
+<span class="s2">  你可能已经注意到：``assemble`` 是"编排节点"，它**不会把上游结果传给**</span>
+<span class="s2">  ``deliver`` —— 因为 ``Task.args`` 是**静态的**（这是刻意的：</span>
+<span class="s2">  计划要是纯数据，才能存盘、才能发给同事审阅、才能断点续跑）。</span>
+
+<span class="s2">  真实项目的两种做法：</span>
+
+<span class="s2">  ① **中间产物落盘 + 下游按路径读**（临床里最推荐）</span>
+<span class="s2">     每个任务把结果写成 ``outputs/tlf/&lt;task_id&gt;.json``，</span>
+<span class="s2">     下游任务的参数里写 ``{"source": "outputs/tlf/t1_demo.json"}``。</span>
+<span class="s2">     · 好处：每一步都能单独重跑、单独核对；中间产物本身就是审计证据；</span>
+<span class="s2">       失败重试不必重算上游（不用在内存里传 DataFrame）。</span>
+<span class="s2">     · 代价：多一次落盘 I/O —— 相比"重算一遍"，这点成本可以忽略。</span>
+
+<span class="s2">  ② **参数模板**（框架层注入）</span>
+<span class="s2">     允许 ``args={"dataset": "$t1_demo.result.人群"}``，执行前解析成实际值。</span>
+<span class="s2">     · 好处：写起来短。</span>
+<span class="s2">     · 代价：引入**隐式依赖** —— 依赖关系藏在字符串里，</span>
+<span class="s2">       拓扑排序看不见它，计划也不再是纯数据。要谨慎。</span>
+
+<span class="s2">  本案例用"编排节点 + 静态参数"是为了把注意力留在调度本身；</span>
+<span class="s2">  你自己项目里请走 ①。"""</span><span class="p">)</span>
+
+
+<span class="c1"># ==========================================================================</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"案例 10 · TLF 生成流水线（任务规划与并行调度）"</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--only"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"all"</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">])</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--serial"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s2">"场景 b 额外打印单线程结果（默认已包含）"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">):</span>
+        <span class="n">scenario_a</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">):</span>
+        <span class="n">scenario_b</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">serial</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">):</span>
+        <span class="n">scenario_c</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">):</span>
+        <span class="n">scenario_d</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">only</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">):</span>
+        <span class="n">scenario_e</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"案例 10 结束。下一步："</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  · 案例 11 —— 双编程：两个 Agent 独立实现同一张表，再机器比对差异"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"  · 案例 12 —— 把这张图做成服务：接口、指标、日志、评估集"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span> <span class="o">*</span> <span class="mi">74</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div></article>
+<nav class="pager"><a class="pg-prev" href="case09.html"><span class="pg-label">← 上一篇</span><span class="pg-title">SDTM 一致性核查 Agent（记忆检索 / 阈值标定）</span></a><a class="pg-next" href="case11.html"><span class="pg-label">下一篇 →</span><span class="pg-title">双编程 Agent 对（多 Agent / 独立性审计）</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

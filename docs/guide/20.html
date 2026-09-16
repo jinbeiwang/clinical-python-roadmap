@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 20 章 · 工具调用进阶：契约、校验与边界</title>
+<meta name="description" content="工具调用进阶：契约、校验与边界 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 20 章 · 工具调用进阶：契约、校验与边界">
+<meta property="og:description" content="工具调用进阶：契约、校验与边界 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/20.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第五阶段 · Agent 核心能力</div><h1>第 20 章 · 工具调用进阶：契约、校验与边界</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/20-%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8%E8%BF%9B%E9%98%B6.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把工具从"一个函数"升级成一份<strong>可校验、可审计、攻不破的契约</strong>。
+工具设计得好，Agent 就稳；设计得差，再强的模型也救不回来。
+<strong>配套模块</strong>：<a href="../code/clinic-agent_core.html"><code>clinic/agent_core.py</code></a>（<code>ToolSpec</code> / <code>ToolRegistry</code>）</p>
+</blockquote>
+<hr />
+<h2 id="201-一个反直觉的事实">20.1 一个反直觉的事实</h2>
+<p>同一个模型、同一个任务，<strong>只改工具描述，成功率能从 60% 提到 95%</strong>。</p>
+<p>原因很简单：LLM 用不用某个工具、怎么传参，<strong>几乎完全依赖它读到的那段描述</strong>。
+它看不到你的实现，也猜不到团队的约定。</p>
+<p>所以第 16 章那句话要升级一下：</p>
+<blockquote>
+<p>工具 = 函数 + <strong>给 LLM 看的清单</strong> + 执行入口。
+其中"给 LLM 看的清单"是<strong>你要花最多时间打磨的部分</strong>，不是注解。</p>
+</blockquote>
+<hr />
+<h2 id="202-json-schema-的四个细节坑">20.2 JSON Schema 的四个细节坑</h2>
+<h3 id="坑-1description-要写什么时候用不只是是什么">坑 1：<code>description</code> 要写"什么时候用"，不只是"是什么"</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 只说功能 —— 模型不知道该不该用</span>
+<span class="p">{</span>
+    <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"run_qc_checks"</span><span class="p">,</span>
+    <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"运行数据质量检查"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># ✅ 说清用法与前置条件 —— 模型知道何时用、用之前要做什么</span>
+<span class="p">{</span>
+    <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"run_qc_checks"</span><span class="p">,</span>
+    <span class="s2">"description"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"对某个数据集运行标准化质量检查，返回按严重度分级的问题清单。"</span>
+        <span class="s2">"可检查项：required_vars（必填变量是否齐全）、missing_rate（缺失率）、"</span>
+        <span class="s2">"key_unique（主键唯一性）、date_pairs（日期先后关系）、codelist（受控术语）。"</span>
+        <span class="s2">"在调用本工具前，应先调用 describe_dataset 确认变量名。"</span>
+        <span class="s2">"本工具只读，不修改任何数据。"</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>最后那句"本工具只读"不是废话 —— 它明确告诉模型<strong>这个动作是安全的</strong>，
+可以放心多调几次。这对探索型任务的成功率影响很大。</p>
+<h3 id="坑-2能枚举就枚举别给自由文本">坑 2：能枚举就枚举，别给自由文本</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 自由文本：模型会写出 "requiredVars"、"必填变量"、"required_vars " 各种变体</span>
+<span class="p">{</span><span class="s2">"checks"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"array"</span><span class="p">,</span> <span class="s2">"items"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">}}}</span>
+
+<span class="c1"># ✅ 枚举：模型只能在有限集合里选</span>
+<span class="p">{</span>
+    <span class="s2">"checks"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"array"</span><span class="p">,</span>
+        <span class="s2">"items"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+            <span class="s2">"enum"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"required_vars"</span><span class="p">,</span> <span class="s2">"missing_rate"</span><span class="p">,</span> <span class="s2">"key_unique"</span><span class="p">,</span>
+                     <span class="s2">"date_pairs"</span><span class="p">,</span> <span class="s2">"codelist"</span><span class="p">],</span>
+        <span class="p">},</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"要执行的检查项；不传则执行全部"</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>枚举是"用 Schema 做提示工程"</strong>。每多一个 <code>enum</code>，
+你就少一个需要靠提示词纠正的失败模式。</p>
+</blockquote>
+<h3 id="坑-3数据集名必须是枚举安全--准确一举两得">坑 3：数据集名必须是枚举（安全 + 准确，一举两得）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="p">{</span>
+    <span class="s2">"dataset"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span>
+        <span class="s2">"enum"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED_DATASETS</span><span class="p">),</span>      <span class="c1"># dm / adsl / adae / ...</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"数据集名（小写，不含扩展名）"</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>这一条同时解决两个问题：模型不会写错名字，也不会<strong>试图访问白名单外的数据</strong>。
+但注意 —— <strong>Schema 的枚举是"提示"，不是"安全"</strong>。工具实现里
+仍然必须再校验一次（见 20.6），因为模型可以绕过 Schema 生成任意参数
+（尤其是在多轮对话里被诱导时）。</p>
+<h3 id="坑-4additionalproperties-false">坑 4：<code>additionalProperties: false</code></h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="s2">"parameters"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+    <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="o">...</span><span class="p">},</span>
+    <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"dataset"</span><span class="p">],</span>
+    <span class="s2">"additionalProperties"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>     <span class="c1"># ← 拦住模型自创的参数</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>不加这一条，模型可能传 <code>{"dataset": "adsl", "explain": True}</code> 这种它自己发明的参数。
+严格模式下，多传的参数会被拒绝并给出结构化错误，模型下一轮就学乖了。</p>
+<hr />
+<h2 id="203-粒度与命名">20.3 粒度与命名</h2>
+<h3 id="粒度一个工具--一个业务动作">粒度：一个工具 = 一个业务动作</h3>
+<table>
+<thead>
+<tr>
+<th>太细</th>
+<th>合适</th>
+<th>太粗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read_csv</code>、<code>get_columns</code>、<code>count_rows</code></td>
+<td><code>describe_dataset</code></td>
+<td><code>analyze_everything</code></td>
+</tr>
+<tr>
+<td>模型要在 30 个工具里选</td>
+<td>5–15 个，每个对应一件"业务上说得出口"的事</td>
+<td>模型不知道这个黑盒里有什么</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"业务上说得出口"</strong>是很好的检验标准：你能在方法学会议（或 SAP 评审）上
+用一句话说清这个工具做什么吗？能，就说明粒度对了。</p>
+<h3 id="命名要有区分度">命名：要有区分度</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 三个名字长得太像，模型经常选错</span>
+<span class="n">get_data</span><span class="p">()</span>   <span class="o">/</span>  <span class="n">get_info</span><span class="p">()</span>   <span class="o">/</span>  <span class="n">get_stats</span><span class="p">()</span>
+
+<span class="c1"># ✅ 名字自带语义，无需看描述也能猜到区别</span>
+<span class="n">describe_dataset</span><span class="p">()</span>      <span class="c1"># 结构：行数、列数、缺失、示例值</span>
+<span class="n">summarize_by_group</span><span class="p">()</span>    <span class="c1"># 分组描述统计：n / Mean (SD) / Median</span>
+<span class="n">frequency</span><span class="p">()</span>             <span class="c1"># 频数分布：n (%)</span>
+</code></pre></div></div>
+<p>另一个实用技巧：<strong>用 <code>sas_</code> 前缀标注"语义与 SAS 对齐"的工具</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">name</span><span class="o">=</span><span class="s2">"sas_round_rate"</span>    <span class="c1"># 明确告诉模型：这是 SAS 口径的舍入，不是 Python 的</span>
+</code></pre></div></div>
+<p>模型看到 <code>sas_</code> 前缀，就知道这里有个"口径差异"需要注意 ——
+这比在描述里写三大段解释有效得多。</p>
+<hr />
+<h2 id="204-参数校验在最外层挡住脏数据">20.4 参数校验：在最外层挡住脏数据</h2>
+<p>LLM 传参的"创意"远超想象。以下是<strong>真实会遇到</strong>的形态：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 你以为会收到：</span>
+<span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">,</span> <span class="s2">"subjects"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">,</span> <span class="s2">"01-701-1023"</span><span class="p">]}</span>
+
+<span class="c1"># 实际可能收到：</span>
+<span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"ADSL"</span><span class="p">}</span>                                  <span class="c1"># 大小写</span>
+<span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl.csv"</span><span class="p">}</span>                              <span class="c1"># 带扩展名</span>
+<span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl "</span><span class="p">}</span>                                 <span class="c1"># 带空格</span>
+<span class="p">{</span><span class="s2">"subjects"</span><span class="p">:</span> <span class="s2">"01-701-1015"</span><span class="p">}</span>                          <span class="c1"># 单值当列表</span>
+<span class="p">{</span><span class="s2">"subjects"</span><span class="p">:</span> <span class="s2">"01-701-1015,01-701-1023"</span><span class="p">}</span>              <span class="c1"># 逗号串</span>
+<span class="p">{</span><span class="s2">"subjects"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"01-701-1015"</span><span class="p">,</span> <span class="s2">"01-701-1015"</span><span class="p">]}</span>         <span class="c1"># 重复</span>
+<span class="p">{</span><span class="s2">"subjects"</span><span class="p">:</span> <span class="s2">"全部"</span><span class="p">}</span>                                  <span class="c1"># 自然语言</span>
+<span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"../../../../etc/passwd"</span><span class="p">}</span>                <span class="c1"># ★ 恶意的路径穿越</span>
+</code></pre></div></div>
+<p>所以校验函数要<strong>先归一化，再校验</strong> —— 顺序不能反：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">_norm_dataset</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""把 LLM 给的各种形态归一化成一个干净的数据集名。"""</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".csv"</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".xpt"</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">s</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_norm_subjects</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""单值 / 逗号串 / 列表 都接受，去重保序。"""</span>
+    <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">";"</span><span class="p">,</span> <span class="s2">","</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">raw</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="ow">and</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>归一化不是"纵容"</strong>。归一化的是<strong>无害的格式差异</strong>（大小写、空格、单值包装）；
+<strong>不该归一化</strong>的是语义错误（"全部"应该报错并提示枚举值，不能猜）。</p>
+</blockquote>
+<hr />
+<h2 id="205-安全边界白名单必须在-normpath-之后">20.5 安全边界：白名单必须在 <code>normpath</code> 之后</h2>
+<p>路径穿越是工具设计里最经典、也最容易犯的错。看这段"看起来没问题"的代码：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 危险：看似校验了目录，实际可以被绕过</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s2">"../"</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"非法数据集名"</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">DATA_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv"</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</code></pre></div></div>
+<p>绕过方式多得是：<code>..%2F</code>、<code>....//</code>、绝对路径、Windows 的 <code>..\</code>、
+甚至是软链接。<strong>用字符串匹配防路径穿越，是防不住的。</strong></p>
+<p>正确做法是把"允许的名字"变成<strong>枚举白名单</strong>，并且<strong>只做映射，不做拼接</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 白名单 + 只映射不拼接</span>
+<span class="n">ALLOWED</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"dm"</span><span class="p">:</span>    <span class="s2">"dm.csv"</span><span class="p">,</span>
+    <span class="s2">"adsl"</span><span class="p">:</span>  <span class="s2">"adsl.csv"</span><span class="p">,</span>
+    <span class="s2">"adae"</span><span class="p">:</span>  <span class="s2">"adae.csv"</span><span class="p">,</span>
+    <span class="s2">"ae"</span><span class="p">:</span>    <span class="s2">"ae.csv"</span><span class="p">,</span>
+    <span class="s2">"vs"</span><span class="p">:</span>    <span class="s2">"vs_bp.csv"</span><span class="p">,</span>
+    <span class="s2">"adlbc"</span><span class="p">:</span> <span class="s2">"adlbc_shift.csv"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_load</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">_norm_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ALLOWED</span><span class="p">:</span>                       <span class="c1"># 不在白名单 → 直接拒绝</span>
+        <span class="k">raise</span> <span class="ne">PermissionError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"数据集 </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> 不在允许列表中。可用：</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">ALLOWED</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="p">(</span><span class="n">DATA_DIR</span> <span class="o">/</span> <span class="n">ALLOWED</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>   <span class="c1"># 路径完全由白名单决定</span>
+
+    <span class="c1"># 双保险：确认解析后的路径确实还在数据目录内</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="o">.</span><span class="n">resolve</span><span class="p">())):</span>
+        <span class="k">raise</span> <span class="ne">PermissionError</span><span class="p">(</span><span class="s2">"路径越界"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">low_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></div>
+<p>关键点：<strong>用户输入从来不参与路径拼接</strong>。它在白名单里查表，只用来"选"，
+不用来"拼"。这样任何 <code>../</code>、绝对路径、Unicode 混淆都无效。</p>
+<blockquote>
+<p>🔥 第 18 章说"边界要写在 <code>if</code> 里" —— 这里就是那个 <code>if</code> 的具体写法。
+注意 <code>name!r</code> 和把它原样回显给模型：<strong>拒绝时要说清"允许什么"</strong>，
+否则模型会在下一轮继续猜。</p>
+</blockquote>
+<hr />
+<h2 id="206-结构化错误让模型能自己修">20.6 结构化错误：让模型能自己修</h2>
+<p>这是"工具做得好"和"工具做得凑合"分水岭最明显的地方。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 第 16 章的做法（教学版可以，工程版不行）</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"错误：</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="c1"># 实际会返回这种东西给模型：</span>
+<span class="c1"># "错误：'NoneType' object has no attribute 'upper'"</span>
+<span class="c1"># 模型看到这条，唯一能做的就是瞎猜着改参数 —— 或者干脆放弃</span>
+</code></pre></div></div>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 结构化错误：类型 + 说明 + 怎么改 + 候选值</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToolResult</span><span class="p">:</span>
+    <span class="n">ok</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># validation/not_found/permission/transient/internal</span>
+    <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>             <span class="c1"># ★ 给模型的修复建议</span>
+    <span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1"># ★ 合法取值</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_llm_text</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_render</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">error_type</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"可选值：</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hint</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"提示：</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</code></pre></div></div>
+<p>对比一下同一件事返回给模型的样子：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>❌ 无结构：
+   错误：数据集 adls 不存在
+
+✅ 有结构：
+   [not_found] 数据集 'adls' 不存在
+   可选值：['adae', 'adlbc', 'adsl', 'ae', 'dm', 'vs']
+   提示：可能是拼写错误（adls → adsl）。请用枚举中的值重试。
+</code></pre></div></div>
+<p><strong>模型看到第二种，基本下一轮就能改对。</strong> 这不是锦上添花 ——
+它是"Agent 能不能自己从错误里恢复"的决定性因素。</p>
+<h3 id="错误类型与处理策略的对应">错误类型与处理策略的对应</h3>
+<table>
+<thead>
+<tr>
+<th><code>error_type</code></th>
+<th>含义</th>
+<th>谁来解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validation</code></td>
+<td>参数格式/取值不对</td>
+<td><strong>模型自己改</strong>（回给模型）</td>
+</tr>
+<tr>
+<td><code>not_found</code></td>
+<td>目标不存在</td>
+<td>模型换目标</td>
+</tr>
+<tr>
+<td><code>permission</code></td>
+<td>越权</td>
+<td><strong>终止，告警给人</strong></td>
+</tr>
+<tr>
+<td><code>transient</code></td>
+<td>网络/超时</td>
+<td>框架重试</td>
+</tr>
+<tr>
+<td><code>internal</code></td>
+<td>代码 bug</td>
+<td>终止，记录堆栈</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ 注意 <code>permission</code> 与 <code>internal</code> 都<strong>不该回给模型</strong> ——
+前者可能被诱导绕过，后者模型帮不上忙只会瞎试。直接终止更安全。</p>
+</blockquote>
+<hr />
+<h2 id="207-结果侧可序列化--长度受控">20.7 结果侧：可序列化 + 长度受控</h2>
+<h3 id="问题-1返回-dataframe-会炸">问题 1：返回 DataFrame 会炸</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 工具直接返回 DataFrame</span>
+<span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="c1"># 后面某处 state.to_json() 时：</span>
+<span class="c1"># TypeError: Object of type DataFrame is not JSON serializable</span>
+</code></pre></div></div>
+<p>更糟的是"能序列化但没意义"：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 这段看起来成功了 —— 但它把 DataFrame 转成了一坨</span>
+<span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>     <span class="c1"># → "   USUBJID  TRT01P  AGE\n0  01-701-1015 ..."</span>
+</code></pre></div></div>
+<p>一个几千行的 CSV 字符串塞进上下文，<strong>既烧钱又没用</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ✅ 工具自己负责把结果转成"小而结构化"的形式</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">summarize_by_group</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolResult</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">sub</span><span class="p">[</span><span class="n">var</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"组"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">g</span><span class="p">),</span>
+            <span class="s2">"n"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+            <span class="s2">"Mean (SD)"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span>
+            <span class="s2">"Median"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">median</span><span class="p">()),</span>
+            <span class="s2">"Min, Max"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">ToolResult</span><span class="o">.</span><span class="n">ok</span><span class="p">({</span>
+        <span class="s2">"数据集"</span><span class="p">:</span> <span class="n">dataset</span><span class="p">,</span> <span class="s2">"分组"</span><span class="p">:</span> <span class="n">group</span><span class="p">,</span> <span class="s2">"变量"</span><span class="p">:</span> <span class="n">var</span><span class="p">,</span>
+        <span class="s2">"结果"</span><span class="p">:</span> <span class="n">table</span><span class="p">,</span>                      <span class="c1"># ← 小而结构化</span>
+        <span class="s2">"缺失"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+    <span class="p">})</span>
+</code></pre></div></div>
+<p><strong>规则：进入 <code>ToolResult.data</code> 的必须是基本类型</strong>
+（<code>str / int / float / bool / None / list / dict</code>）。</p>
+<h3 id="问题-2结果太长会撑爆上下文">问题 2：结果太长会撑爆上下文</h3>
+<p>一个 2000 行的 AE 列表，直接塞进上下文，一次就烧掉几万 token。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">_cap</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""统一的结果长度控制：截断 + 摘要 + 明确告知被截断。"""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">limit</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"行"</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span> <span class="s2">"总数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"行"</span><span class="p">:</span> <span class="n">rows</span><span class="p">[:</span><span class="n">limit</span><span class="p">],</span>
+        <span class="s2">"总数"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span>
+        <span class="s2">"已截断"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"说明"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"仅返回前 </span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s2"> 行，共 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="si">}</span><span class="s2"> 行；"</span>
+                <span class="sa">f</span><span class="s2">"如需完整结果，请按条件缩小范围或使用汇总工具。"</span><span class="p">,</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>"已截断"必须明确写出来</strong>。否则模型会把"前 50 行"当成全部数据，
+得出"只有 50 个受试者"这种结论 —— 这是<strong>数据层面的幻觉</strong>，
+比语言层面的幻觉更危险，因为它看起来有工具结果支撑。</p>
+</blockquote>
+<hr />
+<h2 id="208-幂等性与副作用">20.8 幂等性与副作用</h2>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>副作用</th>
+<th>幂等？</th>
+<th>重复调用的后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>describe_dataset</code></td>
+<td>无</td>
+<td>—</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>run_qc_checks</code></td>
+<td>无</td>
+<td>—</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>write_report</code></td>
+<td>写文件</td>
+<td><strong>是</strong>（同名覆盖）</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>append_audit</code></td>
+<td>追加写</td>
+<td><strong>否</strong></td>
+<td>审计日志出现重复行</td>
+</tr>
+<tr>
+<td><code>send_summary</code></td>
+<td>发消息</td>
+<td><strong>否</strong></td>
+<td>同事收到两封邮件</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToolSpec</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="n">side_effect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"read"</span>      <span class="c1"># read / write / irreversible</span>
+    <span class="n">idempotent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>        <span class="c1"># 重复执行是否安全</span>
+</code></pre></div></div>
+<p><strong>幂等键</strong>（idempotency key）是处理非幂等操作的标准手段：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">append_audit</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">idem_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""追加审计事件。带 idem_key 时，同一 key 只写入一次。"""</span>
+    <span class="k">if</span> <span class="n">idem_key</span> <span class="ow">and</span> <span class="n">_seen</span><span class="p">(</span><span class="n">idem_key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ToolResult</span><span class="o">.</span><span class="n">ok</span><span class="p">({</span><span class="s2">"重复"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"说明"</span><span class="p">:</span> <span class="s2">"该事件已记录，跳过"</span><span class="p">})</span>
+    <span class="o">...</span>
+</code></pre></div></div>
+<p>在 Agent 场景里，重试是常态（网络抖动、模型重发），
+所以<strong>任何非幂等的工具都应该支持幂等键</strong>。</p>
+<hr />
+<h2 id="209-工具契约测试">20.9 工具契约测试</h2>
+<p>工具是 Agent 与业务之间的<strong>唯一接口</strong>，所以它比普通函数更需要测试。
+而且测试成本很低 —— 工具都是纯函数。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># tests/test_agent_tools.py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">clinic.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_registry</span><span class="p">,</span> <span class="n">ALLOWED</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">"module"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reg</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">build_registry</span><span class="p">()</span>
+
+<span class="c1"># ---- 1) Schema 自身要合法 ----</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_every_tool_has_valid_schema</span><span class="p">(</span><span class="n">reg</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">reg</span><span class="o">.</span><span class="n">specs</span><span class="p">():</span>
+        <span class="k">assert</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="n">spec</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> 缺名字或描述"</span>
+        <span class="k">assert</span> <span class="n">spec</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"object"</span>
+        <span class="k">assert</span> <span class="n">spec</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"additionalProperties"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"properties"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="s2">"description"</span> <span class="ow">in</span> <span class="n">p</span><span class="p">,</span> <span class="s2">"每个参数都要有 description"</span>
+
+<span class="c1"># ---- 2) 参数归一化的边界 ----</span>
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"raw,expect"</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"ADSL"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"adsl.csv"</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">),</span> <span class="p">(</span><span class="s2">" adsl "</span><span class="p">,</span> <span class="s2">"adsl"</span><span class="p">),</span>
+<span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_dataset_normalization</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">expect</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="n">raw</span><span class="p">})</span><span class="o">.</span><span class="n">ok</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"raw"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"../etc/passwd"</span><span class="p">,</span> <span class="s2">"adls"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"全部"</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_rejects_bad_dataset</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="n">raw</span><span class="p">})</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">ok</span>
+    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">error_type</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"not_found"</span><span class="p">,</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="s2">"permission"</span><span class="p">}</span>
+
+<span class="c1"># ---- 3) 结果必须可 JSON 序列化 ----</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_results_are_serializable</span><span class="p">(</span><span class="n">reg</span><span class="p">):</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="s2">"run_qc_checks"</span><span class="p">,</span> <span class="s2">"frequency"</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"adsl"</span><span class="p">})</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>      <span class="c1"># 不抛异常即通过</span>
+
+<span class="c1"># ---- 4) 错误必须结构化 ----</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_errors_are_actionable</span><span class="p">(</span><span class="n">reg</span><span class="p">):</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"describe_dataset"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"dataset"</span><span class="p">:</span> <span class="s2">"nope"</span><span class="p">})</span>
+    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">error_type</span> <span class="ow">and</span> <span class="n">res</span><span class="o">.</span><span class="n">options</span>            <span class="c1"># 有类型、有候选值</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 第 3 条测试（<code>test_results_are_serializable</code>）值得单独强调：
+<strong>它能拦住 90% 的"上线后才发现"的 Agent 故障</strong>。
+因为序列化失败的报错位置离出错位置很远（在存状态的时候，不在工具里），
+排查起来极其费劲。</p>
+</blockquote>
+<hr />
+<h2 id="2010-mcp工具标准化的意义">20.10 MCP：工具标准化的意义</h2>
+<p>前面所有内容都假设"工具是你自己写的"。但如果工具要<strong>跨项目复用</strong>呢？</p>
+<p>比如你们组做了一套"临床数据检查工具"，另一个组的 Agent 也想用。
+传统做法是复制代码，然后各自分叉、各自修 bug。</p>
+<p><strong>MCP（Model Context Protocol）</strong> 是 Anthropic 在 2024 年提出的开放协议，
+把这个过程标准化了：工具作为一个<strong>独立服务</strong>暴露，
+任何支持 MCP 的客户端都能接入。</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>不使用 MCP                    使用 MCP
+┌──────────┐                  ┌──────────┐   ┌──────────┐
+│ Agent A  │                  │ Agent A  │   │ Agent B  │
+│ 工具代码 │                  └────┬─────┘   └────┬─────┘
+└──────────┘                       │              │
+┌──────────┐                       └──────┬───────┘
+│ Agent B  │                              ▼
+│ 工具代码 │  ← 复制一份             ┌───────────┐
+└──────────┘                        │ MCP 服务  │
+                                    │（唯一一份）│
+改一处要改两处                       └───────────┘
+</code></pre></div></div>
+<p>对临床统计团队的实际价值：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>不用 MCP</th>
+<th>用 MCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>共享 QC 工具</td>
+<td>复制代码，各自维护</td>
+<td>一个服务，所有人调用</td>
+</tr>
+<tr>
+<td>接入内部系统（EDC/统计平台）</td>
+<td>每个 Agent 各写一遍连接逻辑</td>
+<td>写一个 MCP 服务</td>
+</tr>
+<tr>
+<td>权限与审计</td>
+<td>分散在各处，无法统一</td>
+<td><strong>集中在一个服务里</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 最后一行才是重点：<strong>MCP 让"安全边界"和"审计日志"有了唯一的落点</strong>。
+工具散落在 5 个 Agent 里，你没法回答"谁在什么时候访问过受试者数据"。</p>
+</blockquote>
+<p>想动手的话，<code>pip install mcp</code>，把 <code>clinic/agent_tools.py</code> 里的工具
+一个个注册出去大约 30 行。本仓库暂不包含 MCP 服务实现（避免引入额外依赖），
+但第 23 章会讲服务化封装，思路是相通的。</p>
+<hr />
+<h2 id="2011-常见误区">20.11 常见误区</h2>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>后果</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>描述只写功能</td>
+<td>模型不知道何时用</td>
+<td>写清用途、前置条件、是否只读</td>
+</tr>
+<tr>
+<td>参数用自由文本</td>
+<td>各种拼写变体</td>
+<td>能枚举就枚举</td>
+</tr>
+<tr>
+<td>靠字符串匹配防路径穿越</td>
+<td>必被绕过</td>
+<td>白名单映射，输入不参与拼接</td>
+</tr>
+<tr>
+<td>返回 DataFrame</td>
+<td>序列化炸 / 上下文爆炸</td>
+<td>工具内转成基本类型</td>
+</tr>
+<tr>
+<td>返回超长结果不截断</td>
+<td>一次烧几万 token</td>
+<td><code>_cap()</code> + 明确标注已截断</td>
+</tr>
+<tr>
+<td>错误直接抛 traceback</td>
+<td>模型无法自救</td>
+<td>结构化错误 + 候选值 + 提示</td>
+</tr>
+<tr>
+<td>不写契约测试</td>
+<td>上线后才发现工具返回不能序列化</td>
+<td>四条基础断言（见 20.9）</td>
+</tr>
+<tr>
+<td>工具越多越好</td>
+<td>选择错误率飙升</td>
+<td>5–15 个，一个业务动作一个</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2012-本章小结">20.12 本章小结</h2>
+<ol>
+<li><strong>工具描述是提示工程里性价比最高的一块</strong> —— 改描述就能提成功率</li>
+<li><strong>能枚举的都枚举</strong> —— Schema 本身就是约束</li>
+<li><strong>校验要先归一化再判断</strong> —— 但要区分"格式差异"与"语义错误"</li>
+<li><strong>白名单是映射不是拼接</strong> —— 输入永不参与路径构造</li>
+<li><strong>结构化错误让 Agent 能自愈</strong> —— 错误里要带"怎么改"和"能填什么"</li>
+<li><strong>结果必须小、结构化、可序列化</strong> —— 截断时要明说</li>
+<li><strong>契约测试只要四条断言</strong> —— 收益却极高</li>
+</ol>
+<p><strong>下一章</strong>：上下文窗口是硬约束 —— 怎么让 Agent 记住该记的、忘掉该忘的。</p>
+<hr />
+<h2 id="2013-动手练习">20.13 动手练习</h2>
+<ol>
+<li>给 <code>clinic/agent_tools.py</code> 的每个参数补上 <code>description</code>，
+   然后对照 20.2 的第 1 条，把"本工具只读"这类信息补进去。</li>
+<li>写一个 <code>_norm_int(raw)</code>，接受 <code>"5"</code> / <code>5</code> / <code>5.0</code> / <code>"5 "</code>，拒绝 <code>"abc"</code>。</li>
+<li>故意在 <code>describe_dataset</code> 里加一行 <code>if True: raise RuntimeError("boom")</code>，
+   观察返回给模型的内容。然后改成结构化错误重试一次，对比模型后续行为。</li>
+<li>给 <code>frequency()</code> 加一个 <code>top_n</code> 参数（默认 20），
+   让它在结果里明确标注"仅显示前 N 项，共 M 项"。</li>
+<li><strong>思考题</strong>：如果工具的 <code>enum</code> 里包含 200 个受控术语（CT）的值，
+   该继续用 <code>enum</code> 吗？还是换成别的设计？（提示：想想 token 成本
+   和"模型根本读不完"这两件事）</li>
+</ol></article>
+<nav class="pager"><a class="pg-prev" href="19.html"><span class="pg-label">← 上一篇</span><span class="pg-title">任务规划与调度</span></a><a class="pg-next" href="21.html"><span class="pg-label">下一篇 →</span><span class="pg-title">记忆与上下文管理</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

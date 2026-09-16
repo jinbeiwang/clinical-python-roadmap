@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 19 章 · 任务规划与调度</title>
+<meta name="description" content="任务规划与调度 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 19 章 · 任务规划与调度">
+<meta property="og:description" content="任务规划与调度 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/19.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 第五阶段 · Agent 核心能力</div><h1>第 19 章 · 任务规划与调度</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/docs/19-%E4%BB%BB%E5%8A%A1%E8%A7%84%E5%88%92%E4%B8%8E%E8%B0%83%E5%BA%A6.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p><strong>本章目标</strong>：把"一个目标"变成<strong>一张可执行、可并行、可重试的任务图</strong>，
+并知道在 pandas 世界里并行到底值不值得做。
+<strong>配套模块</strong>：<a href="../code/clinic-agent_planner.html"><code>clinic/agent_planner.py</code></a>
+<strong>配套案例</strong>：<a href="../code/case10.html"><code>cases/case10_TLF生成流水线.py</code></a></p>
+</blockquote>
+<hr />
+<h2 id="191-先看没有规划会怎样">19.1 先看没有规划会怎样</h2>
+<p>同一个任务："把这批数据里的问题找出来"，两种 Agent 的差别：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>ReAct（无规划）                      Plan-and-Execute（有规划）
+
+想 → 看 dm 结构                      【规划】
+想 → 看 adsl 结构                    1. 列出可用的域
+想 → 看 adae 结构                    2. 逐域做结构检查
+想 → 看 vs 结构                      3. 跨域做一致性检查
+想 → 跑 dm 的 QC                     4. 按严重度汇总
+想 → 跑 adsl 的 QC                  【执行】
+想 → 跑 adae 的 QC                   步骤 1 ✓  步骤 2 ✓
+想 → 跑 vs 的 QC                     步骤 3 ✓  步骤 4 ✓
+想 → 汇总                            【检查清单】每个域都做了吗？
+                                     → 域清单：dm/adsl/adae/vs → 4/4 ✓
+
+8 次模型调用                          3 次模型调用（1 规划 + 1 执行 + 1 汇总）
+漏一个域？不容易发现                  漏一个域？清单对不上，立刻发现
+</code></pre></div></div>
+<p><strong>规划买到的是"完整性可验证"</strong> —— 而临床工作里，这正是最值钱的那部分。</p>
+<blockquote>
+<p>🔥 一句话：<strong>ReAct 解决"我不知道该做什么"，
+规划解决"我担心我漏做了什么"。</strong></p>
+</blockquote>
+<hr />
+<h2 id="192-任务分解拆到多细才算对">19.2 任务分解：拆到多细才算对</h2>
+<p>粒度是规划里最容易搞错的地方。两种错误都很常见：</p>
+<table>
+<thead>
+<tr>
+<th>拆得太细</th>
+<th>拆得太粗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"读 dm 的前 100 行"、"读 dm 的列名"、"统计 dm 行数" 各算一个任务</td>
+<td>"完成所有数据检查"算一个任务</td>
+</tr>
+<tr>
+<td>每个任务都要重新装载数据 → I/O 重复 10 次</td>
+<td>无法并行、无法重试、无法定位失败</td>
+</tr>
+<tr>
+<td>任务图 40 个节点，模型自己都看晕</td>
+<td>失败时只能整块重跑</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判定标准（实用）</strong>：</p>
+<blockquote>
+<p>一个任务 = <strong>一次工具调用能完成的事</strong>。
+更细 —— 浪费；更粗 —— 失去了调度价值。</p>
+</blockquote>
+<p>按这个标准，"检查 ADSL 的必填变量"是<strong>一个任务</strong>（对应一次
+<code>run_qc_checks(dataset="adsl", checks=["required_vars"])</code>），
+而"检查 ADSL"要拆，因为它包含多个检查项。</p>
+<h3 id="mece不重不漏">MECE：不重不漏</h3>
+<p>临床统计的程序员对这个词不陌生 —— 分析人群的定义就是要 MECE
+（Mutually Exclusive, Collectively Exhaustive）。任务分解遵循同一原则：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 有重叠：两个检查都会跑到 missing_rate</span>
+<span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Task</span><span class="p">(</span><span class="s2">"结构检查"</span><span class="p">,</span> <span class="n">checks</span><span class="o">=</span><span class="p">[</span><span class="s2">"required_vars"</span><span class="p">,</span> <span class="s2">"missing_rate"</span><span class="p">]),</span>
+    <span class="n">Task</span><span class="p">(</span><span class="s2">"完整性检查"</span><span class="p">,</span> <span class="n">checks</span><span class="o">=</span><span class="p">[</span><span class="s2">"missing_rate"</span><span class="p">,</span> <span class="s2">"date_pairs"</span><span class="p">]),</span>
+<span class="p">]</span>
+
+<span class="c1"># ❌ 有遗漏：ADSL 有 5 项必查，只写了 3 项</span>
+<span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Task</span><span class="p">(</span><span class="s2">"检查 ADSL"</span><span class="p">,</span> <span class="n">checks</span><span class="o">=</span><span class="p">[</span><span class="s2">"required_vars"</span><span class="p">,</span> <span class="s2">"missing_rate"</span><span class="p">,</span> <span class="s2">"key_unique"</span><span class="p">]),</span>
+<span class="p">]</span>
+
+<span class="c1"># ✅ MECE：每一项检查恰好出现在一个任务里</span>
+<span class="n">ALL_CHECKS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"required_vars"</span><span class="p">,</span> <span class="s2">"missing_rate"</span><span class="p">,</span> <span class="s2">"key_unique"</span><span class="p">,</span>
+              <span class="s2">"date_pairs"</span><span class="p">,</span> <span class="s2">"codelist"</span><span class="p">,</span> <span class="s2">"range"</span><span class="p">]</span>
+<span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">Task</span><span class="p">(</span><span class="sa">f</span><span class="s2">"检查 </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">checks</span><span class="o">=</span><span class="p">[</span><span class="n">c</span><span class="p">])</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ALL_CHECKS</span><span class="p">]</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>不重不漏要用代码校验，不能靠肉眼</strong>。
+一个 20 行的断言就够：
+<code>python
+covered = [c for t in tasks for c in t.checks]
+assert len(covered) == len(set(covered)), "有重复检查项"
+assert set(covered) == set(ALL_CHECKS), f"遗漏：{set(ALL_CHECKS) - set(covered)}"</code>
+这就是把"规划质量"变成了"可测试的断言"。</p>
+</blockquote>
+<hr />
+<h2 id="193-plan-and-execute-三件套">19.3 Plan-and-Execute 三件套</h2>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>┌──────────┐    ┌──────────┐    ┌──────────┐
+│  规划器   │───▶│  执行器   │───▶│ 重规划器  │
+│ Planner  │    │ Executor │    │ Replan   │
+└──────────┘    └──────────┘    └────┬─────┘
+     ▲                               │ 有任务失败/结果异常
+     └───────────────────────────────┘
+</code></pre></div></div>
+<p>任务对象本身是普通数据 —— <strong>注意它没有 <code>func</code> 字段</strong>：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># clinic/agent_planner.py（节选）</span>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Task</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""一个可调度的任务。</span>
+
+<span class="sd">    刻意**不持有函数引用** —— 只描述"要做什么"，</span>
+<span class="sd">    由执行器通过工具注册表去调用。这样任务图可以序列化、可以重放。</span>
+<span class="sd">    """</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tool</span><span class="p">:</span> <span class="nb">str</span>                         <span class="c1"># 要调用的工具名</span>
+    <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">depends_on</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>  <span class="c1"># 依赖的任务 id</span>
+    <span class="n">optional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>            <span class="c1"># 失败是否阻塞整条流水线</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"pending"</span>           <span class="c1"># pending/running/done/failed/skipped</span>
+    <span class="n">result</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">elapsed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</code></pre></div></div>
+<p><strong>为什么不在 <code>Task</code> 里放函数引用</strong>：一旦放了，任务图就没法 JSON 序列化，
+断点恢复、离线重放、把计划发给同事审阅 —— 全都没了。
+这是第 18 章"状态外置"在规划层的同一条纪律。</p>
+<hr />
+<h2 id="194-依赖-dag-与拓扑排序">19.4 依赖 DAG 与拓扑排序</h2>
+<h3 id="为什么必须要-dag">为什么必须要 DAG</h3>
+<p>TLF 生成的依赖关系天然是一张图：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>        adsl 衍生
+       ┌────┴────┬──────────┐
+       ▼         ▼          ▼
+    表1 人口学  表2 AE    表3 实验室
+       │         │          │
+       └────┬────┴──────────┘
+            ▼
+        合并导出 RTF/PDF
+</code></pre></div></div>
+<ul>
+<li><strong>有依赖就必须后执行</strong> → 拓扑排序</li>
+<li><strong>没有依赖的可以并行</strong> → 表1/表2/表3 同时跑</li>
+<li><strong>有环就是设计错了</strong> → 必须报错，而不是"跑到栈溢出"</li>
+</ul>
+<h3 id="实现kahn-算法20-行">实现：Kahn 算法（20 行）</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">topological_order</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Kahn 拓扑排序。有环时抛 PlanCycleError。"""</span>
+    <span class="n">by_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">indeg</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">children</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">depends_on</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">by_id</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">PlanError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"任务 </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> 依赖了不存在的任务 </span><span class="si">{</span><span class="n">dep</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">children</span><span class="p">[</span><span class="n">dep</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">tid</span> <span class="k">for</span> <span class="n">tid</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">indeg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+        <span class="n">tid</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">children</span><span class="p">[</span><span class="n">tid</span><span class="p">]:</span>
+            <span class="n">indeg</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">indeg</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+        <span class="n">stuck</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">indeg</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">order</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">PlanCycleError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"任务图存在循环依赖：</span><span class="si">{</span><span class="n">stuck</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">by_id</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">order</span><span class="p">]</span>
+</code></pre></div></div>
+<blockquote>
+<p>🔥 <strong>"有环就报错"这件事比想象中重要</strong>。真正的环往往藏在数据里：
+表 3 依赖表 2 的衍生结果，而表 2 又需要表 3 输出的一个统计量 ——
+这种环在<strong>写代码时看不出来</strong>，只有在执行前跑一次拓扑排序才会暴露。
+报错的成本是 1 秒，跑起来再发现的成本是半天。</p>
+</blockquote>
+<h3 id="分层level并行">分层（Level）并行</h3>
+<p>拓扑排序给的是线性顺序，但调度的价值在于<strong>知道哪些可以同时跑</strong>。
+再走一步，算出每一层的任务：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">levels</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""把任务按"最早可执行轮次"分层。同一层内的任务互不依赖，可以并行。"""</span>
+    <span class="n">by_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+    <span class="n">depth</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">d</span><span class="p">(</span><span class="n">tid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">depth</span><span class="p">:</span>
+            <span class="n">depth</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">by_id</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">depends_on</span> <span class="k">else</span> \
+                <span class="mi">1</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="n">d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">by_id</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">depends_on</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">depth</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span>
+
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Task</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">d</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">out</span><span class="p">)]</span>
+</code></pre></div></div>
+<p>上面那张 TLF 图算出来就是 3 层，第 2 层的三张表可以一起跑。</p>
+<hr />
+<h2 id="195-并行执行pandas-世界里的一盆冷水">19.5 并行执行：pandas 世界里的一盆冷水</h2>
+<p>先看结论，再看原因：</p>
+<table>
+<thead>
+<tr>
+<th>任务类型</th>
+<th>单线程够用吗</th>
+<th>并行手段</th>
+<th>实际加速</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读大批 XPT / CSV（I/O 密集）</td>
+<td>慢</td>
+<td><code>ThreadPoolExecutor</code></td>
+<td><strong>明显</strong>（等待期间让出 CPU）</td>
+</tr>
+<tr>
+<td>pandas <code>groupby</code> / <code>merge</code>（C 层）</td>
+<td>慢</td>
+<td><code>ProcessPoolExecutor</code></td>
+<td>明显，但要传路径不传数据</td>
+</tr>
+<tr>
+<td>纯 Python 循环逐行处理</td>
+<td>慢</td>
+<td><code>ProcessPoolExecutor</code></td>
+<td>明显 —— 而且<strong>先考虑改写掉这个循环</strong></td>
+</tr>
+<tr>
+<td>调 LLM API（网络等待）</td>
+<td>慢</td>
+<td><code>ThreadPoolExecutor</code></td>
+<td><strong>非常明显</strong>（90% 时间在等网络）</td>
+</tr>
+<tr>
+<td>已向量化的 numpy 运算</td>
+<td>快</td>
+<td>通常不用</td>
+<td>无（且更慢）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="三个必须知道的坑">三个必须知道的坑</h3>
+<p><strong>坑 1：GIL 不是绝对的，但也别指望多线程救 pandas</strong></p>
+<p>pandas 的 C 层操作会释放 GIL，所以多线程<strong>有一点点</strong>效果；
+但 Python 层的调度开销会吃掉大部分收益。判断方法只有一个：<strong>自己测</strong>。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># 别信任何人的结论，包括本书的 —— 在你的数据上量一次</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">ProcessPoolExecutor</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">bench</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">();</span> <span class="p">[</span><span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]</span>           <span class="c1"># 串行</span>
+    <span class="n">serial</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">items</span><span class="p">))</span>
+    <span class="n">thread</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"串行 </span><span class="si">{</span><span class="n">serial</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">s  多线程 </span><span class="si">{</span><span class="n">thread</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">s  "</span>
+          <span class="sa">f</span><span class="s2">"加速 </span><span class="si">{</span><span class="n">serial</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">thread</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x"</span><span class="p">)</span>
+</code></pre></div></div>
+<p><strong>坑 2：多进程不能传 DataFrame</strong></p>
+<p><code>ProcessPoolExecutor</code> 会把参数<strong>序列化（pickle）</strong>后发给子进程。
+传一个 24MB 的 DataFrame，光是序列化就要几秒，而且内存翻倍。</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="c1"># ❌ 反例：把数据传过去</span>
+<span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+    <span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="p">[</span><span class="n">df1</span><span class="p">,</span> <span class="n">df2</span><span class="p">,</span> <span class="n">df3</span><span class="p">,</span> <span class="n">df4</span><span class="p">])</span>       <span class="c1"># 每个 df 都会被 pickle 一遍</span>
+
+<span class="c1"># ✅ 正例：把路径传过去，让子进程自己读</span>
+<span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+    <span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process_file</span><span class="p">,</span> <span class="p">[</span><span class="s2">"data/samples/adsl.csv"</span><span class="p">,</span>
+                          <span class="s2">"data/samples/adae.csv"</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div></div>
+<p>这也是为什么工具层应该<strong>接收路径/数据集名而不是 DataFrame</strong>
+（见第 20 章的工具契约）。</p>
+<p><strong>坑 3：并发度不是越大越好</strong></p>
+<p>临床数据处理的瓶颈常常是磁盘和内存。8 个进程同时读 24MB 的 XPT，
+可能比 4 个还慢（还要算上换页）。经验起点：<code>min(4, CPU 核数)</code>，然后实测调。</p>
+<h3 id="并发执行器">并发执行器</h3>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span>
+                 <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+                 <span class="n">on_task</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Task</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Plan</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""按层执行：同层并行，层间串行。"""</span>
+    <span class="n">plan</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">plan</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">tasks</span><span class="p">):</span>
+        <span class="n">ready</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer</span> <span class="k">if</span> <span class="n">all_deps_ok</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">plan</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ready</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ready</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">max_workers</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">:</span>
+                <span class="n">_run_one</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">on_task</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">max_workers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ready</span><span class="p">)))</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">_run_one</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">on_task</span><span class="p">),</span> <span class="n">ready</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">plan</span>
+</code></pre></div></div>
+<p>用线程池而不是进程池，是因为<strong>工具调用绝大多数时间在等 I/O</strong>
+（读文件、调 API）。需要进程级并行时再单独处理，不要一上来就上进程。</p>
+<hr />
+<h2 id="196-失败处理分错误类型不分心情">19.6 失败处理：分错误类型，不分心情</h2>
+<p>不同的失败要用不同的策略。<strong>在规划层做这个判断，不要在工具里做</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>错误类型</th>
+<th>例子</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validation</code></td>
+<td>参数写错了（LLM 的锅）</td>
+<td>不重试，把结构化错误回给模型让它改</td>
+</tr>
+<tr>
+<td><code>not_found</code></td>
+<td>数据集不存在</td>
+<td>不重试，标记 <code>skipped</code>，继续后面的</td>
+</tr>
+<tr>
+<td><code>transient</code></td>
+<td>网络超时、临时限流</td>
+<td>指数退避重试 2–3 次</td>
+</tr>
+<tr>
+<td><code>permission</code></td>
+<td>命中白名单外</td>
+<td>不重试，直接终止并告警</td>
+</tr>
+<tr>
+<td><code>internal</code></td>
+<td>代码 bug</td>
+<td>不重试，记录完整堆栈</td>
+</tr>
+</tbody>
+</table>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="n">RETRYABLE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"transient"</span><span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_run_one</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">Task</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">on_task</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">policy</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="s2">"done"</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">error_type</span> <span class="ow">in</span> <span class="n">RETRYABLE</span> <span class="ow">and</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">policy</span><span class="o">.</span><span class="n">max_retries</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">backoff_base</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>     <span class="c1"># 指数退避 2s, 4s, 8s</span>
+            <span class="k">continue</span>
+
+        <span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="s2">"failed"</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">error</span>
+        <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">on_task</span><span class="p">:</span>
+        <span class="n">on_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+</code></pre></div></div>
+<h3 id="部分失败必须显式汇总">部分失败必须显式汇总</h3>
+<p>这是最容易被忽略、后果最严重的一点：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">summarize</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"done"</span><span class="p">]</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"failed"</span><span class="p">]</span>
+    <span class="n">skipped</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"skipped"</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">failed</span><span class="p">:</span>
+        <span class="c1"># ⚠️ 绝不能说"检查完成" —— 必须说清楚哪几项没做</span>
+        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"完成 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项；"</span>
+                <span class="sa">f</span><span class="s2">"**</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项失败**（</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">title</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2">）；"</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">skipped</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项跳过。结论仅覆盖已完成部分。"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"全部 </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span><span class="si">}</span><span class="s2"> 项完成。"</span>
+</code></pre></div></div>
+<blockquote>
+<p>⚠️ <strong>临床场景的硬要求</strong>：报告里出现"部分失败"时，
+<strong>必须在结论的第一行就说清楚</strong>，不能让读者以为结果完整。
+一个"看起来完整但实际漏了 3 项检查"的报告，比一个"明确写着 3 项没跑"的报告
+危险得多 —— 前者会被当成完整证据使用。</p>
+</blockquote>
+<hr />
+<h2 id="197-什么时候该停下来问人hitl">19.7 什么时候该停下来问人（HITL）</h2>
+<p>Agent 自动化程度越高，越需要明确的<strong>人工确认点</strong>。判断标准是：
+<strong>这个动作做错了，能不能撤销？</strong></p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Python</span></div><div class="hl"><pre><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlanPolicy</span><span class="p">:</span>
+    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">backoff_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">hitl_before</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"write_report"</span><span class="p">,</span> <span class="s2">"write_xpt"</span><span class="p">,</span> <span class="s2">"send_summary"</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""命中这些工具时暂停，等待人工确认后才继续。"""</span>
+</code></pre></div></div>
+<p>实际效果：流水线跑到"写最终报告"这一步会停下来，把<strong>已完成的部分结果</strong>
+摆在你面前，你确认后才落盘。这比"全自动跑完然后你发现结论不对"好得多。</p>
+<hr />
+<h2 id="198-完整案例tlf-生成流水线">19.8 完整案例：TLF 生成流水线</h2>
+<p><code>cases/case10_TLF生成流水线.py</code> 把上面所有零件拼起来：</p>
+<div class="codeblock plain"><div class="cb-head"><span class="cb-lang">文本</span></div><div class="hl"><pre><code>【规划】把人月的工作排成 8 个任务
+   ├── T1 派生 ADSL           （依赖：无）
+   ├── T2 生成表1 人口学       （依赖：T1）
+   ├── T3 生成表2 AE 汇总      （依赖：T1）
+   ├── T4 生成表3 实验室移位   （依赖：T1）
+   ├── T5 生成表4 生命体征     （依赖：T1）
+   ├── T6 汇总质量检查         （依赖：无）
+   ├── T7 合并导出             （依赖：T2,T3,T4,T5,T6）
+   └── T8 写审计日志           （依赖：T7）
+
+【拓扑分层】
+   L0: T1, T6          ← 两个独立起点，并行
+   L1: T2, T3, T4, T5  ← 四张表并行
+   L2: T7
+   L3: T8
+
+【执行】4 并发 · 失败按类型处理 · 命中 write_report 时暂停等确认
+【汇总】"完成 8/8，用时 3.4s，无失败项"
+</code></pre></div></div>
+<p>运行：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">Shell</span></div><div class="hl"><pre><code>python<span class="w"> </span>cases/case10_TLF生成流水线.py<span class="w">                    </span><span class="c1"># 4 并发</span>
+python<span class="w"> </span>cases/case10_TLF生成流水线.py<span class="w"> </span>--workers<span class="w"> </span><span class="m">1</span><span class="w">        </span><span class="c1"># 对照：串行</span>
+python<span class="w"> </span>cases/case10_TLF生成流水线.py<span class="w"> </span>--fail<span class="w"> </span>t3<span class="w">          </span><span class="c1"># 故意让一个任务失败，看汇总</span>
+python<span class="w"> </span>cases/case10_TLF生成流水线.py<span class="w"> </span>--dry-run<span class="w">          </span>#<span class="w"> </span>只打印计划，不执行
+</code></pre></div></div>
+<hr />
+<h2 id="199-与-sas-的对照">19.9 与 SAS 的对照</h2>
+<p>SAS 里做同样的事，通常是这么写的：</p>
+<div class="codeblock"><div class="cb-head"><span class="cb-lang">SAS</span></div><div class="hl"><pre><code><span class="c">/* SAS 的"任务调度"通常就是按顺序跑 */</span>
+<span class="nf">%include</span> <span class="s">"01_adsl.sas"</span>;
+<span class="nf">%include</span> <span class="s">"02_table1.sas"</span>;
+<span class="nf">%include</span> <span class="s">"03_table2.sas"</span>;
+<span class="nf">%include</span> <span class="s">"04_table3.sas"</span>;
+<span class="nf">%include</span> <span class="s">"05_export.sas"</span>;
+</code></pre></div></div>
+<p>差异在哪：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>SAS 顺序 <code>%include</code></th>
+<th>DAG 调度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>依赖关系</td>
+<td>靠<strong>文件顺序</strong>隐含表达</td>
+<td><strong>显式声明</strong>在 <code>depends_on</code> 里</td>
+</tr>
+<tr>
+<td>并行</td>
+<td>基本没有（或手工开多个会话）</td>
+<td>同层自动并行</td>
+</tr>
+<tr>
+<td>失败处理</td>
+<td>后面继续跑（可能拿旧数据算）</td>
+<td>依赖失败 → 下游标记 <code>skipped</code>，不拿脏数据</td>
+</tr>
+<tr>
+<td>断点续跑</td>
+<td>手工注释掉跑过的部分</td>
+<td>状态序列化，<code>--resume</code></td>
+</tr>
+<tr>
+<td>漏跑</td>
+<td>只能靠人肉核对日志</td>
+<td>清单断言 + 汇总报告</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 最值得注意的一行是<strong>"失败处理"</strong>：
+SAS 脚本里一个 <code>%include</code> 失败了，后面往往还会继续跑，
+用上一次的中间数据集算出"看起来正常"的结果。
+DAG 调度把这件事变成显式的：<strong>依赖没成功，下游就不跑，并且汇总里明写"跳过"</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="1910-常见误区">19.10 常见误区</h2>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>后果</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务里放函数引用</td>
+<td>计划无法序列化/重放</td>
+<td>只放 <code>tool</code> 名 + <code>args</code></td>
+</tr>
+<tr>
+<td>不做环检测</td>
+<td>死循环或栈溢出</td>
+<td>执行前跑拓扑排序</td>
+</tr>
+<tr>
+<td>把所有任务都并行</td>
+<td>抢内存、抢磁盘，反而更慢</td>
+<td>按层并行，并发度实测</td>
+</tr>
+<tr>
+<td>多进程传 DataFrame</td>
+<td>序列化开销吃掉全部收益</td>
+<td>传路径</td>
+</tr>
+<tr>
+<td>失败就整个中止</td>
+<td>前面 20 分钟白跑</td>
+<td>分类处理，<code>optional</code> 任务可跳过</td>
+</tr>
+<tr>
+<td>静默跳过失败项</td>
+<td><strong>报告看起来完整但实际缺失</strong></td>
+<td>汇总第一行就说清失败项</td>
+</tr>
+<tr>
+<td>计划一次定死</td>
+<td>中途数据变了还在按老计划跑</td>
+<td>留重规划入口</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1911-本章小结">19.11 本章小结</h2>
+<ol>
+<li><strong>规划买到的是"完整性可验证"</strong> —— 清单对不上能立刻发现</li>
+<li><strong>粒度 = 一次工具调用</strong> —— 更细浪费，更粗失去调度价值</li>
+<li><strong>任务只描述"做什么"，不持有函数</strong> —— 保证可序列化与可重放</li>
+<li><strong>拓扑排序 + 分层</strong> —— 有环就报错，同层就并行</li>
+<li><strong>并行要实测</strong> —— pandas 世界里的加速比和直觉差别很大</li>
+<li><strong>部分失败必须显式汇总</strong> —— 这是临床场景的红线</li>
+</ol>
+<p><strong>下一章</strong>：工具契约怎么设计，才能让 LLM 少犯错、让错误可修复。</p>
+<hr />
+<h2 id="1912-动手练习">19.12 动手练习</h2>
+<ol>
+<li>跑 <code>case10</code> 的 <code>--workers 1</code> 与 <code>--workers 4</code> 两种模式，
+   记录用时。<strong>换做 <code>--workers 8</code> 再试一次</strong> —— 观察是否变慢，想想为什么。</li>
+<li>给 <code>case10</code> 增加一个任务 <code>T9</code>，让它依赖 <code>T3</code> 和 <code>T4</code>，
+   然后故意写成依赖 <code>T9</code> 自己 —— 确认 <code>PlanCycleError</code> 正确报出。</li>
+<li>把 <code>levels()</code> 的结果画成 Mermaid 图打印出来（提示：用 <code>graph TD</code> 语法）。</li>
+<li>在 <code>_run_one</code> 里加一个"同一任务连续失败 3 次则跳过"的规则，
+   并让 <code>summarize()</code> 在汇总里体现出来。</li>
+<li><strong>思考题</strong>：如果监管要求"每次生成的 TLF 必须逐字节一致"，
+   并行会不会破坏这个要求？该怎么处理？</li>
+</ol></article>
+<nav class="pager"><a class="pg-prev" href="18.html"><span class="pg-label">← 上一篇</span><span class="pg-title">Agent 架构设计</span></a><a class="pg-next" href="20.html"><span class="pg-label">下一篇 →</span><span class="pg-title">工具调用进阶：契约、校验与边界</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>

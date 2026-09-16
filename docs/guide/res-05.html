@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 开发与 LLM 工程资料</title>
+<meta name="description" content="Agent 开发与 LLM 资料 — 临床 Python 进阶路线图">
+<meta name="author" content="jinbeiwang">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agent 开发与 LLM 工程资料">
+<meta property="og:description" content="Agent 开发与 LLM 资料 — 临床 Python 进阶路线图">
+<meta property="og:site_name" content="临床 Python 进阶路线图">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+<script>(function(){try{var t=localStorage.getItem("cpr-theme");if(!t){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/style.css?v=c1eb1978">
+</head>
+<body data-base="../" data-page="guide/res-05.html">
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="打开目录">☰</button>
+  <a class="brand" href="../index.html">
+    <span class="logo">Py</span>
+    <span>临床 Python 进阶路线图</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="searchInput" type="search" placeholder="搜索章节与小节…" autocomplete="off" spellcheck="false" aria-label="站内搜索">
+    <span class="s-icon">⌕</span>
+    <kbd>/</kbd>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" title="切换深浅色">☾</button>
+  <a class="icon-btn" href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+  <div class="page-head"><div class="crumb"><a href="../index.html">路线图</a> <span>›</span> 速查与资料</div><h1>Agent 开发与 LLM 工程资料</h1><div class="page-actions"><a href="https://github.com/jinbeiwang/clinical-python-roadmap/blob/master/resources/05-Agent%E5%BC%80%E5%8F%91%E4%B8%8ELLM%E8%B5%84%E6%96%99.md" target="_blank" rel="noopener">在 GitHub 上查看源文件</a></div></div>
+  <article class="markdown" id="content"><blockquote>
+<p>目标读者：<strong>会写 Python、要做出能上线、能审计的 Agent</strong> 的临床统计程序员。</p>
+<p>这一份<strong>刻意不收录</strong>"最新最强的模型榜单""提示词技巧合集"这类内容 ——
+它们半年就过时。只收录那些<strong>方法层面的、几年后仍然成立</strong>的东西，
+以及<strong>与受监管环境相关的</strong>官方材料。</p>
+<p>⚠️ 外部链接会长草、会搬家。看到链接打不开时，用标题当关键词搜一次即可。</p>
+</blockquote>
+<hr />
+<h2 id="0-先建立判断力四份必读">0. 先建立判断力：四份必读</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>为什么值得看</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong><a href="https://www.anthropic.com/engineering/building-effective-agents">Building Effective Agents</a></strong></td>
+<td>目前把"什么时候该用 Agent、什么时候用工作流就够了"讲得最清楚的一份。<strong>核心结论是"能用简单方案就别上 Agent"</strong> —— 这与本项目第 22 章"先证明单 Agent 不够用"完全一致</td>
+</tr>
+<tr>
+<td>🟢 <strong><a href="https://modelcontextprotocol.io/">Model Context Protocol</a></strong></td>
+<td>工具/上下文接入的开放标准。理解"工具契约 + 传输层解耦"这件事，比记某个框架的 API 有用得多</td>
+</tr>
+<tr>
+<td>🟢 <strong><a href="https://12factor.net/">Twelve-Factor App</a></strong></td>
+<td>第 24 章配置管理那一节的理论来源。<strong>环境变量优先、配置与代码分离</strong> —— 二十年前的原则，今天一样管用</td>
+</tr>
+<tr>
+<td>🟢 <strong><a href="https://genai.owasp.org/llm-top-10/">OWASP Top 10 for LLM Applications</a></strong></td>
+<td>把"提示词注入、过度授权、敏感信息泄漏"等风险系统化列出。做安全评审时直接当检查表用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 阅读顺序建议：先读第一份。<strong>它会让你少写很多不必要的 Agent。</strong></p>
+</blockquote>
+<hr />
+<h2 id="1-agent-工程化对应第-1824-章">1. Agent 工程化（对应第 18–24 章）</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>对应章节</th>
+<th>怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://platform.openai.com/docs/guides/function-calling">OpenAI 结构化输出 / Function Calling 文档</a></td>
+<td>20</td>
+<td>看"工具定义长什么样"的官方范本。★ 注意 <strong>strict 模式与 JSON Schema 的约束</strong>，与第 20 章的契约自检清单对照</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://docs.pydantic.dev/">Pydantic 文档</a></td>
+<td>20 / 24</td>
+<td>接口校验与配置管理的事实标准。本仓库 <code>clinic/config.py</code> 的接口就是照它的 <code>BaseSettings</code> 设计的</td>
+</tr>
+<tr>
+<td>🟢 <a href="https://langchain-ai.github.io/langgraph/">LangGraph 文档</a></td>
+<td>19</td>
+<td>把 Agent 表达成<strong>图/状态机</strong>的主流实现。★ 重点看"状态、中断、恢复"三节 —— 这正是第 19 章 DAG 与断点恢复要解决的问题</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/">OpenTelemetry · GenAI 语义约定</a></td>
+<td>24</td>
+<td>想把 <code>request_id</code>、token、工具调用做成<strong>跨系统标准遥测</strong>时看它</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://opentelemetry-python.readthedocs.io/">OpenTelemetry Python</a></td>
+<td>24</td>
+<td>从"进程内指标"升级到"可查询的集中监控"时看</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://redis.io/docs/latest/">Redis 文档</a></td>
+<td>24</td>
+<td>长任务状态为什么不能放内存字典（第 24.2 节）。看它的 TTL 与持久化策略</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-评估与测试最容易被跳过的一步">2. 评估与测试（最容易被跳过的一步）</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://www.promptfoo.dev/docs/">promptfoo</a></td>
+<td>把评估集接进 CI 的现成工具，支持"断言 + 对比不同版本"。<strong>本仓库第 24 章评估集的工业版</strong></td>
+</tr>
+<tr>
+<td>🔵 <a href="https://docs.ragas.io/">Ragas</a></td>
+<td>检索增强（RAG）场景的专项指标。★ 注意它有些指标依赖 LLM 裁判 —— 回到第 24.5 节的取舍：<strong>能用断言的用断言</strong></td>
+</tr>
+<tr>
+<td>🔵 <a href="https://docs.confident-ai.com/">DeepEval</a></td>
+<td>另一套 LLM 评估框架，指标覆盖更广</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://docs.pytest.org/">pytest 文档</a></td>
+<td>领域层的单元测试（第 17 章）。<strong>Agent 的评估集不能替代工具函数的单元测试</strong>，两者都要有</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 一个务实的顺序：<strong>先用纯断言把评估集跑起来</strong>（哪怕只有 5 个用例），
+再考虑引入框架。反过来做，通常会在"选框架"上耗掉全部热情。</p>
+</blockquote>
+<hr />
+<h2 id="3-临床--受监管场景的-ai">3. 临床 / 受监管场景的 AI</h2>
+<p>这一块<strong>变化最快</strong>，也<strong>最不能靠二手信息</strong>。请直接看官方原文。</p>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <a href="https://www.fda.gov/science-research/science-and-research-special-topics/artificial-intelligence-drug-development">FDA · 药品与生物制品开发中 AI 的使用</a></td>
+<td>FDA 关于 AI 用于监管决策的官方页面与指南入口。<strong>以"可信度框架"（context of use + risk-based credibility assessment）为核心思路</strong></td>
+</tr>
+<tr>
+<td>🟢 <a href="https://www.cdisc.org/">CDISC 官网</a></td>
+<td>关注其在 AI / 机器学习方向的倡议与白皮书。<strong>标准怎么定，决定工具怎么写</strong></td>
+</tr>
+<tr>
+<td>🟢 <a href="https://phuse.global/">PHUSE 工作组</a></td>
+<td>找"行业共识"最实用的地方。看 <strong>AI/ML、Data Transparency、自动化</strong> 相关工作组的最新交付物</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI Risk Management Framework</a></td>
+<td>风险管理的通用框架。做内部风险评估文档时的参考骨架</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai">EU AI Act 官方页面</a></td>
+<td>若涉及欧洲递交，需了解其风险分级思路</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>务必记住的边界</strong>（与本项目 README 的合规提醒一致）：
+这些材料告诉你"监管在想什么"，<strong>不构成合规建议</strong>。
+真正落地要看你项目的 SAP、公司 SOP 与所在辖区的最新要求。</p>
+<p>而且最重要的那条不会写在任何指南里：
+<strong>无论自动化到什么程度，最终对递交物负责的仍然是人。</strong></p>
+</blockquote>
+<hr />
+<h2 id="4-参照实现看别人怎么写生产级-agent">4. 参照实现：看别人怎么写生产级 Agent</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔵 <a href="https://github.com/cdisc-org/cdisc-rules-engine">CDISC CORE（规则引擎）</a></td>
+<td>官方开源的一致性规则引擎（Python）。★ <strong>看它的规则集怎么组织</strong> —— 这是"把 SOP 变成可执行代码"的现实范例</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/phuse-org/OSTCDA">phuse-org/OSTCDA</a></td>
+<td>SAS / R / Python 实现同一张表并比对。<strong>"双编程"思路的行业实现</strong>（对应第 22 章）</td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/atorus-research">atorus-research</a></td>
+<td>多个生产级临床统计 R/Python 包。看它们的<strong>测试组织方式</strong>与<strong>文档结构</strong></td>
+</tr>
+<tr>
+<td>🔵 <a href="https://github.com/phuse-org/phuse-scripts">phuse-org/phuse-scripts</a></td>
+<td>大量可直接读的临床数据处理脚本</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-一句话总结这一份资料">5. 一句话总结这一份资料</h2>
+<blockquote>
+<p><strong>Agent 的难点不在模型，在工程。</strong></p>
+<p>你在第 18–24 章学到的那些东西 ——
+分层与契约、预算与收尾、状态与恢复、独立性与分级、
+超时与水位线、配置自检与评估集 ——
+没有一条是"提示词技巧"，但每一条都决定它能不能被<strong>放心使用</strong>。</p>
+<p>上面这些外部资源的用处，是帮你把这些原则<strong>放回行业语境里</strong>，
+看看成熟的团队是怎么落实的。</p>
+</blockquote>
+<hr />
+<h2 id="与本仓库的对应关系">与本仓库的对应关系</h2>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>主题</th>
+<th>本文件中的对应资源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="18.html">18</a></td>
+<td>Agent 架构设计</td>
+<td>0. 四份必读</td>
+</tr>
+<tr>
+<td><a href="19.html">19</a></td>
+<td>任务规划与调度</td>
+<td>1. LangGraph（状态 / 中断 / 恢复）</td>
+</tr>
+<tr>
+<td><a href="20.html">20</a></td>
+<td>工具调用进阶</td>
+<td>1. Function Calling / Pydantic</td>
+</tr>
+<tr>
+<td><a href="21.html">21</a></td>
+<td>记忆与上下文管理</td>
+<td>2. Ragas（注意 LLM 裁判的取舍）</td>
+</tr>
+<tr>
+<td><a href="22.html">22</a></td>
+<td>多 Agent 协作</td>
+<td>4. OSTCDA 的双编程实现</td>
+</tr>
+<tr>
+<td><a href="23.html">23</a></td>
+<td>外部 API 与服务集成</td>
+<td>0. MCP / OWASP LLM Top 10</td>
+</tr>
+<tr>
+<td><a href="24.html">24</a></td>
+<td>部署与监控</td>
+<td>1. OTel GenAI / Redis；2. promptfoo</td>
+</tr>
+<tr>
+<td>合规</td>
+<td>受监管场景</td>
+<td>3. FDA / CDISC / PHUSE</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>返回</strong> → <a href="resources.html">资料索引总览</a> · <a href="../index.html">项目主页</a></p></article>
+<nav class="pager"><a class="pg-prev" href="res-04.html"><span class="pg-label">← 上一篇</span><span class="pg-title">Python 学习资源与工具链</span></a><a class="pg-next" href="../code/case01.html"><span class="pg-label">下一篇 →</span><span class="pg-title">数据体检</span></a></nav>
+</main>
+<aside class="toc" id="toc"></aside>
+</div>
+<footer class="site-footer">
+  <p><strong>临床统计程序员的 Python 进阶路线图</strong> · MIT License · 内容基于 CDISC 公开的
+     <a href="https://github.com/cdisc-org/sdtm-adam-pilot-project" target="_blank" rel="noopener">SDTM/ADaM Pilot Project</a>
+     （CDISCPILOT01）真实数据。</p>
+  <p>所有代码与数字均在本机实测复现，可直接 <code>git clone</code> 后离线运行。
+     <a href="https://github.com/jinbeiwang/clinical-python-roadmap" target="_blank" rel="noopener">在 GitHub 上查看 / 提交 Issue</a></p>
+</footer>
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="overlay" id="overlay"></div>
+<script src="../assets/nav-data.js"></script>
+<script src="../assets/app.js?v=d227960b"></script>
+</body>
+</html>
